@@ -1,0 +1,36 @@
+default_platform(:android)
+
+# Package name per flavor — must match Android applicationId in app/build.gradle.kts.
+PACKAGE_NAMES = {
+  "dev" => "com.consteon.jagasaku.dev",
+  "stg" => "com.consteon.jagasaku.stg",
+  "prd" => "com.consteon.jagasaku"
+}.freeze
+
+def package_for(flavor)
+  PACKAGE_NAMES.fetch(flavor) { UI.user_error!("Unknown flavor: #{flavor}. Use one of #{PACKAGE_NAMES.keys.join(', ')}") }
+end
+
+platform :android do
+  desc "Upload an AAB to Google Play Console (default track: internal)"
+  lane :upload_play do |options|
+    flavor = options[:flavor] or UI.user_error!("Missing flavor: parameter")
+    aab_path = options[:aab_path] or UI.user_error!("Missing aab_path: parameter")
+    track = options[:track] || "internal"
+    json_key = ENV["SUPPLY_JSON_KEY"] or UI.user_error!("Missing SUPPLY_JSON_KEY env var")
+
+    upload_to_play_store(
+      package_name: package_for(flavor),
+      track: track,
+      aab: aab_path,
+      json_key: json_key,
+      release_status: "draft",                # promote manually in Play Console
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      validate_only: false
+    )
+  end
+end

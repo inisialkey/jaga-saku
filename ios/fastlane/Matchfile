@@ -1,0 +1,10 @@
+git_url(ENV["MATCH_GIT_URL"])
+storage_mode("git")
+type("appstore")
+app_identifier([
+  "com.consteon.jagasaku.dev",
+  "com.consteon.jagasaku.stg",
+  "com.consteon.jagasaku"
+])
+team_id("S7FN6K8996")
+readonly(true)

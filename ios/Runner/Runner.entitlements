@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- APNs environment for push notifications. Use "development" for debug /
+	     ad-hoc and "production" for App Store / TestFlight release builds.
+	     Xcode's "Push Notifications" capability manages this automatically when
+	     toggled in Signing & Capabilities; this file is the source of truth. -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

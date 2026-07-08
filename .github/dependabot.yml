@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # Dart / Flutter packages (pubspec.yaml). A starter that others fork benefits
+  # from automated dependency PRs.
+  - package-ecosystem: "pub"
+    directory: "/"
+    # GitFlow: dependency PRs target the integration branch, not main.
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+
+  # GitHub Actions used by the CI workflow.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"

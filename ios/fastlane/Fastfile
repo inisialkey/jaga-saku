@@ -1,0 +1,51 @@
+default_platform(:ios)
+
+# Bundle identifier per flavor — must match Xcode build configurations + Match certs.
+BUNDLE_IDS = {
+  "dev" => "com.consteon.jagasaku.dev",
+  "stg" => "com.consteon.jagasaku.stg",
+  "prd" => "com.consteon.jagasaku"
+}.freeze
+
+def bundle_id_for(flavor)
+  BUNDLE_IDS.fetch(flavor) { UI.user_error!("Unknown flavor: #{flavor}. Use one of #{BUNDLE_IDS.keys.join(', ')}") }
+end
+
+def asc_api_key
+  app_store_connect_api_key(
+    key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+    issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+    key_content: ENV["APP_STORE_CONNECT_API_KEY_CONTENT"],
+    is_key_content_base64: true,
+    duration: 1200,
+    in_house: false
+  )
+end
+
+platform :ios do
+  desc "Install certs and profiles via Match (read-only) using App Store Connect API key"
+  lane :setup_signing do |options|
+    flavor = options[:flavor] or UI.user_error!("Missing flavor: parameter")
+    setup_ci(provider: "azure") if ENV["CI"]
+    match(
+      type: "appstore",
+      app_identifier: bundle_id_for(flavor),
+      readonly: true,
+      api_key: asc_api_key
+    )
+  end
+
+  desc "Upload an IPA to TestFlight"
+  lane :upload_testflight do |options|
+    flavor = options[:flavor] or UI.user_error!("Missing flavor: parameter")
+    ipa_path = options[:ipa_path] or UI.user_error!("Missing ipa_path: parameter")
+    pilot(
+      api_key: asc_api_key,
+      app_identifier: bundle_id_for(flavor),
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: true,
+      skip_submission: true,
+      changelog: options[:changelog] || "Build #{ENV['BUILD_BUILDID']} from #{ENV['BUILD_SOURCEBRANCHNAME']}"
+    )
+  end
+end

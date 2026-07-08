@@ -1,0 +1,206 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop, 'release/**']
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-test:
+    name: Analyze · Format · Test · Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Flutter version from .fvmrc
+        id: fvm
+        run: echo "version=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm.outputs.version }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Code generation (freezed / json / hive / mocks)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      # Fail fast if intl_en.arb / intl_id.arb drift out of key parity (Rule 11).
+      - name: ARB key parity
+        run: dart run scripts/check_arb_parity.dart
+
+      - name: Localization
+        run: flutter gen-l10n
+
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed lib test tool
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Tests + coverage
+        run: flutter test --coverage --exclude-tags broken
+
+      # Coverage gate. Generated/mocks excluded so the number reflects hand-written code.
+      # Floor is intentionally modest (UI/widget tests are sparse in the starter) —
+      # raise min_coverage as you add widget/integration tests.
+      - name: Coverage gate
+        uses: VeryGoodOpenSource/very_good_coverage@v3
+        with:
+          path: coverage/lcov.info
+          min_coverage: 40
+          exclude: '**/*.g.dart **/*.freezed.dart **/*.mocks.dart **/*.config.dart **/generated/**'
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build-dev:
+    name: Build dev APK
+    runs-on: ubuntu-latest
+    needs: analyze-test
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Flutter version from .fvmrc
+        id: fvm
+        run: echo "version=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm.outputs.version }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Code generation (freezed / json / hive / mocks)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Localization
+        run: flutter gen-l10n
+
+      # The dev flavor applies the google-services Gradle plugin, which refuses
+      # to build without a google-services.json. The real one is git-ignored, so
+      # write a structurally-valid PLACEHOLDER matching the dev applicationId —
+      # enough to compile; no real Firebase credentials needed (the app is not
+      # run here, only built).
+      - name: Write placeholder google-services.json
+        run: |
+          cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "ci-placeholder",
+              "storage_bucket": "ci-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.example.cleanstarter.dev"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  { "current_key": "AIzaSyA0000000000000000000000000000000000" }
+                ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+
+      # Catches Gradle / manifest / flavor / plugin breakage that the Dart-only
+      # analyze-test job can't (e.g. the build.gradle.kts + desugaring fixes).
+      - name: Build dev APK (debug)
+        run: flutter build apk --flavor dev --debug --dart-define-from-file=.env.dev.json
+
+  build-ios:
+    name: Build dev iOS
+    runs-on: macos-latest
+    needs: analyze-test
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Flutter version from .fvmrc
+        id: fvm
+        run: echo "version=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm.outputs.version }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Code generation (freezed / json / hive / mocks)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Localization
+        run: flutter gen-l10n
+
+      # The dev flavor's Xcode "Copy GoogleService-Info.plist" build phase reads
+      # ios/config/dev/GoogleService-Info.plist and hard-fails if it's missing.
+      # The real plist is git-ignored, so write a structurally-valid PLACEHOLDER
+      # — enough to compile (the app is not run here, only built).
+      - name: Write placeholder GoogleService-Info.plist
+        run: |
+          mkdir -p ios/config/dev
+          cat > ios/config/dev/GoogleService-Info.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>API_KEY</key><string>AIzaSyA0000000000000000000000000000000000</string>
+            <key>GCM_SENDER_ID</key><string>000000000000</string>
+            <key>BUNDLE_ID</key><string>com.example.cleanstarter.dev</string>
+            <key>PROJECT_ID</key><string>ci-placeholder</string>
+            <key>STORAGE_BUCKET</key><string>ci-placeholder.appspot.com</string>
+            <key>IS_ADS_ENABLED</key><false/>
+            <key>IS_ANALYTICS_ENABLED</key><false/>
+            <key>IS_APPINVITE_ENABLED</key><true/>
+            <key>IS_GCM_ENABLED</key><true/>
+            <key>IS_SIGNIN_ENABLED</key><true/>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
+          </dict>
+          </plist>
+          PLIST
+
+      # Flutter 3.44 enables Swift Package Manager by default, but this project
+      # uses CocoaPods — Firebase Crashlytics' Xcode run-script references the
+      # Pods path, which SPM resolution breaks. Keep iOS on CocoaPods.
+      - name: Use CocoaPods (disable Swift Package Manager)
+        run: flutter config --no-enable-swift-package-manager
+
+      # Catches CocoaPods / Swift / Xcode / plugin breakage the Android-only
+      # build can't. --no-codesign: no signing certs/provisioning needed in CI.
+      - name: Build dev iOS (debug, no codesign)
+        run: flutter build ios --flavor dev --debug --no-codesign --dart-define-from-file=.env.dev.json

@@ -1,0 +1,7 @@
+{
+  "success": false,
+  "message": "Invalid email or password.",
+  "errors": null,
+  "error_code": "AUTH_INVALID_CREDENTIALS",
+  "request_id": "req_login_401"
+}
