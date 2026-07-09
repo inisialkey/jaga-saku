@@ -1,8 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:jaga_saku/dependencies_injection.dart';
+import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
+import 'package:jaga_saku/features/accounts/pages/form/account_form_cubit.dart';
+import 'package:jaga_saku/features/accounts/pages/form/account_form_page.dart';
+import 'package:jaga_saku/features/accounts/pages/list/account_list_cubit.dart';
+import 'package:jaga_saku/features/accounts/pages/list/account_list_page.dart';
 import 'package:jaga_saku/features/add_transaction/add_transaction_page.dart';
 import 'package:jaga_saku/features/calendar/calendar_page.dart';
+import 'package:jaga_saku/features/categories/pages/form/category_form_cubit.dart';
+import 'package:jaga_saku/features/categories/pages/form/category_form_page.dart';
+import 'package:jaga_saku/features/categories/pages/list/category_list_cubit.dart';
+import 'package:jaga_saku/features/categories/pages/list/category_list_page.dart';
 import 'package:jaga_saku/features/home/home_page.dart';
 import 'package:jaga_saku/features/insight/insight_page.dart';
 import 'package:jaga_saku/features/more/more_page.dart';
@@ -18,6 +29,12 @@ class AppRoute {
   static const String insight = '/insight';
   static const String more = '/more';
   static const String add = '/add';
+
+  // Master-data detail screens (M1) — full-screen, pushed on the root navigator.
+  static const String accounts = '/accounts';
+  static const String accountForm = '/accounts/form';
+  static const String categories = '/categories';
+  static const String categoryForm = '/categories/form';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -67,6 +84,62 @@ final GoRouter appRouter = GoRouter(
       path: AppRoute.add,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (_, _) => const AddTransactionPage(),
+    ),
+    // ── Accounts (M1) ────────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.accounts,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => AccountListCubit(
+          getAccounts: sl(),
+          deleteAccount: sl(),
+          archiveAccount: sl(),
+          reorderAccounts: sl(),
+        )..load(),
+        child: const AccountListPage(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.accountForm,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) => BlocProvider(
+        create: (_) => AccountFormCubit(
+          saveAccount: sl(),
+          initial: state.extra as Account?,
+        ),
+        child: const AccountFormPage(),
+      ),
+    ),
+    // ── Categories (M1) ──────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.categories,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => CategoryListCubit(
+          getCategories: sl(),
+          deleteCategory: sl(),
+          archiveCategory: sl(),
+          reorderCategories: sl(),
+        )..load(),
+        child: const CategoryListPage(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.categoryForm,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) {
+        final args = state.extra as CategoryFormArgs?;
+        return BlocProvider(
+          create: (_) => CategoryFormCubit(
+            saveCategory: sl(),
+            getCategories: sl(),
+            initial: args?.category,
+            presetType: args?.presetType,
+            presetParentId: args?.presetParentId,
+          )..loadParents(),
+          child: const CategoryFormPage(),
+        );
+      },
     ),
   ],
 );

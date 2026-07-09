@@ -19,6 +19,10 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # Rounded, offline icon font for category / account icons (style guide §12).
+  # Resolved via the shared AppIcons catalog (lib/core/resources/app_icons.dart).
+  iconsax: ^0.0.8
+
   # Open external URLs (e.g. Play Store / App Store listings from settings later)
   url_launcher: ^6.3.0
 
