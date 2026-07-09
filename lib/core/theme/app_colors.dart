@@ -1,133 +1,51 @@
 import 'package:flutter/material.dart';
 
-/// Custom theme extension carrying the app's semantic color palette.
+/// Raw brand + neutral + semantic color constants (style guide §4).
 ///
-/// Registered via `ThemeData.extensions` in [themeLight] / [themeDark] and read
-/// in widgets with `Theme.of(context).extension<AppColors>()`.
-class AppColors extends ThemeExtension<AppColors> {
-  final Color? background;
-  final Color? banner;
-  final Color? card;
-  final Color? buttonText;
-  final Color? subtitle;
-  final Color? shadow;
-  final Color? green;
-  final Color? roseWater;
-  final Color? flamingo;
-  final Color? pink;
-  final Color? mauve;
-  final Color? maroon;
-  final Color? peach;
-  final Color? yellow;
-  final Color? teal;
-  final Color? sky;
-  final Color? sapphire;
-  final Color? blue;
-  final Color? lavender;
-  final Color? red;
-  final Color? textOnGradient;
+/// These are the source of truth for the theme. Widgets should NOT read these
+/// directly for semantic finance colors — go through the [AppPalette] theme
+/// extension (`context.colors`) so light/dark resolves automatically. Static
+/// constants here are for building [ThemeData] and for the fixed brand green.
+class AppColors {
+  AppColors._();
 
-  const AppColors({
-    this.background,
-    this.banner,
-    this.card,
-    this.buttonText,
-    this.subtitle,
-    this.shadow,
-    this.green,
-    this.roseWater,
-    this.flamingo,
-    this.pink,
-    this.mauve,
-    this.maroon,
-    this.peach,
-    this.yellow,
-    this.teal,
-    this.sapphire,
-    this.sky,
-    this.blue,
-    this.lavender,
-    this.red,
-    this.textOnGradient,
-  });
+  // ── Primary (brand green) ────────────────────────────────────────────────
+  static const Color primary = Color(0xFF16A34A);
+  static const Color primaryDark = Color(0xFF15803D);
+  static const Color primaryLight = Color(0xFFDCFCE7);
 
-  @override
-  ThemeExtension<AppColors> copyWith({
-    Color? background,
-    Color? banner,
-    Color? card,
-    Color? buttonText,
-    Color? subtitle,
-    Color? shadow,
-    Color? green,
-    Color? roseWater,
-    Color? flamingo,
-    Color? pink,
-    Color? mauve,
-    Color? maroon,
-    Color? peach,
-    Color? yellow,
-    Color? teal,
-    Color? sky,
-    Color? sapphire,
-    Color? blue,
-    Color? lavender,
-    Color? red,
-    Color? textOnGradient,
-  }) => AppColors(
-    background: background ?? this.background,
-    banner: banner ?? this.banner,
-    card: card ?? this.card,
-    buttonText: buttonText ?? this.buttonText,
-    subtitle: subtitle ?? this.subtitle,
-    shadow: shadow ?? this.shadow,
-    green: green ?? this.green,
-    roseWater: roseWater ?? this.roseWater,
-    flamingo: flamingo ?? this.flamingo,
-    pink: pink ?? this.pink,
-    mauve: mauve ?? this.mauve,
-    maroon: maroon ?? this.maroon,
-    peach: peach ?? this.peach,
-    yellow: yellow ?? this.yellow,
-    teal: teal ?? this.teal,
-    sky: sky ?? this.sky,
-    sapphire: sapphire ?? this.sapphire,
-    blue: blue ?? this.blue,
-    lavender: lavender ?? this.lavender,
-    red: red ?? this.red,
-    textOnGradient: textOnGradient ?? this.textOnGradient,
-  );
+  // ── Semantic ─────────────────────────────────────────────────────────────
+  static const Color income = Color(0xFF22C55E);
+  static const Color expense = Color(0xFFEF4444);
+  static const Color transfer = Color(0xFF3B82F6);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color critical = Color(0xFFDC2626);
+  static const Color info = Color(0xFF0EA5E9);
+  static const Color success = Color(0xFF16A34A);
 
-  @override
-  ThemeExtension<AppColors> lerp(
-    covariant ThemeExtension<AppColors>? other,
-    double t,
-  ) {
-    if (other is! AppColors) {
-      return this;
-    }
-    return AppColors(
-      banner: Color.lerp(banner, other.banner, t),
-      background: Color.lerp(background, other.background, t),
-      card: Color.lerp(card, other.card, t),
-      buttonText: Color.lerp(buttonText, other.buttonText, t),
-      subtitle: Color.lerp(subtitle, other.subtitle, t),
-      shadow: Color.lerp(shadow, other.shadow, t),
-      green: Color.lerp(green, other.green, t),
-      roseWater: Color.lerp(roseWater, other.roseWater, t),
-      flamingo: Color.lerp(flamingo, other.flamingo, t),
-      pink: Color.lerp(pink, other.pink, t),
-      mauve: Color.lerp(mauve, other.mauve, t),
-      maroon: Color.lerp(maroon, other.maroon, t),
-      peach: Color.lerp(peach, other.peach, t),
-      yellow: Color.lerp(yellow, other.yellow, t),
-      teal: Color.lerp(teal, other.teal, t),
-      sapphire: Color.lerp(sapphire, other.sapphire, t),
-      blue: Color.lerp(blue, other.blue, t),
-      lavender: Color.lerp(lavender, other.lavender, t),
-      sky: Color.lerp(sky, other.sky, t),
-      red: Color.lerp(red, other.red, t),
-      textOnGradient: Color.lerp(textOnGradient, other.textOnGradient, t),
-    );
-  }
+  // ── Neutrals — light ─────────────────────────────────────────────────────
+  static const Color background = Color(0xFFF8FAFC);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceSoft = Color(0xFFF1F5F9);
+  static const Color border = Color(0xFFE2E8F0);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF64748B);
+  static const Color textTertiary = Color(0xFF94A3B8);
+  static const Color disabled = Color(0xFFCBD5E1);
+
+  // ── Neutrals — dark (style guide §21: never pure black) ──────────────────
+  static const Color backgroundDark = Color(0xFF020617);
+  static const Color surfaceDark = Color(0xFF0F172A);
+  static const Color surfaceSoftDark = Color(0xFF1E293B);
+  static const Color borderDark = Color(0xFF334155);
+  static const Color textPrimaryDark = Color(0xFFF8FAFC);
+  static const Color textSecondaryDark = Color(0xFFCBD5E1);
+  static const Color textTertiaryDark = Color(0xFF94A3B8);
+  static const Color disabledDark = Color(0xFF475569);
+
+  // ── Utility ──────────────────────────────────────────────────────────────
+  static const Color white = Color(0xFFFFFFFF);
+
+  /// Shadow tint (style guide §10 — #0F172A at low opacity).
+  static const Color shadow = Color(0xFF0F172A);
 }

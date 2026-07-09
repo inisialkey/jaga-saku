@@ -19,7 +19,7 @@ extension StringExtension on String {
 
       showToastWidget(
         Toast(
-          bgColor: context.colors.red,
+          bgColor: context.colors.critical,
           icon: Icons.error,
           message: message,
           textColor: Colors.white,
@@ -28,10 +28,7 @@ extension StringExtension on String {
         position: ToastPosition.top,
         duration: const Duration(seconds: 3),
       );
-    } catch (e, stackTrace) {
-      if (!isUnitTest) {
-        FirebaseCrashLogger().nonFatalError(error: e, stackTrace: stackTrace);
-      }
+    } catch (e) {
       log.e('error $e');
     }
   }
@@ -46,7 +43,7 @@ extension StringExtension on String {
       // showToast(msg)
       showToastWidget(
         Toast(
-          bgColor: context.colors.green,
+          bgColor: context.colors.success,
           icon: Icons.check_circle,
           message: message,
           textColor: Colors.white,
@@ -55,10 +52,7 @@ extension StringExtension on String {
         position: ToastPosition.top,
         duration: const Duration(seconds: 3),
       );
-    } catch (e, stackTrace) {
-      if (!isUnitTest) {
-        FirebaseCrashLogger().nonFatalError(error: e, stackTrace: stackTrace);
-      }
+    } catch (e) {
       log.e('$e');
     }
   }
@@ -71,7 +65,7 @@ extension StringExtension on String {
 
       showToastWidget(
         Toast(
-          bgColor: context.colors.pink,
+          bgColor: context.colors.info,
           icon: Icons.info,
           message: message,
           textColor: Colors.white,
@@ -80,10 +74,7 @@ extension StringExtension on String {
         position: ToastPosition.top,
         duration: const Duration(seconds: 3),
       );
-    } catch (e, stackTrace) {
-      if (!isUnitTest) {
-        FirebaseCrashLogger().nonFatalError(error: e, stackTrace: stackTrace);
-      }
+    } catch (e) {
       log.e('$e');
     }
   }

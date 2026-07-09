@@ -1,12 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Android 11+ package visibility: lets url_launcher open https URLs
          (e.g. the app store from the force-update gate). -->
     <queries>
@@ -48,14 +41,14 @@
 
             <!-- Deep linking via a custom scheme (works with no domain). Test:
                  adb shell am start -a android.intent.action.VIEW \
-                   -d "cleanstarter:///users/<id>" <applicationId>
+                   -d "jagasaku:///users/<id>" <applicationId>
                  The empty authority (`///`) maps the URI path straight to a
-                 go_router location. WHITE-LABEL: rename `cleanstarter`. -->
+                 go_router location. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="cleanstarter" />
+                <data android:scheme="jagasaku" />
             </intent-filter>
 
             <!-- Android App Links (verified https — opens with no chooser).
@@ -69,20 +62,6 @@
             </intent-filter>
             -->
         </activity>
-        <!-- Default FCM notification channel. Must match the channelId used in
-             LocalNotificationHelper ('high_importance_channel') so foreground
-             (local) and tray (FCM) notifications share one channel. FCM uses
-             this channel for notification-payload messages received while the
-             app is in the background / terminated (Android 8.0+). -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="high_importance_channel" />
-        <!-- Status-bar icon for FCM notifications. Falls back to the app icon
-             if omitted; replace with a dedicated monochrome drawable when
-             available (e.g. @drawable/ic_notification). -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -6,10 +6,10 @@
 		<key>FlutterDeepLinkingEnabled</key>
 		<true/>
 		<!-- Deep linking via a custom scheme (works with no domain). Test:
-		     xcrun simctl openurl booted "cleanstarter:///users/<id>"
-		     WHITE-LABEL: rename `cleanstarter`. For Universal Links (https),
-		     add an Associated Domains entitlement (applinks:your.domain) and
-		     host /.well-known/apple-app-site-association. -->
+		     xcrun simctl openurl booted "jagasaku:///users/<id>"
+		     For Universal Links (https), add an Associated Domains entitlement
+		     (applinks:your.domain) and host
+		     /.well-known/apple-app-site-association. -->
 		<key>CFBundleURLTypes</key>
 		<array>
 			<dict>
