@@ -172,5 +172,10 @@
   "deleteConfirmTitle": "Hapus pengguna",
   "deleteConfirmBody": "Apakah Anda yakin ingin menghapus pengguna ini?",
   "updatedSuccess": "Pengguna berhasil diperbarui",
-  "deletedSuccess": "Pengguna berhasil dihapus"
+  "deletedSuccess": "Pengguna berhasil dihapus",
+  "calendar": "Kalender",
+  "insight": "Wawasan",
+  "more": "Lainnya",
+  "addTransaction": "Tambah Transaksi",
+  "comingSoon": "Segera hadir"
 }

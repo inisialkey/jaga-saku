@@ -100,24 +100,24 @@ class ListSkeleton extends StatelessWidget {
   Widget build(BuildContext context) => Shimmer(
     child: ListView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(vertical: Dimens.space8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       itemCount: itemCount,
-      itemBuilder: (context, _) => Padding(
+      itemBuilder: (context, _) => const Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: Dimens.space16,
-          vertical: Dimens.space12,
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
         child: Row(
           children: [
-            const SkeletonBox(width: 46, height: 46, shape: BoxShape.circle),
-            SizedBox(width: Dimens.space16),
+            SkeletonBox(width: 46, height: 46, shape: BoxShape.circle),
+            SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SkeletonBox(width: 140),
-                  SizedBox(height: Dimens.space8),
-                  const SkeletonBox(width: 200, height: 12),
+                  SkeletonBox(width: 140),
+                  SizedBox(height: AppSpacing.sm),
+                  SkeletonBox(width: 200, height: 12),
                 ],
               ),
             ),

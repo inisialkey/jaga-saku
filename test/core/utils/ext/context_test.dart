@@ -4,8 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jaga_saku/core/core.dart';
 
-import '../../../helpers/mocks.dart';
-
 void main() {
   Widget rootWidget(Widget body) => ScreenUtilInit(
     designSize: const Size(375, 667),
@@ -19,7 +17,7 @@ void main() {
         GlobalCupertinoLocalizations.delegate,
       ],
       locale: const Locale('en'),
-      theme: themeLight(MockBuildContext()),
+      theme: AppTheme.light,
       home: body,
     ),
   );

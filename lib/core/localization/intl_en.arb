@@ -172,5 +172,10 @@
   "deleteConfirmTitle": "Delete user",
   "deleteConfirmBody": "Are you sure you want to delete this user?",
   "updatedSuccess": "User updated successfully",
-  "deletedSuccess": "User deleted successfully"
+  "deletedSuccess": "User deleted successfully",
+  "calendar": "Calendar",
+  "insight": "Insight",
+  "more": "More",
+  "addTransaction": "Add Transaction",
+  "comingSoon": "Coming soon"
 }

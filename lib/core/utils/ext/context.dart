@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:jaga_saku/core/core.dart';
 
 extension ContextExtensions on BuildContext {
-  /// Shorthand for the app's [AppColors] theme extension.
+  /// Shorthand for the app's [AppPalette] theme extension.
   ///
-  /// Use `context.colors.background` instead of
-  /// `Theme.of(context).extension<AppColors>()!.background`.
-  AppColors get colors => Theme.of(this).extension<AppColors>()!;
+  /// Use `context.colors.income` instead of
+  /// `Theme.of(context).extension<AppPalette>()!.income`.
+  AppPalette get colors => Theme.of(this).extension<AppPalette>()!;
 
   double widthInPercent(double percent) {
     final toDouble = percent / 100;
@@ -36,11 +36,11 @@ extension ContextExtensions on BuildContext {
           child: Center(
             child: Container(
               decoration: BoxDecoration(
-                color: c.colors.background,
-                borderRadius: BorderRadius.circular(Dimens.cornerRadius),
+                color: Theme.of(c).cardColor,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
               ),
-              margin: EdgeInsets.symmetric(horizontal: Dimens.space30),
-              padding: EdgeInsets.all(Dimens.space24),
+              margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+              padding: const EdgeInsets.all(AppSpacing.xxl),
               child: const Loading(),
             ),
           ),

@@ -19,11 +19,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
-  # Open external URLs (e.g. the app store from the force-update gate)
+  # Open external URLs (e.g. Play Store / App Store listings from settings later)
   url_launcher: ^6.3.0
-
-  # Pick images from gallery/camera (avatar upload)
-  image_picker: ^1.2.2
 
   # Functional programming (Either<Failure, T>, Unit) — maintained dartz replacement
   fpdart: ^1.2.0
@@ -31,17 +28,12 @@ dependencies:
   # Value equality for Failure / value objects (no hand-rolled ==/hashCode)
   equatable: ^2.0.7
 
-  # Use as Network Client
-  dio: ^5.9.0
+  # Local relational storage (offline-first finance data)
+  sqflite: ^2.4.1
+  path: ^1.9.0
 
-  # Use hive to save local data
-  hive_ce: ^2.12.0
-  hive_ce_flutter: ^2.3.2
-
-  flutter_secure_storage: ^10.3.1
-
-  # Permission handling
-  permission_handler: ^12.0.3
+  # Charts (donut / bar / line for insights)
+  fl_chart: ^1.1.1
 
   # Use for Dependencies Injection
   get_it: ^9.2.1
@@ -55,32 +47,14 @@ dependencies:
   # Use for responsive UI, set default size base on Mock Up
   flutter_screenutil: ^5.9.3
 
-  cached_network_image: ^3.4.1
-
   # logger
   logger: ^2.6.1
-
-  # SHA-256 hashing for TLS certificate pinning
-  crypto: ^3.0.6
-
-  # Firebase
-  firebase_core: ^4.1.0
-  firebase_analytics: ^12.0.1
-  firebase_crashlytics: ^5.0.1
-  # Push notifications (FCM)
-  firebase_messaging: ^16.0.1
-  # Display foreground / heads-up notifications
-  flutter_local_notifications: ^19.4.2
-
-  # Connectivity
-  connectivity_plus: ^6.1.4
 
   # router
   go_router: ^17.3.0
 
   # Freezed
   freezed_annotation: ^3.1.0
-  json_annotation: ^4.9.0
 
   flutter_native_splash: ^2.4.8
 
@@ -93,7 +67,9 @@ dev_dependencies:
   lint: ^2.8.0
   bloc_test: ^10.0.0
   build_runner: ^2.8.0
-  http_mock_adapter: ^0.6.1
+
+  # In-memory / FFI sqflite for DB tests off-device
+  sqflite_common_ffi: ^2.3.4
 
   # Codegen-free mocks (also a bloc_test transitive dep). Standardized across
   # the suite — mockito is intentionally not used.
@@ -101,10 +77,6 @@ dev_dependencies:
 
   # Freezed
   freezed: ^3.2.3
-  json_serializable: ^6.14.0
-
-  # hive generator
-  hive_ce_generator: ^1.9.5
   alchemist: ^0.14.0
 
 flutter:
@@ -132,8 +104,8 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   fonts:
-    - family: Inter
+    - family: Plus Jakarta Sans
       fonts:
-        - asset: assets/fonts/Inter-Variable.ttf
+        - asset: assets/fonts/PlusJakartaSans-Variable.ttf
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

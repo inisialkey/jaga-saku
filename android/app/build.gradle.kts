@@ -4,8 +4,6 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
 }
 
 val localProperties = Properties().apply {
@@ -23,7 +21,7 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
-        // Required by flutter_local_notifications (uses java.time APIs on minSdk < 26).
+        // Backports Java 8+ APIs (e.g. java.time) to minSdk < 26 via desugaring.
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -141,8 +139,6 @@ flutter {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0")
-    implementation(enforcedPlatform("com.google.firebase:firebase-bom:33.5.1"))
     implementation("androidx.multidex:multidex:2.0.1")
-    implementation("com.google.firebase:firebase-analytics-ktx")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

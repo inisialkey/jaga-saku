@@ -21,9 +21,7 @@ void main() {
     final umbrella = RegExp(
       r"import 'package:jaga_saku/features/([a-z_]+)/\1\.dart'",
     );
-    final dataLayer = RegExp(
-      'package:jaga_saku/features/[a-z_]+/data/',
-    );
+    final dataLayer = RegExp('package:jaga_saku/features/[a-z_]+/data/');
 
     final violations = <String>[];
     for (final file in domainFiles) {

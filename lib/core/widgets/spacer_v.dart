@@ -8,5 +8,5 @@ class SpacerV extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Container(height: value ?? Dimens.space8);
+      SizedBox(height: value ?? AppSpacing.sm);
 }
