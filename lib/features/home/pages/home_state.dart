@@ -32,6 +32,10 @@ abstract class HomeDashboard with _$HomeDashboard {
     /// id → Category / Account lookups used to resolve names on the tiles.
     @Default(<int, Category>{}) Map<int, Category> categoriesById,
     @Default(<int, Account>{}) Map<int, Account> accountsById,
+
+    /// The most at-risk budget for the current month, or null when there are no
+    /// budgets (the guard card then shows its empty state + a live CTA).
+    BudgetGuardView? budgetGuard,
   }) = _HomeDashboard;
 
   const HomeDashboard._();
@@ -47,6 +51,24 @@ abstract class HomeDashboard with _$HomeDashboard {
 
   Account? toAccountOf(Transaction t) =>
       t.toAccountId == null ? null : accountsById[t.toAccountId];
+}
+
+/// Precomputed view-model for the Home Budget Guard card (plan §4): the most
+/// at-risk budget's category + its [BudgetStatus] outputs, so the card stays a
+/// dumb value-in widget (the money math lives in the cubit).
+@freezed
+abstract class BudgetGuardView with _$BudgetGuardView {
+  const factory BudgetGuardView({
+    required String categoryName,
+    required int remaining,
+    required int safeDaily,
+    required double ratio,
+    required BudgetStatusLevel level,
+    String? categoryIcon,
+
+    /// ARGB color of the category.
+    int? categoryColor,
+  }) = _BudgetGuardView;
 }
 
 /// Home dashboard state machine: `loaded` carries the computed [HomeDashboard].

@@ -8,6 +8,9 @@ import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
+import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
@@ -30,12 +33,14 @@ class HomeCubit extends Cubit<HomeState> {
     required GetTransactionsByMonth getTransactionsByMonth,
     required GetRecentTransactions getRecentTransactions,
     required GetCategories getCategories,
+    required GetBudgetsForPeriod getBudgetsForPeriod,
     required SettingsService settingsService,
     required TxChangeNotifier txChangeNotifier,
   }) : _getAccounts = getAccounts,
        _getTransactionsByMonth = getTransactionsByMonth,
        _getRecentTransactions = getRecentTransactions,
        _getCategories = getCategories,
+       _getBudgetsForPeriod = getBudgetsForPeriod,
        _settings = settingsService,
        _txChanges = txChangeNotifier,
        super(const HomeState.initial()) {
@@ -46,6 +51,7 @@ class HomeCubit extends Cubit<HomeState> {
   final GetTransactionsByMonth _getTransactionsByMonth;
   final GetRecentTransactions _getRecentTransactions;
   final GetCategories _getCategories;
+  final GetBudgetsForPeriod _getBudgetsForPeriod;
   final SettingsService _settings;
   final TxChangeNotifier _txChanges;
   late final StreamSubscription<void> _txSub;
@@ -70,6 +76,7 @@ class HomeCubit extends Cubit<HomeState> {
     final recentResult = await _getRecentTransactions(_recentLimit);
     final expenseCatsResult = await _getCategories(CategoryType.expense);
     final incomeCatsResult = await _getCategories(CategoryType.income);
+    final budgetsResult = await _getBudgetsForPeriod(periodKey(now));
     if (isClosed) return;
 
     final failure =
@@ -77,7 +84,8 @@ class HomeCubit extends Cubit<HomeState> {
         monthResult.getLeft().toNullable() ??
         recentResult.getLeft().toNullable() ??
         expenseCatsResult.getLeft().toNullable() ??
-        incomeCatsResult.getLeft().toNullable();
+        incomeCatsResult.getLeft().toNullable() ??
+        budgetsResult.getLeft().toNullable();
     if (failure != null) {
       emit(HomeState.error(failure));
       return;
@@ -93,6 +101,7 @@ class HomeCubit extends Cubit<HomeState> {
       ...expenseCatsResult.getRight().toNullable() ?? const <Category>[],
       ...incomeCatsResult.getRight().toNullable() ?? const <Category>[],
     ];
+    final budgets = budgetsResult.getRight().toNullable() ?? const <Budget>[];
 
     emit(
       HomeState.loaded(
@@ -102,6 +111,7 @@ class HomeCubit extends Cubit<HomeState> {
           monthTx: monthTx,
           recent: recent,
           categories: categories,
+          budgets: budgets,
           userName: userName,
         ),
       ),
@@ -130,6 +140,7 @@ class HomeCubit extends Cubit<HomeState> {
     required List<Transaction> monthTx,
     required List<Transaction> recent,
     required List<Category> categories,
+    required List<Budget> budgets,
     required String? userName,
   }) {
     final totalBalance = accounts
@@ -192,6 +203,48 @@ class HomeCubit extends Cubit<HomeState> {
       recent: recent,
       categoriesById: categoriesById,
       accountsById: accountsById,
+      budgetGuard: _mostAtRiskGuard(budgets, categoriesById, now),
+    );
+  }
+
+  /// The single budget the guard card surfaces: the **most at-risk** one — the
+  /// highest spent/limit ratio, breaking a tie toward the higher spent. Null when
+  /// there are no budgets (Home keeps its empty state). [budgets] are already for
+  /// the current period, so each [BudgetStatus] uses the current-month clock.
+  BudgetGuardView? _mostAtRiskGuard(
+    List<Budget> budgets,
+    Map<int, Category> categoriesById,
+    DateTime now,
+  ) {
+    Budget? top;
+    BudgetStatus? topStatus;
+    for (final budget in budgets) {
+      final status = BudgetStatus.compute(
+        limitAmount: budget.limitAmount,
+        spent: budget.spent,
+        now: now,
+        period: budget.period,
+      );
+      final wins =
+          topStatus == null ||
+          status.ratio > topStatus.ratio ||
+          (status.ratio == topStatus.ratio && budget.spent > top!.spent);
+      if (wins) {
+        top = budget;
+        topStatus = status;
+      }
+    }
+    if (top == null || topStatus == null) return null;
+
+    final category = categoriesById[top.categoryId];
+    return BudgetGuardView(
+      categoryName: category?.name ?? '',
+      categoryIcon: category?.icon,
+      categoryColor: category?.color,
+      remaining: topStatus.remaining,
+      safeDaily: topStatus.safeDaily,
+      ratio: topStatus.ratio,
+      level: topStatus.level,
     );
   }
 

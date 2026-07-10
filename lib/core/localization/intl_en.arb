@@ -293,5 +293,57 @@
   "recentTransactions": "Recent Transactions",
   "seeAll": "See All",
   "emptyTransactionsTitle": "No transactions yet",
-  "emptyTransactionsMessage": "Add your first transaction to start tracking."
+  "emptyTransactionsMessage": "Add your first transaction to start tracking.",
+  "editBudget": "Edit Budget",
+  "budgetLimit": "Budget Limit",
+  "selectMonth": "Select Month",
+  "deleteBudgetConfirm": "Delete this budget?",
+  "spentOfLimit": "{spent} of {limit}",
+  "@spentOfLimit": {
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "safeDaily": "Safe daily: {amount}/day",
+  "@safeDaily": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "remainingBudget": "{amount} left",
+  "@remainingBudget": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "overBudget": "Over budget",
+  "statusSafe": "Safe",
+  "statusWarning": "Caution",
+  "statusCritical": "Over",
+  "budgetWarningTitle": "Past your safe daily limit",
+  "budgetWarningBody": "This expense passes the safe daily limit for {category}. Safe: {safe}/day · This transaction: {amount}",
+  "@budgetWarningBody": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "safe": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "keepSaving": "Save Anyway",
+  "editAmount": "Edit Amount"
 }

@@ -293,5 +293,57 @@
   "recentTransactions": "Transaksi Terbaru",
   "seeAll": "Lihat Semua",
   "emptyTransactionsTitle": "Belum ada transaksi",
-  "emptyTransactionsMessage": "Tambah transaksi pertamamu untuk mulai mencatat."
+  "emptyTransactionsMessage": "Tambah transaksi pertamamu untuk mulai mencatat.",
+  "editBudget": "Ubah Budget",
+  "budgetLimit": "Batas Budget",
+  "selectMonth": "Pilih Bulan",
+  "deleteBudgetConfirm": "Yakin ingin menghapus budget ini?",
+  "spentOfLimit": "{spent} dari {limit}",
+  "@spentOfLimit": {
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "safeDaily": "Aman harian: {amount}/hari",
+  "@safeDaily": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "remainingBudget": "Tersisa {amount}",
+  "@remainingBudget": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "overBudget": "Melebihi budget",
+  "statusSafe": "Aman",
+  "statusWarning": "Waspada",
+  "statusCritical": "Terlampaui",
+  "budgetWarningTitle": "Melewati batas aman harian",
+  "budgetWarningBody": "Pengeluaran ini melewati batas aman harian kategori {category}. Batas aman: {safe}/hari · Transaksi ini: {amount}",
+  "@budgetWarningBody": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "safe": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "keepSaving": "Tetap Simpan",
+  "editAmount": "Ubah Nominal"
 }

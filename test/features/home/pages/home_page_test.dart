@@ -5,6 +5,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/home_page.dart';
@@ -24,6 +25,7 @@ void main() {
   late MockGetTransactionsByMonth getByMonth;
   late MockGetRecentTransactions getRecent;
   late MockGetCategories getCategories;
+  late MockGetBudgetsForPeriod getBudgets;
   late MockSettingsService settings;
   late TxChangeNotifier txChanges;
 
@@ -35,8 +37,12 @@ void main() {
     getByMonth = MockGetTransactionsByMonth();
     getRecent = MockGetRecentTransactions();
     getCategories = MockGetCategories();
+    getBudgets = MockGetBudgetsForPeriod();
     settings = MockSettingsService();
     txChanges = TxChangeNotifier();
+    when(
+      () => getBudgets(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Budget>>([]));
   });
 
   tearDown(() => txChanges.dispose());
@@ -46,6 +52,7 @@ void main() {
     getTransactionsByMonth: getByMonth,
     getRecentTransactions: getRecent,
     getCategories: getCategories,
+    getBudgetsForPeriod: getBudgets,
     settingsService: settings,
     txChangeNotifier: txChanges,
   );

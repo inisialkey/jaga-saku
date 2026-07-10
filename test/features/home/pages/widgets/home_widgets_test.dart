@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
+import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/widgets/budget_guard_card.dart';
 import 'package:jaga_saku/features/home/pages/widgets/daily_review_card.dart';
 import 'package:jaga_saku/features/home/pages/widgets/home_header.dart';
@@ -52,18 +54,42 @@ void main() {
   });
 
   group('BudgetGuardCard', () {
-    testWidgets('renders the empty state with an inert CTA', (tester) async {
+    testWidgets('empty state now has a live CTA and no "coming soon" badge', (
+      tester,
+    ) async {
       await pumpApp(tester, const BudgetGuardCard());
       expect(find.text('Budget Guard'), findsOneWidget);
       expect(find.text('No budget yet'), findsOneWidget);
-      // "Coming soon" badge marks the M4 deferral.
-      expect(find.text('Coming soon'), findsOneWidget);
-      // CTA is present but inert (disabled → onPressed == null): it must never
-      // route to a not-yet-built budget screen.
+      // M4: the deferral badge is gone and the CTA now routes to the Budget
+      // screen (onPressed != null).
+      expect(find.text('Coming soon'), findsNothing);
       final button = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Create Budget'),
       );
-      expect(button.onPressed, isNull);
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('renders the most at-risk budget when guard is set', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        const BudgetGuardCard(
+          guard: BudgetGuardView(
+            categoryName: 'Makan',
+            remaining: 250000,
+            safeDaily: 25000,
+            ratio: 0.9,
+            level: BudgetStatusLevel.warning,
+          ),
+        ),
+      );
+      expect(find.text('Makan'), findsOneWidget);
+      expect(find.text('Rp 250.000 left'), findsOneWidget);
+      expect(find.text('Safe daily: Rp 25.000/day'), findsOneWidget);
+      // Warning status badge → "Caution"; the empty-state copy is gone.
+      expect(find.text('Caution'), findsOneWidget);
+      expect(find.text('No budget yet'), findsNothing);
     });
   });
 

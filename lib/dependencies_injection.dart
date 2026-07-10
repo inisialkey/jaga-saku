@@ -8,6 +8,12 @@ import 'package:jaga_saku/features/accounts/domain/usecases/delete_account.dart'
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/reorder_accounts.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/save_account.dart';
+import 'package:jaga_saku/features/budgets/data/datasources/budget_local_datasource.dart';
+import 'package:jaga_saku/features/budgets/data/repositories/budget_repository_impl.dart';
+import 'package:jaga_saku/features/budgets/domain/repositories/budget_repository.dart';
+import 'package:jaga_saku/features/budgets/domain/usecases/delete_budget.dart';
+import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
+import 'package:jaga_saku/features/budgets/domain/usecases/save_budget.dart';
 import 'package:jaga_saku/features/categories/data/datasources/category_local_datasource.dart';
 import 'package:jaga_saku/features/categories/data/repositories/category_repository_impl.dart';
 import 'package:jaga_saku/features/categories/domain/repositories/category_repository.dart';
@@ -46,6 +52,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
 
   _registerAccounts();
   _registerCategories();
+  _registerBudgets();
   _registerTransactions();
 }
 
@@ -73,6 +80,15 @@ void _registerCategories() {
     ..registerLazySingleton(() => DeleteCategory(sl()))
     ..registerLazySingleton(() => ArchiveCategory(sl()))
     ..registerLazySingleton(() => ReorderCategories(sl()));
+}
+
+void _registerBudgets() {
+  sl
+    ..registerLazySingleton(() => BudgetLocalDatasource(sl<AppDatabase>()))
+    ..registerLazySingleton<BudgetRepository>(() => BudgetRepositoryImpl(sl()))
+    ..registerLazySingleton(() => GetBudgetsForPeriod(sl()))
+    ..registerLazySingleton(() => SaveBudget(sl()))
+    ..registerLazySingleton(() => DeleteBudget(sl()));
 }
 
 void _registerTransactions() {

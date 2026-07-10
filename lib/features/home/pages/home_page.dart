@@ -54,7 +54,7 @@ class _HomeBody extends StatelessWidget {
         monthExpense: dashboard.monthExpense,
       ),
       const SizedBox(height: AppSpacing.lg),
-      const BudgetGuardCard(),
+      BudgetGuardCard(guard: dashboard.budgetGuard),
       const SizedBox(height: AppSpacing.lg),
       DailyReviewCard(
         todaySpent: dashboard.todaySpent,

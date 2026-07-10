@@ -5,6 +5,9 @@ import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
+import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
@@ -22,11 +25,13 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
     required SaveTransaction saveTransaction,
     required GetAccounts getAccounts,
     required GetCategories getCategories,
+    required GetBudgetsForPeriod getBudgetsForPeriod,
     required TxChangeNotifier txChangeNotifier,
     Transaction? initial,
   }) : _saveTransaction = saveTransaction,
        _getAccounts = getAccounts,
        _getCategories = getCategories,
+       _getBudgetsForPeriod = getBudgetsForPeriod,
        _txChanges = txChangeNotifier,
        _initial = initial,
        super(_seed(initial));
@@ -34,6 +39,7 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
   final SaveTransaction _saveTransaction;
   final GetAccounts _getAccounts;
   final GetCategories _getCategories;
+  final GetBudgetsForPeriod _getBudgetsForPeriod;
   final TxChangeNotifier _txChanges;
   final Transaction? _initial;
 
@@ -129,6 +135,38 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
       return;
     }
 
+    // Budget guard (plan §5): a new expense whose amount exceeds its category's
+    // safe-daily for the current month pauses for a confirm sheet before saving.
+    // Non-expense / edit / non-current-month / no-budget → straight through.
+    final safeDaily = await _safeDailyBreach();
+    if (isClosed) return;
+    if (safeDaily != null) {
+      emit(
+        state.copyWith(
+          status: AddTxStatus.needsBudgetConfirm,
+          safeDaily: safeDaily,
+          validation: AddTxValidation.none,
+        ),
+      );
+      return;
+    }
+
+    await _commit();
+  }
+
+  /// Commits after the user chose "Tetap Simpan" on the warning sheet. Shares
+  /// the save path with the straight-through [submit].
+  Future<void> confirmSave() => _commit();
+
+  /// Clears the budget-confirm pause (the user chose "Ubah Nominal") back to
+  /// editing, so a subsequent over-limit save re-triggers the warning.
+  void dismissBudgetConfirm() {
+    if (state.status == AddTxStatus.needsBudgetConfirm) {
+      emit(state.copyWith(status: AddTxStatus.editing));
+    }
+  }
+
+  Future<void> _commit() async {
     emit(
       state.copyWith(
         status: AddTxStatus.saving,
@@ -160,11 +198,44 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
       emit(state.copyWith(status: AddTxStatus.failure, error: failure));
       return;
     }
-    // W2 fix: a successful write pings the shared notifier so Home + Calendar
-    // refresh live — even for the fire-and-forget shell FAB path that can't
-    // await this form.
+    // W2 fix: a successful write pings the shared notifier so Home + Calendar +
+    // the Budget guard refresh live — even for the fire-and-forget shell FAB
+    // path that can't await this form.
     _txChanges.ping();
     emit(state.copyWith(status: AddTxStatus.success));
+  }
+
+  /// The category's safe-daily when this expense would breach it (so the page
+  /// warns), else null: a non-expense, an edit (its amount is already in the
+  /// budget's spent), a non-current-month date, no budget for the category, or
+  /// `amount <= safeDaily`.
+  Future<int?> _safeDailyBreach() async {
+    if (!state.isExpense || state.isEditing || state.categoryId == null) {
+      return null;
+    }
+    final now = DateTime.now();
+    final currentPeriod = periodKey(now);
+    if (periodKey(DateTime.fromMillisecondsSinceEpoch(state.date)) !=
+        currentPeriod) {
+      return null;
+    }
+    final result = await _getBudgetsForPeriod(currentPeriod);
+    final budgets = result.getRight().toNullable() ?? const <Budget>[];
+    Budget? budget;
+    for (final b in budgets) {
+      if (b.categoryId == state.categoryId) {
+        budget = b;
+        break;
+      }
+    }
+    if (budget == null) return null;
+    final status = BudgetStatus.compute(
+      limitAmount: budget.limitAmount,
+      spent: budget.spent,
+      now: now,
+      period: currentPeriod,
+    );
+    return state.amount > status.safeDaily ? status.safeDaily : null;
   }
 
   /// First failing rule for the current type, or [AddTxValidation.none].

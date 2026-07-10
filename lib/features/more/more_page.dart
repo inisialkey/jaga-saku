@@ -5,8 +5,9 @@ import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
 
 /// The More tab: an app-info header + grouped menu (Finance / Data / App).
-/// Only the Finance -> Accounts / Categories tiles are live in M1; the rest
-/// render a muted "Soon" badge and are inert (land in M4 / M6).
+/// The Finance -> Accounts / Categories / Budget tiles are live; the rest
+/// (Recurring / Export / Backup / Appearance / Security / Settings / About)
+/// render a muted "Soon" badge and are inert.
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
 
@@ -44,7 +45,7 @@ class MorePage extends StatelessWidget {
                 icon: Iconsax.wallet_money,
                 iconColor: colors.warning,
                 title: s.budget,
-                trailing: const ComingSoonBadge(),
+                onTap: () => context.push(AppRoute.budget),
               ),
               MenuTile(
                 icon: Iconsax.repeat,

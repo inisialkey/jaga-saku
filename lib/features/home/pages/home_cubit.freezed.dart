@@ -22,7 +22,9 @@ mixin _$HomeDashboard {
  String? get topCategoryName;/// Greeting name from settings; null → guest greeting.
  String? get userName;/// Up to 5 most recent transactions, newest first.
  List<Transaction> get recent;/// id → Category / Account lookups used to resolve names on the tiles.
- Map<int, Category> get categoriesById; Map<int, Account> get accountsById;
+ Map<int, Category> get categoriesById; Map<int, Account> get accountsById;/// The most at-risk budget for the current month, or null when there are no
+/// budgets (the guard card then shows its empty state + a live CTA).
+ BudgetGuardView? get budgetGuard;
 /// Create a copy of HomeDashboard
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -33,16 +35,16 @@ $HomeDashboardCopyWith<HomeDashboard> get copyWith => _$HomeDashboardCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeDashboard&&(identical(other.totalBalance, totalBalance) || other.totalBalance == totalBalance)&&(identical(other.monthIncome, monthIncome) || other.monthIncome == monthIncome)&&(identical(other.monthExpense, monthExpense) || other.monthExpense == monthExpense)&&(identical(other.todaySpent, todaySpent) || other.todaySpent == todaySpent)&&(identical(other.todayUnplanned, todayUnplanned) || other.todayUnplanned == todayUnplanned)&&(identical(other.topCategoryName, topCategoryName) || other.topCategoryName == topCategoryName)&&(identical(other.userName, userName) || other.userName == userName)&&const DeepCollectionEquality().equals(other.recent, recent)&&const DeepCollectionEquality().equals(other.categoriesById, categoriesById)&&const DeepCollectionEquality().equals(other.accountsById, accountsById));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HomeDashboard&&(identical(other.totalBalance, totalBalance) || other.totalBalance == totalBalance)&&(identical(other.monthIncome, monthIncome) || other.monthIncome == monthIncome)&&(identical(other.monthExpense, monthExpense) || other.monthExpense == monthExpense)&&(identical(other.todaySpent, todaySpent) || other.todaySpent == todaySpent)&&(identical(other.todayUnplanned, todayUnplanned) || other.todayUnplanned == todayUnplanned)&&(identical(other.topCategoryName, topCategoryName) || other.topCategoryName == topCategoryName)&&(identical(other.userName, userName) || other.userName == userName)&&const DeepCollectionEquality().equals(other.recent, recent)&&const DeepCollectionEquality().equals(other.categoriesById, categoriesById)&&const DeepCollectionEquality().equals(other.accountsById, accountsById)&&(identical(other.budgetGuard, budgetGuard) || other.budgetGuard == budgetGuard));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,totalBalance,monthIncome,monthExpense,todaySpent,todayUnplanned,topCategoryName,userName,const DeepCollectionEquality().hash(recent),const DeepCollectionEquality().hash(categoriesById),const DeepCollectionEquality().hash(accountsById));
+int get hashCode => Object.hash(runtimeType,totalBalance,monthIncome,monthExpense,todaySpent,todayUnplanned,topCategoryName,userName,const DeepCollectionEquality().hash(recent),const DeepCollectionEquality().hash(categoriesById),const DeepCollectionEquality().hash(accountsById),budgetGuard);
 
 @override
 String toString() {
-  return 'HomeDashboard(totalBalance: $totalBalance, monthIncome: $monthIncome, monthExpense: $monthExpense, todaySpent: $todaySpent, todayUnplanned: $todayUnplanned, topCategoryName: $topCategoryName, userName: $userName, recent: $recent, categoriesById: $categoriesById, accountsById: $accountsById)';
+  return 'HomeDashboard(totalBalance: $totalBalance, monthIncome: $monthIncome, monthExpense: $monthExpense, todaySpent: $todaySpent, todayUnplanned: $todayUnplanned, topCategoryName: $topCategoryName, userName: $userName, recent: $recent, categoriesById: $categoriesById, accountsById: $accountsById, budgetGuard: $budgetGuard)';
 }
 
 
@@ -53,11 +55,11 @@ abstract mixin class $HomeDashboardCopyWith<$Res>  {
   factory $HomeDashboardCopyWith(HomeDashboard value, $Res Function(HomeDashboard) _then) = _$HomeDashboardCopyWithImpl;
 @useResult
 $Res call({
- int totalBalance, int monthIncome, int monthExpense, int todaySpent, int todayUnplanned, String? topCategoryName, String? userName, List<Transaction> recent, Map<int, Category> categoriesById, Map<int, Account> accountsById
+ int totalBalance, int monthIncome, int monthExpense, int todaySpent, int todayUnplanned, String? topCategoryName, String? userName, List<Transaction> recent, Map<int, Category> categoriesById, Map<int, Account> accountsById, BudgetGuardView? budgetGuard
 });
 
 
-
+$BudgetGuardViewCopyWith<$Res>? get budgetGuard;
 
 }
 /// @nodoc
@@ -70,7 +72,7 @@ class _$HomeDashboardCopyWithImpl<$Res>
 
 /// Create a copy of HomeDashboard
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? totalBalance = null,Object? monthIncome = null,Object? monthExpense = null,Object? todaySpent = null,Object? todayUnplanned = null,Object? topCategoryName = freezed,Object? userName = freezed,Object? recent = null,Object? categoriesById = null,Object? accountsById = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? totalBalance = null,Object? monthIncome = null,Object? monthExpense = null,Object? todaySpent = null,Object? todayUnplanned = null,Object? topCategoryName = freezed,Object? userName = freezed,Object? recent = null,Object? categoriesById = null,Object? accountsById = null,Object? budgetGuard = freezed,}) {
   return _then(_self.copyWith(
 totalBalance: null == totalBalance ? _self.totalBalance : totalBalance // ignore: cast_nullable_to_non_nullable
 as int,monthIncome: null == monthIncome ? _self.monthIncome : monthIncome // ignore: cast_nullable_to_non_nullable
@@ -82,10 +84,23 @@ as String?,userName: freezed == userName ? _self.userName : userName // ignore: 
 as String?,recent: null == recent ? _self.recent : recent // ignore: cast_nullable_to_non_nullable
 as List<Transaction>,categoriesById: null == categoriesById ? _self.categoriesById : categoriesById // ignore: cast_nullable_to_non_nullable
 as Map<int, Category>,accountsById: null == accountsById ? _self.accountsById : accountsById // ignore: cast_nullable_to_non_nullable
-as Map<int, Account>,
+as Map<int, Account>,budgetGuard: freezed == budgetGuard ? _self.budgetGuard : budgetGuard // ignore: cast_nullable_to_non_nullable
+as BudgetGuardView?,
   ));
 }
+/// Create a copy of HomeDashboard
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$BudgetGuardViewCopyWith<$Res>? get budgetGuard {
+    if (_self.budgetGuard == null) {
+    return null;
+  }
 
+  return $BudgetGuardViewCopyWith<$Res>(_self.budgetGuard!, (value) {
+    return _then(_self.copyWith(budgetGuard: value));
+  });
+}
 }
 
 
@@ -167,10 +182,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int totalBalance,  int monthIncome,  int monthExpense,  int todaySpent,  int todayUnplanned,  String? topCategoryName,  String? userName,  List<Transaction> recent,  Map<int, Category> categoriesById,  Map<int, Account> accountsById)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int totalBalance,  int monthIncome,  int monthExpense,  int todaySpent,  int todayUnplanned,  String? topCategoryName,  String? userName,  List<Transaction> recent,  Map<int, Category> categoriesById,  Map<int, Account> accountsById,  BudgetGuardView? budgetGuard)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HomeDashboard() when $default != null:
-return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.todaySpent,_that.todayUnplanned,_that.topCategoryName,_that.userName,_that.recent,_that.categoriesById,_that.accountsById);case _:
+return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.todaySpent,_that.todayUnplanned,_that.topCategoryName,_that.userName,_that.recent,_that.categoriesById,_that.accountsById,_that.budgetGuard);case _:
   return orElse();
 
 }
@@ -188,10 +203,10 @@ return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.to
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int totalBalance,  int monthIncome,  int monthExpense,  int todaySpent,  int todayUnplanned,  String? topCategoryName,  String? userName,  List<Transaction> recent,  Map<int, Category> categoriesById,  Map<int, Account> accountsById)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int totalBalance,  int monthIncome,  int monthExpense,  int todaySpent,  int todayUnplanned,  String? topCategoryName,  String? userName,  List<Transaction> recent,  Map<int, Category> categoriesById,  Map<int, Account> accountsById,  BudgetGuardView? budgetGuard)  $default,) {final _that = this;
 switch (_that) {
 case _HomeDashboard():
-return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.todaySpent,_that.todayUnplanned,_that.topCategoryName,_that.userName,_that.recent,_that.categoriesById,_that.accountsById);case _:
+return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.todaySpent,_that.todayUnplanned,_that.topCategoryName,_that.userName,_that.recent,_that.categoriesById,_that.accountsById,_that.budgetGuard);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -208,10 +223,10 @@ return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.to
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int totalBalance,  int monthIncome,  int monthExpense,  int todaySpent,  int todayUnplanned,  String? topCategoryName,  String? userName,  List<Transaction> recent,  Map<int, Category> categoriesById,  Map<int, Account> accountsById)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int totalBalance,  int monthIncome,  int monthExpense,  int todaySpent,  int todayUnplanned,  String? topCategoryName,  String? userName,  List<Transaction> recent,  Map<int, Category> categoriesById,  Map<int, Account> accountsById,  BudgetGuardView? budgetGuard)?  $default,) {final _that = this;
 switch (_that) {
 case _HomeDashboard() when $default != null:
-return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.todaySpent,_that.todayUnplanned,_that.topCategoryName,_that.userName,_that.recent,_that.categoriesById,_that.accountsById);case _:
+return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.todaySpent,_that.todayUnplanned,_that.topCategoryName,_that.userName,_that.recent,_that.categoriesById,_that.accountsById,_that.budgetGuard);case _:
   return null;
 
 }
@@ -223,7 +238,7 @@ return $default(_that.totalBalance,_that.monthIncome,_that.monthExpense,_that.to
 
 
 class _HomeDashboard extends HomeDashboard {
-  const _HomeDashboard({required this.totalBalance, required this.monthIncome, required this.monthExpense, required this.todaySpent, required this.todayUnplanned, this.topCategoryName, this.userName, final  List<Transaction> recent = const <Transaction>[], final  Map<int, Category> categoriesById = const <int, Category>{}, final  Map<int, Account> accountsById = const <int, Account>{}}): _recent = recent,_categoriesById = categoriesById,_accountsById = accountsById,super._();
+  const _HomeDashboard({required this.totalBalance, required this.monthIncome, required this.monthExpense, required this.todaySpent, required this.todayUnplanned, this.topCategoryName, this.userName, final  List<Transaction> recent = const <Transaction>[], final  Map<int, Category> categoriesById = const <int, Category>{}, final  Map<int, Account> accountsById = const <int, Account>{}, this.budgetGuard}): _recent = recent,_categoriesById = categoriesById,_accountsById = accountsById,super._();
   
 
 /// Σ balance of non-archived accounts (already tx-derived from M1/M2).
@@ -264,6 +279,9 @@ class _HomeDashboard extends HomeDashboard {
   return EqualUnmodifiableMapView(_accountsById);
 }
 
+/// The most at-risk budget for the current month, or null when there are no
+/// budgets (the guard card then shows its empty state + a live CTA).
+@override final  BudgetGuardView? budgetGuard;
 
 /// Create a copy of HomeDashboard
 /// with the given fields replaced by the non-null parameter values.
@@ -275,16 +293,16 @@ _$HomeDashboardCopyWith<_HomeDashboard> get copyWith => __$HomeDashboardCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeDashboard&&(identical(other.totalBalance, totalBalance) || other.totalBalance == totalBalance)&&(identical(other.monthIncome, monthIncome) || other.monthIncome == monthIncome)&&(identical(other.monthExpense, monthExpense) || other.monthExpense == monthExpense)&&(identical(other.todaySpent, todaySpent) || other.todaySpent == todaySpent)&&(identical(other.todayUnplanned, todayUnplanned) || other.todayUnplanned == todayUnplanned)&&(identical(other.topCategoryName, topCategoryName) || other.topCategoryName == topCategoryName)&&(identical(other.userName, userName) || other.userName == userName)&&const DeepCollectionEquality().equals(other._recent, _recent)&&const DeepCollectionEquality().equals(other._categoriesById, _categoriesById)&&const DeepCollectionEquality().equals(other._accountsById, _accountsById));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HomeDashboard&&(identical(other.totalBalance, totalBalance) || other.totalBalance == totalBalance)&&(identical(other.monthIncome, monthIncome) || other.monthIncome == monthIncome)&&(identical(other.monthExpense, monthExpense) || other.monthExpense == monthExpense)&&(identical(other.todaySpent, todaySpent) || other.todaySpent == todaySpent)&&(identical(other.todayUnplanned, todayUnplanned) || other.todayUnplanned == todayUnplanned)&&(identical(other.topCategoryName, topCategoryName) || other.topCategoryName == topCategoryName)&&(identical(other.userName, userName) || other.userName == userName)&&const DeepCollectionEquality().equals(other._recent, _recent)&&const DeepCollectionEquality().equals(other._categoriesById, _categoriesById)&&const DeepCollectionEquality().equals(other._accountsById, _accountsById)&&(identical(other.budgetGuard, budgetGuard) || other.budgetGuard == budgetGuard));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,totalBalance,monthIncome,monthExpense,todaySpent,todayUnplanned,topCategoryName,userName,const DeepCollectionEquality().hash(_recent),const DeepCollectionEquality().hash(_categoriesById),const DeepCollectionEquality().hash(_accountsById));
+int get hashCode => Object.hash(runtimeType,totalBalance,monthIncome,monthExpense,todaySpent,todayUnplanned,topCategoryName,userName,const DeepCollectionEquality().hash(_recent),const DeepCollectionEquality().hash(_categoriesById),const DeepCollectionEquality().hash(_accountsById),budgetGuard);
 
 @override
 String toString() {
-  return 'HomeDashboard(totalBalance: $totalBalance, monthIncome: $monthIncome, monthExpense: $monthExpense, todaySpent: $todaySpent, todayUnplanned: $todayUnplanned, topCategoryName: $topCategoryName, userName: $userName, recent: $recent, categoriesById: $categoriesById, accountsById: $accountsById)';
+  return 'HomeDashboard(totalBalance: $totalBalance, monthIncome: $monthIncome, monthExpense: $monthExpense, todaySpent: $todaySpent, todayUnplanned: $todayUnplanned, topCategoryName: $topCategoryName, userName: $userName, recent: $recent, categoriesById: $categoriesById, accountsById: $accountsById, budgetGuard: $budgetGuard)';
 }
 
 
@@ -295,11 +313,11 @@ abstract mixin class _$HomeDashboardCopyWith<$Res> implements $HomeDashboardCopy
   factory _$HomeDashboardCopyWith(_HomeDashboard value, $Res Function(_HomeDashboard) _then) = __$HomeDashboardCopyWithImpl;
 @override @useResult
 $Res call({
- int totalBalance, int monthIncome, int monthExpense, int todaySpent, int todayUnplanned, String? topCategoryName, String? userName, List<Transaction> recent, Map<int, Category> categoriesById, Map<int, Account> accountsById
+ int totalBalance, int monthIncome, int monthExpense, int todaySpent, int todayUnplanned, String? topCategoryName, String? userName, List<Transaction> recent, Map<int, Category> categoriesById, Map<int, Account> accountsById, BudgetGuardView? budgetGuard
 });
 
 
-
+@override $BudgetGuardViewCopyWith<$Res>? get budgetGuard;
 
 }
 /// @nodoc
@@ -312,7 +330,7 @@ class __$HomeDashboardCopyWithImpl<$Res>
 
 /// Create a copy of HomeDashboard
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? totalBalance = null,Object? monthIncome = null,Object? monthExpense = null,Object? todaySpent = null,Object? todayUnplanned = null,Object? topCategoryName = freezed,Object? userName = freezed,Object? recent = null,Object? categoriesById = null,Object? accountsById = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? totalBalance = null,Object? monthIncome = null,Object? monthExpense = null,Object? todaySpent = null,Object? todayUnplanned = null,Object? topCategoryName = freezed,Object? userName = freezed,Object? recent = null,Object? categoriesById = null,Object? accountsById = null,Object? budgetGuard = freezed,}) {
   return _then(_HomeDashboard(
 totalBalance: null == totalBalance ? _self.totalBalance : totalBalance // ignore: cast_nullable_to_non_nullable
 as int,monthIncome: null == monthIncome ? _self.monthIncome : monthIncome // ignore: cast_nullable_to_non_nullable
@@ -324,7 +342,297 @@ as String?,userName: freezed == userName ? _self.userName : userName // ignore: 
 as String?,recent: null == recent ? _self._recent : recent // ignore: cast_nullable_to_non_nullable
 as List<Transaction>,categoriesById: null == categoriesById ? _self._categoriesById : categoriesById // ignore: cast_nullable_to_non_nullable
 as Map<int, Category>,accountsById: null == accountsById ? _self._accountsById : accountsById // ignore: cast_nullable_to_non_nullable
-as Map<int, Account>,
+as Map<int, Account>,budgetGuard: freezed == budgetGuard ? _self.budgetGuard : budgetGuard // ignore: cast_nullable_to_non_nullable
+as BudgetGuardView?,
+  ));
+}
+
+/// Create a copy of HomeDashboard
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$BudgetGuardViewCopyWith<$Res>? get budgetGuard {
+    if (_self.budgetGuard == null) {
+    return null;
+  }
+
+  return $BudgetGuardViewCopyWith<$Res>(_self.budgetGuard!, (value) {
+    return _then(_self.copyWith(budgetGuard: value));
+  });
+}
+}
+
+/// @nodoc
+mixin _$BudgetGuardView {
+
+ String get categoryName; int get remaining; int get safeDaily; double get ratio; BudgetStatusLevel get level; String? get categoryIcon;/// ARGB color of the category.
+ int? get categoryColor;
+/// Create a copy of BudgetGuardView
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BudgetGuardViewCopyWith<BudgetGuardView> get copyWith => _$BudgetGuardViewCopyWithImpl<BudgetGuardView>(this as BudgetGuardView, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BudgetGuardView&&(identical(other.categoryName, categoryName) || other.categoryName == categoryName)&&(identical(other.remaining, remaining) || other.remaining == remaining)&&(identical(other.safeDaily, safeDaily) || other.safeDaily == safeDaily)&&(identical(other.ratio, ratio) || other.ratio == ratio)&&(identical(other.level, level) || other.level == level)&&(identical(other.categoryIcon, categoryIcon) || other.categoryIcon == categoryIcon)&&(identical(other.categoryColor, categoryColor) || other.categoryColor == categoryColor));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,categoryName,remaining,safeDaily,ratio,level,categoryIcon,categoryColor);
+
+@override
+String toString() {
+  return 'BudgetGuardView(categoryName: $categoryName, remaining: $remaining, safeDaily: $safeDaily, ratio: $ratio, level: $level, categoryIcon: $categoryIcon, categoryColor: $categoryColor)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BudgetGuardViewCopyWith<$Res>  {
+  factory $BudgetGuardViewCopyWith(BudgetGuardView value, $Res Function(BudgetGuardView) _then) = _$BudgetGuardViewCopyWithImpl;
+@useResult
+$Res call({
+ String categoryName, int remaining, int safeDaily, double ratio, BudgetStatusLevel level, String? categoryIcon, int? categoryColor
+});
+
+
+
+
+}
+/// @nodoc
+class _$BudgetGuardViewCopyWithImpl<$Res>
+    implements $BudgetGuardViewCopyWith<$Res> {
+  _$BudgetGuardViewCopyWithImpl(this._self, this._then);
+
+  final BudgetGuardView _self;
+  final $Res Function(BudgetGuardView) _then;
+
+/// Create a copy of BudgetGuardView
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? categoryName = null,Object? remaining = null,Object? safeDaily = null,Object? ratio = null,Object? level = null,Object? categoryIcon = freezed,Object? categoryColor = freezed,}) {
+  return _then(_self.copyWith(
+categoryName: null == categoryName ? _self.categoryName : categoryName // ignore: cast_nullable_to_non_nullable
+as String,remaining: null == remaining ? _self.remaining : remaining // ignore: cast_nullable_to_non_nullable
+as int,safeDaily: null == safeDaily ? _self.safeDaily : safeDaily // ignore: cast_nullable_to_non_nullable
+as int,ratio: null == ratio ? _self.ratio : ratio // ignore: cast_nullable_to_non_nullable
+as double,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
+as BudgetStatusLevel,categoryIcon: freezed == categoryIcon ? _self.categoryIcon : categoryIcon // ignore: cast_nullable_to_non_nullable
+as String?,categoryColor: freezed == categoryColor ? _self.categoryColor : categoryColor // ignore: cast_nullable_to_non_nullable
+as int?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [BudgetGuardView].
+extension BudgetGuardViewPatterns on BudgetGuardView {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _BudgetGuardView value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _BudgetGuardView() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _BudgetGuardView value)  $default,){
+final _that = this;
+switch (_that) {
+case _BudgetGuardView():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _BudgetGuardView value)?  $default,){
+final _that = this;
+switch (_that) {
+case _BudgetGuardView() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String categoryName,  int remaining,  int safeDaily,  double ratio,  BudgetStatusLevel level,  String? categoryIcon,  int? categoryColor)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _BudgetGuardView() when $default != null:
+return $default(_that.categoryName,_that.remaining,_that.safeDaily,_that.ratio,_that.level,_that.categoryIcon,_that.categoryColor);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String categoryName,  int remaining,  int safeDaily,  double ratio,  BudgetStatusLevel level,  String? categoryIcon,  int? categoryColor)  $default,) {final _that = this;
+switch (_that) {
+case _BudgetGuardView():
+return $default(_that.categoryName,_that.remaining,_that.safeDaily,_that.ratio,_that.level,_that.categoryIcon,_that.categoryColor);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String categoryName,  int remaining,  int safeDaily,  double ratio,  BudgetStatusLevel level,  String? categoryIcon,  int? categoryColor)?  $default,) {final _that = this;
+switch (_that) {
+case _BudgetGuardView() when $default != null:
+return $default(_that.categoryName,_that.remaining,_that.safeDaily,_that.ratio,_that.level,_that.categoryIcon,_that.categoryColor);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _BudgetGuardView implements BudgetGuardView {
+  const _BudgetGuardView({required this.categoryName, required this.remaining, required this.safeDaily, required this.ratio, required this.level, this.categoryIcon, this.categoryColor});
+  
+
+@override final  String categoryName;
+@override final  int remaining;
+@override final  int safeDaily;
+@override final  double ratio;
+@override final  BudgetStatusLevel level;
+@override final  String? categoryIcon;
+/// ARGB color of the category.
+@override final  int? categoryColor;
+
+/// Create a copy of BudgetGuardView
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$BudgetGuardViewCopyWith<_BudgetGuardView> get copyWith => __$BudgetGuardViewCopyWithImpl<_BudgetGuardView>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BudgetGuardView&&(identical(other.categoryName, categoryName) || other.categoryName == categoryName)&&(identical(other.remaining, remaining) || other.remaining == remaining)&&(identical(other.safeDaily, safeDaily) || other.safeDaily == safeDaily)&&(identical(other.ratio, ratio) || other.ratio == ratio)&&(identical(other.level, level) || other.level == level)&&(identical(other.categoryIcon, categoryIcon) || other.categoryIcon == categoryIcon)&&(identical(other.categoryColor, categoryColor) || other.categoryColor == categoryColor));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,categoryName,remaining,safeDaily,ratio,level,categoryIcon,categoryColor);
+
+@override
+String toString() {
+  return 'BudgetGuardView(categoryName: $categoryName, remaining: $remaining, safeDaily: $safeDaily, ratio: $ratio, level: $level, categoryIcon: $categoryIcon, categoryColor: $categoryColor)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$BudgetGuardViewCopyWith<$Res> implements $BudgetGuardViewCopyWith<$Res> {
+  factory _$BudgetGuardViewCopyWith(_BudgetGuardView value, $Res Function(_BudgetGuardView) _then) = __$BudgetGuardViewCopyWithImpl;
+@override @useResult
+$Res call({
+ String categoryName, int remaining, int safeDaily, double ratio, BudgetStatusLevel level, String? categoryIcon, int? categoryColor
+});
+
+
+
+
+}
+/// @nodoc
+class __$BudgetGuardViewCopyWithImpl<$Res>
+    implements _$BudgetGuardViewCopyWith<$Res> {
+  __$BudgetGuardViewCopyWithImpl(this._self, this._then);
+
+  final _BudgetGuardView _self;
+  final $Res Function(_BudgetGuardView) _then;
+
+/// Create a copy of BudgetGuardView
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? categoryName = null,Object? remaining = null,Object? safeDaily = null,Object? ratio = null,Object? level = null,Object? categoryIcon = freezed,Object? categoryColor = freezed,}) {
+  return _then(_BudgetGuardView(
+categoryName: null == categoryName ? _self.categoryName : categoryName // ignore: cast_nullable_to_non_nullable
+as String,remaining: null == remaining ? _self.remaining : remaining // ignore: cast_nullable_to_non_nullable
+as int,safeDaily: null == safeDaily ? _self.safeDaily : safeDaily // ignore: cast_nullable_to_non_nullable
+as int,ratio: null == ratio ? _self.ratio : ratio // ignore: cast_nullable_to_non_nullable
+as double,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
+as BudgetStatusLevel,categoryIcon: freezed == categoryIcon ? _self.categoryIcon : categoryIcon // ignore: cast_nullable_to_non_nullable
+as String?,categoryColor: freezed == categoryColor ? _self.categoryColor : categoryColor // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
