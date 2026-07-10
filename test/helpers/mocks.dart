@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:jaga_saku/core/database/app_database.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
+import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/data/datasources/account_local_datasource.dart';
 import 'package:jaga_saku/features/accounts/data/models/account_model.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
@@ -37,6 +39,10 @@ import 'package:mocktail/mocktail.dart';
 class MockBuildContext extends Mock implements BuildContext {}
 
 class MockAppDatabase extends Mock implements AppDatabase {}
+
+class MockSettingsService extends Mock implements SettingsService {}
+
+class MockTxChangeNotifier extends Mock implements TxChangeNotifier {}
 
 // ── Accounts ────────────────────────────────────────────────────────────────
 class MockAccountLocalDatasource extends Mock

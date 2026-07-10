@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -26,18 +29,28 @@ class CalendarCubit extends Cubit<CalendarState> {
     required DeleteTransaction deleteTransaction,
     required GetAccounts getAccounts,
     required GetCategories getCategories,
+    required TxChangeNotifier txChangeNotifier,
   }) : _getTransactionsByMonth = getTransactionsByMonth,
        _getTransactionsByDay = getTransactionsByDay,
        _deleteTransaction = deleteTransaction,
        _getAccounts = getAccounts,
        _getCategories = getCategories,
-       super(CalendarState(focusedMonth: _todayMonth(), selectedDay: _today()));
+       _txChanges = txChangeNotifier,
+       super(
+         CalendarState(focusedMonth: _todayMonth(), selectedDay: _today()),
+       ) {
+    // Consumer side of the W2 fix: any add / edit / delete anywhere pings, and
+    // this refreshes the current month + day. Cancelled in [close] (rule 7).
+    _txSub = _txChanges.changes.listen((_) => refresh());
+  }
 
   final GetTransactionsByMonth _getTransactionsByMonth;
   final GetTransactionsByDay _getTransactionsByDay;
   final DeleteTransaction _deleteTransaction;
   final GetAccounts _getAccounts;
   final GetCategories _getCategories;
+  final TxChangeNotifier _txChanges;
+  late final StreamSubscription<void> _txSub;
 
   static DateTime _today() {
     final now = DateTime.now();
@@ -81,7 +94,10 @@ class CalendarCubit extends Cubit<CalendarState> {
       emit(state.copyWith(status: CalendarStatus.error, failure: failure));
       return;
     }
-    await _fetch();
+    // W2 fix: pinging refreshes this calendar (via its own [changes]
+    // subscription) AND Home, so a delete here updates both — no direct
+    // `_fetch()` needed.
+    _txChanges.ping();
   }
 
   /// Loads accounts + both category sets once and caches them as id lookups.
@@ -133,5 +149,11 @@ class CalendarCubit extends Cubit<CalendarState> {
         status: CalendarStatus.ready,
       ),
     );
+  }
+
+  @override
+  Future<void> close() {
+    _txSub.cancel();
+    return super.close();
   }
 }

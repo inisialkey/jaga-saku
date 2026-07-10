@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -21,16 +22,19 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
     required SaveTransaction saveTransaction,
     required GetAccounts getAccounts,
     required GetCategories getCategories,
+    required TxChangeNotifier txChangeNotifier,
     Transaction? initial,
   }) : _saveTransaction = saveTransaction,
        _getAccounts = getAccounts,
        _getCategories = getCategories,
+       _txChanges = txChangeNotifier,
        _initial = initial,
        super(_seed(initial));
 
   final SaveTransaction _saveTransaction;
   final GetAccounts _getAccounts;
   final GetCategories _getCategories;
+  final TxChangeNotifier _txChanges;
   final Transaction? _initial;
 
   static AddTransactionState _seed(Transaction? initial) {
@@ -151,13 +155,16 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
 
     final result = await _saveTransaction(transaction);
     if (isClosed) return;
-    emit(
-      result.fold(
-        (failure) =>
-            state.copyWith(status: AddTxStatus.failure, error: failure),
-        (_) => state.copyWith(status: AddTxStatus.success),
-      ),
-    );
+    final failure = result.getLeft().toNullable();
+    if (failure != null) {
+      emit(state.copyWith(status: AddTxStatus.failure, error: failure));
+      return;
+    }
+    // W2 fix: a successful write pings the shared notifier so Home + Calendar
+    // refresh live — even for the fire-and-forget shell FAB path that can't
+    // await this form.
+    _txChanges.ping();
+    emit(state.copyWith(status: AddTxStatus.success));
   }
 
   /// First failing rule for the current type, or [AddTxValidation.none].

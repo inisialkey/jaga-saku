@@ -16,17 +16,20 @@ void main() {
   late MockSaveTransaction saveTransaction;
   late MockGetAccounts getAccounts;
   late MockGetCategories getCategories;
+  late MockTxChangeNotifier txChangeNotifier;
 
   setUp(() {
     saveTransaction = MockSaveTransaction();
     getAccounts = MockGetAccounts();
     getCategories = MockGetCategories();
+    txChangeNotifier = MockTxChangeNotifier();
   });
 
   AddTransactionCubit build() => AddTransactionCubit(
     saveTransaction: saveTransaction,
     getAccounts: getAccounts,
     getCategories: getCategories,
+    txChangeNotifier: txChangeNotifier,
   );
 
   test('seeds fields from the initial transaction when editing', () {
@@ -34,6 +37,7 @@ void main() {
       saveTransaction: saveTransaction,
       getAccounts: getAccounts,
       getCategories: getCategories,
+      txChangeNotifier: txChangeNotifier,
       initial: const Transaction(
         id: 9,
         type: TransactionType.income,
@@ -175,6 +179,10 @@ void main() {
         status: AddTxStatus.success,
       ),
     ],
-    verify: (_) => verify(() => saveTransaction(any())).called(1),
+    verify: (_) {
+      verify(() => saveTransaction(any())).called(1);
+      // W2: a successful save pings the shared notifier (Home + Calendar refresh).
+      verify(() => txChangeNotifier.ping()).called(1);
+    },
   );
 }

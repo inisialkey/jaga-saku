@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/calendar/pages/calendar_cubit.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -17,6 +18,9 @@ void main() {
   late MockDeleteTransaction deleteTransaction;
   late MockGetAccounts getAccounts;
   late MockGetCategories getCategories;
+  // Real notifier (a trivial dart:async wrapper) so the subscription wiring is
+  // exercised end-to-end.
+  late TxChangeNotifier txChanges;
 
   final tx = Transaction(
     id: 1,
@@ -33,7 +37,10 @@ void main() {
     deleteTransaction = MockDeleteTransaction();
     getAccounts = MockGetAccounts();
     getCategories = MockGetCategories();
+    txChanges = TxChangeNotifier();
   });
+
+  tearDown(() => txChanges.dispose());
 
   CalendarCubit build() => CalendarCubit(
     getTransactionsByMonth: getByMonth,
@@ -41,6 +48,7 @@ void main() {
     deleteTransaction: deleteTransaction,
     getAccounts: getAccounts,
     getCategories: getCategories,
+    txChangeNotifier: txChanges,
   );
 
   void stubLookups() {
@@ -97,10 +105,34 @@ void main() {
     await cubit.close();
   });
 
-  test('deleteTransaction reloads the month + day after a delete', () async {
-    when(
-      () => deleteTransaction(1),
-    ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
+  test(
+    'deleteTransaction pings; the subscription reloads month + day',
+    () async {
+      when(
+        () => deleteTransaction(1),
+      ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
+      when(
+        () => getByMonth(any()),
+      ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
+      when(
+        () => getByDay(any()),
+      ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
+
+      final cubit = build();
+      await cubit.deleteTransaction(1);
+      // The refresh runs off the notifier subscription (async), so let the event
+      // queue drain before asserting the reload happened.
+      await pumpEventQueue();
+
+      verify(() => deleteTransaction(1)).called(1);
+      // Exactly one reload ran (via the ping → subscription, no direct _fetch).
+      verify(() => getByDay(any())).called(1);
+      expect(cubit.state.status, CalendarStatus.ready);
+      await cubit.close();
+    },
+  );
+
+  test('a notifier ping refreshes the calendar (subscription wired)', () async {
     when(
       () => getByMonth(any()),
     ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
@@ -109,11 +141,11 @@ void main() {
     ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
 
     final cubit = build();
-    await cubit.deleteTransaction(1);
+    txChanges.ping();
+    await pumpEventQueue();
 
-    verify(() => deleteTransaction(1)).called(1);
-    // A reload ran after the delete.
-    verify(() => getByDay(any())).called(1);
+    // The ping-driven refresh fetched the month + day.
+    verify(() => getByMonth(any())).called(1);
     expect(cubit.state.status, CalendarStatus.ready);
     await cubit.close();
   });

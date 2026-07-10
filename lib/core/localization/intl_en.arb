@@ -256,5 +256,42 @@
   "expenseLabel": "Expense",
   "balanceLabel": "Balance",
   "emptyDayTitle": "No transactions yet",
-  "emptyDayMessage": "Add a transaction for this day."
+  "emptyDayMessage": "Add a transaction for this day.",
+  "greeting": "Hi, {name} 👋",
+  "@greeting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "greetingGuest": "Hi 👋",
+  "totalBalance": "Total Balance",
+  "thisMonth": "This month",
+  "budgetGuard": "Budget Guard",
+  "budgetEmptyTitle": "No budget yet",
+  "budgetEmptyMessage": "Set a budget so Jaga Saku can help you track spending.",
+  "createBudget": "Create Budget",
+  "dailyReview": "Daily Review",
+  "todaySpent": "You've spent {amount}",
+  "@todaySpent": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "topCategory": "Top category: {name}",
+  "@topCategory": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noSpendingToday": "No spending today",
+  "recentTransactions": "Recent Transactions",
+  "seeAll": "See All",
+  "emptyTransactionsTitle": "No transactions yet",
+  "emptyTransactionsMessage": "Add your first transaction to start tracking."
 }

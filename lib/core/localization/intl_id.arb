@@ -256,5 +256,42 @@
   "expenseLabel": "Pengeluaran",
   "balanceLabel": "Saldo",
   "emptyDayTitle": "Belum ada transaksi",
-  "emptyDayMessage": "Tambah transaksi untuk hari ini."
+  "emptyDayMessage": "Tambah transaksi untuk hari ini.",
+  "greeting": "Hi, {name} 👋",
+  "@greeting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "greetingGuest": "Hi 👋",
+  "totalBalance": "Total Saldo",
+  "thisMonth": "Bulan ini",
+  "budgetGuard": "Budget Guard",
+  "budgetEmptyTitle": "Belum ada budget",
+  "budgetEmptyMessage": "Atur budget agar Jaga Saku bisa bantu pantau pengeluaranmu.",
+  "createBudget": "Buat Budget",
+  "dailyReview": "Review Hari Ini",
+  "todaySpent": "Kamu sudah keluar {amount}",
+  "@todaySpent": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "topCategory": "Kategori terbesar: {name}",
+  "@topCategory": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noSpendingToday": "Belum ada pengeluaran hari ini",
+  "recentTransactions": "Transaksi Terbaru",
+  "seeAll": "Lihat Semua",
+  "emptyTransactionsTitle": "Belum ada transaksi",
+  "emptyTransactionsMessage": "Tambah transaksi pertamamu untuk mulai mencatat."
 }

@@ -280,11 +280,11 @@ class _TransactionRow extends StatelessWidget {
     );
   }
 
-  Future<void> _edit(BuildContext context) async {
-    final cubit = context.read<CalendarCubit>();
-    final saved = await context.push<bool>(AppRoute.add, extra: transaction);
-    if (saved ?? false) await cubit.refresh();
-  }
+  /// Opens the edit form. Fire-and-forget: a successful save pings
+  /// [TxChangeNotifier], which refreshes this calendar via its subscription — so
+  /// no manual `refresh()` is needed here (the W2 fix).
+  void _edit(BuildContext context) =>
+      context.push(AppRoute.add, extra: transaction);
 
   Future<void> _confirmDelete(BuildContext context) async {
     final cubit = context.read<CalendarCubit>();
