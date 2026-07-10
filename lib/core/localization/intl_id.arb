@@ -345,5 +345,45 @@
     }
   },
   "keepSaving": "Tetap Simpan",
-  "editAmount": "Ubah Nominal"
+  "editAmount": "Ubah Nominal",
+  "monthlyOverview": "Ringkasan Bulanan",
+  "saved": "Ditabung",
+  "expenseByCategory": "Pengeluaran per Kategori",
+  "plannedVsUnplanned": "Direncanakan vs Tak Terencana",
+  "needVsWant": "Kebutuhan vs Keinginan",
+  "spendingInsight": "Wawasan Pengeluaran",
+  "insightBudgetUsed": "Budget {category} sudah terpakai {pct}% bulan ini.",
+  "@insightBudgetUsed": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "insightBudgetOver": "Budget {category} sudah melebihi batas bulan ini.",
+  "@insightBudgetOver": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "insightCategoryUp": "Pengeluaran {category} naik {pct}% dibanding bulan lalu.",
+  "@insightCategoryUp": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "insightUnplannedUp": "Pengeluaran tak terencana bulan ini lebih tinggi dari bulan lalu.",
+  "noExpenseThisMonth": "Belum ada pengeluaran bulan ini",
+  "noInsightThisMonth": "Belum ada wawasan bulan ini.",
+  "noDataThisMonth": "Belum ada data bulan ini"
 }

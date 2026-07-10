@@ -345,5 +345,45 @@
     }
   },
   "keepSaving": "Save Anyway",
-  "editAmount": "Edit Amount"
+  "editAmount": "Edit Amount",
+  "monthlyOverview": "Monthly Overview",
+  "saved": "Saved",
+  "expenseByCategory": "Expense by Category",
+  "plannedVsUnplanned": "Planned vs Unplanned",
+  "needVsWant": "Need vs Want",
+  "spendingInsight": "Spending Insight",
+  "insightBudgetUsed": "Budget {category} is {pct}% used this month.",
+  "@insightBudgetUsed": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "insightBudgetOver": "Budget {category} is over the limit this month.",
+  "@insightBudgetOver": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "insightCategoryUp": "{category} spending is up {pct}% from last month.",
+  "@insightCategoryUp": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "insightUnplannedUp": "Unplanned spending is higher than last month.",
+  "noExpenseThisMonth": "No expenses this month yet",
+  "noInsightThisMonth": "No insights this month yet.",
+  "noDataThisMonth": "No data this month yet"
 }

@@ -9,7 +9,6 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/pages/form/budget_form_page.dart';
 import 'package:jaga_saku/features/budgets/pages/list/budget_list_cubit.dart';
 import 'package:jaga_saku/features/budgets/pages/widgets/budget_item_card.dart';
-import 'package:jaga_saku/features/budgets/pages/widgets/month_selector.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 
 /// Budget screen (wireframe): a month selector over a list of per-category
