@@ -14,7 +14,8 @@ import 'package:jaga_saku/features/categories/pages/form/category_form_cubit.dar
 import 'package:jaga_saku/features/categories/pages/form/category_form_page.dart';
 import 'package:jaga_saku/features/categories/pages/list/category_list_cubit.dart';
 import 'package:jaga_saku/features/categories/pages/list/category_list_page.dart';
-import 'package:jaga_saku/features/home/home_page.dart';
+import 'package:jaga_saku/features/home/pages/home_cubit.dart';
+import 'package:jaga_saku/features/home/pages/home_page.dart';
 import 'package:jaga_saku/features/insight/insight_page.dart';
 import 'package:jaga_saku/features/more/more_page.dart';
 import 'package:jaga_saku/features/shell/app_shell.dart';
@@ -57,7 +58,20 @@ final GoRouter appRouter = GoRouter(
       branches: [
         StatefulShellBranch(
           routes: [
-            GoRoute(path: AppRoute.home, builder: (_, _) => const HomePage()),
+            GoRoute(
+              path: AppRoute.home,
+              builder: (_, _) => BlocProvider(
+                create: (_) => HomeCubit(
+                  getAccounts: sl(),
+                  getTransactionsByMonth: sl(),
+                  getRecentTransactions: sl(),
+                  getCategories: sl(),
+                  settingsService: sl(),
+                  txChangeNotifier: sl(),
+                )..load(),
+                child: const HomePage(),
+              ),
+            ),
           ],
         ),
         StatefulShellBranch(
@@ -71,6 +85,7 @@ final GoRouter appRouter = GoRouter(
                   deleteTransaction: sl(),
                   getAccounts: sl(),
                   getCategories: sl(),
+                  txChangeNotifier: sl(),
                 )..load(),
                 child: const CalendarPage(),
               ),
@@ -100,6 +115,7 @@ final GoRouter appRouter = GoRouter(
           saveTransaction: sl(),
           getAccounts: sl(),
           getCategories: sl(),
+          txChangeNotifier: sl(),
           initial: state.extra as Transaction?,
         )..load(),
         child: const AddTransactionPage(),

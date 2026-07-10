@@ -40,6 +40,9 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
 
   sl.registerSingleton<AppDatabase>(AppDatabase.instance);
   sl.registerLazySingleton<SettingsService>(() => SettingsService(sl()));
+  // Cross-feature "transactions changed" signal (M3 / W2 fix). App-lifetime
+  // singleton — producers ping it, Home + Calendar cubits subscribe.
+  sl.registerLazySingleton<TxChangeNotifier>(() => TxChangeNotifier());
 
   _registerAccounts();
   _registerCategories();
