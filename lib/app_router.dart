@@ -8,6 +8,10 @@ import 'package:jaga_saku/features/accounts/pages/form/account_form_cubit.dart';
 import 'package:jaga_saku/features/accounts/pages/form/account_form_page.dart';
 import 'package:jaga_saku/features/accounts/pages/list/account_list_cubit.dart';
 import 'package:jaga_saku/features/accounts/pages/list/account_list_page.dart';
+import 'package:jaga_saku/features/budgets/pages/form/budget_form_cubit.dart';
+import 'package:jaga_saku/features/budgets/pages/form/budget_form_page.dart';
+import 'package:jaga_saku/features/budgets/pages/list/budget_list_cubit.dart';
+import 'package:jaga_saku/features/budgets/pages/list/budget_list_page.dart';
 import 'package:jaga_saku/features/calendar/pages/calendar_cubit.dart';
 import 'package:jaga_saku/features/calendar/pages/calendar_page.dart';
 import 'package:jaga_saku/features/categories/pages/form/category_form_cubit.dart';
@@ -39,6 +43,8 @@ class AppRoute {
   static const String accountForm = '/accounts/form';
   static const String categories = '/categories';
   static const String categoryForm = '/categories/form';
+  static const String budget = '/budget';
+  static const String budgetForm = '/budget/form';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -66,6 +72,7 @@ final GoRouter appRouter = GoRouter(
                   getTransactionsByMonth: sl(),
                   getRecentTransactions: sl(),
                   getCategories: sl(),
+                  getBudgetsForPeriod: sl(),
                   settingsService: sl(),
                   txChangeNotifier: sl(),
                 )..load(),
@@ -115,6 +122,7 @@ final GoRouter appRouter = GoRouter(
           saveTransaction: sl(),
           getAccounts: sl(),
           getCategories: sl(),
+          getBudgetsForPeriod: sl(),
           txChangeNotifier: sl(),
           initial: state.extra as Transaction?,
         )..load(),
@@ -174,6 +182,38 @@ final GoRouter appRouter = GoRouter(
             presetParentId: args?.presetParentId,
           )..loadParents(),
           child: const CategoryFormPage(),
+        );
+      },
+    ),
+    // ── Budgets (M4) ─────────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.budget,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => BudgetListCubit(
+          getBudgetsForPeriod: sl(),
+          deleteBudget: sl(),
+          getCategories: sl(),
+          txChangeNotifier: sl(),
+        )..load(),
+        child: const BudgetListPage(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.budgetForm,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) {
+        final args = state.extra as BudgetFormArgs?;
+        return BlocProvider(
+          create: (_) => BudgetFormCubit(
+            saveBudget: sl(),
+            getCategories: sl(),
+            getBudgetsForPeriod: sl(),
+            txChangeNotifier: sl(),
+            initial: args?.initial,
+            month: args?.month,
+          )..load(),
+          child: const BudgetFormPage(),
         );
       },
     ),

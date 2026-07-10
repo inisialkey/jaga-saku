@@ -3,6 +3,8 @@ import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
@@ -17,6 +19,7 @@ void main() {
   late MockGetTransactionsByMonth getByMonth;
   late MockGetRecentTransactions getRecent;
   late MockGetCategories getCategories;
+  late MockGetBudgetsForPeriod getBudgets;
   late MockSettingsService settings;
   late TxChangeNotifier txChanges;
 
@@ -45,6 +48,7 @@ void main() {
     getByMonth = MockGetTransactionsByMonth();
     getRecent = MockGetRecentTransactions();
     getCategories = MockGetCategories();
+    getBudgets = MockGetBudgetsForPeriod();
     settings = MockSettingsService();
     txChanges = TxChangeNotifier();
     when(() => settings.getString(any())).thenAnswer((_) async => null);
@@ -57,6 +61,7 @@ void main() {
     getTransactionsByMonth: getByMonth,
     getRecentTransactions: getRecent,
     getCategories: getCategories,
+    getBudgetsForPeriod: getBudgets,
     settingsService: settings,
     txChangeNotifier: txChanges,
   );
@@ -67,6 +72,7 @@ void main() {
     required List<Transaction> recent,
     List<Category> expenseCats = const [],
     List<Category> incomeCats = const [],
+    List<Budget> budgets = const [],
   }) {
     when(
       () => getAccounts(any()),
@@ -83,6 +89,9 @@ void main() {
     when(
       () => getCategories(CategoryType.income),
     ).thenAnswer((_) async => Right<Failure, List<Category>>(incomeCats));
+    when(
+      () => getBudgets(any()),
+    ).thenAnswer((_) async => Right<Failure, List<Budget>>(budgets));
   }
 
   test(
@@ -220,6 +229,98 @@ void main() {
     // Two loads: the explicit one + the ping-driven refresh.
     verify(() => getAccounts(any())).called(2);
     expect(cubit.state, isA<HomeLoaded>());
+    await cubit.close();
+  });
+
+  test('budgetGuard surfaces the most at-risk budget (max ratio)', () async {
+    final period = periodKey(now);
+    stubAll(
+      accounts: const [],
+      month: const [],
+      recent: const [],
+      expenseCats: const [
+        Category(id: 1, name: 'Makan', type: CategoryType.expense),
+        Category(id: 2, name: 'Transport', type: CategoryType.expense),
+      ],
+      budgets: [
+        // 50% used — safe.
+        Budget(
+          id: 1,
+          categoryId: 1,
+          period: period,
+          limitAmount: 100000,
+          spent: 50000,
+        ),
+        // 90% used — warning, and the higher ratio, so it wins.
+        Budget(
+          id: 2,
+          categoryId: 2,
+          period: period,
+          limitAmount: 100000,
+          spent: 90000,
+        ),
+      ],
+    );
+
+    final cubit = build();
+    await cubit.load();
+
+    final guard = (cubit.state as HomeLoaded).dashboard.budgetGuard;
+    expect(guard, isNotNull);
+    expect(guard!.categoryName, 'Transport');
+    expect(guard.level, BudgetStatusLevel.warning);
+    await cubit.close();
+  });
+
+  test(
+    'budgetGuard tie-break picks the higher-spent budget on equal ratio',
+    () async {
+      final period = periodKey(now);
+      stubAll(
+        accounts: const [],
+        month: const [],
+        recent: const [],
+        expenseCats: const [
+          Category(id: 1, name: 'Makan', type: CategoryType.expense),
+          Category(id: 2, name: 'Transport', type: CategoryType.expense),
+        ],
+        budgets: [
+          // Both exactly 50% used → equal ratio. Makan is listed first, but
+          // Transport spent more, so the tie-break must override to Transport.
+          Budget(
+            id: 1,
+            categoryId: 1,
+            period: period,
+            limitAmount: 100000,
+            spent: 50000,
+          ),
+          Budget(
+            id: 2,
+            categoryId: 2,
+            period: period,
+            limitAmount: 200000,
+            spent: 100000,
+          ),
+        ],
+      );
+
+      final cubit = build();
+      await cubit.load();
+
+      final guard = (cubit.state as HomeLoaded).dashboard.budgetGuard;
+      expect(guard, isNotNull);
+      expect(guard!.categoryName, 'Transport'); // higher spent breaks the tie
+      await cubit.close();
+    },
+  );
+
+  test('budgetGuard is null when there are no budgets', () async {
+    stubAll(accounts: const [], month: const [], recent: const []);
+
+    final cubit = build();
+    await cubit.load();
+
+    expect((cubit.state as HomeLoaded).dashboard.budgetGuard, isNull);
     await cubit.close();
   });
 }

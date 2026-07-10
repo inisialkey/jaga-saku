@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:jaga_saku/core/core.dart';
+import 'package:jaga_saku/features/budgets/pages/widgets/budget_warning_sheet.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
 import 'package:jaga_saku/features/transactions/pages/widgets/account_picker_sheet.dart';
@@ -45,9 +46,22 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     final s = Strings.of(context)!;
     return BlocConsumer<AddTransactionCubit, AddTransactionState>(
       listenWhen: (previous, current) => previous.status != current.status,
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state.status == AddTxStatus.success) {
           context.pop(true);
+        } else if (state.status == AddTxStatus.needsBudgetConfirm) {
+          final cubit = context.read<AddTransactionCubit>();
+          final keepSaving = await BudgetWarningSheet.show(
+            context,
+            categoryName: state.selectedCategory?.name ?? s.category,
+            safeDaily: state.safeDaily,
+            amount: state.amount,
+          );
+          if (keepSaving) {
+            cubit.confirmSave();
+          } else {
+            cubit.dismissBudgetConfirm();
+          }
         } else if (state.status == AddTxStatus.failure) {
           final message = switch (state.validation) {
             AddTxValidation.amountRequired => s.amountRequiredError,

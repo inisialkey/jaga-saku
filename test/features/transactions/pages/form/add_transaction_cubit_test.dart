@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
@@ -16,19 +18,35 @@ void main() {
   late MockSaveTransaction saveTransaction;
   late MockGetAccounts getAccounts;
   late MockGetCategories getCategories;
+  late MockGetBudgetsForPeriod getBudgets;
   late MockTxChangeNotifier txChangeNotifier;
+
+  // A current-month date so the budget guard runs (period matches "now").
+  final now = DateTime.now();
+  final todayMillis = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).millisecondsSinceEpoch;
+  final currentPeriod = periodKey(now);
 
   setUp(() {
     saveTransaction = MockSaveTransaction();
     getAccounts = MockGetAccounts();
     getCategories = MockGetCategories();
+    getBudgets = MockGetBudgetsForPeriod();
     txChangeNotifier = MockTxChangeNotifier();
+    // No budget by default → expenses save straight through.
+    when(
+      () => getBudgets(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Budget>>([]));
   });
 
   AddTransactionCubit build() => AddTransactionCubit(
     saveTransaction: saveTransaction,
     getAccounts: getAccounts,
     getCategories: getCategories,
+    getBudgetsForPeriod: getBudgets,
     txChangeNotifier: txChangeNotifier,
   );
 
@@ -37,6 +55,7 @@ void main() {
       saveTransaction: saveTransaction,
       getAccounts: getAccounts,
       getCategories: getCategories,
+      getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChangeNotifier,
       initial: const Transaction(
         id: 9,
@@ -183,6 +202,161 @@ void main() {
       verify(() => saveTransaction(any())).called(1);
       // W2: a successful save pings the shared notifier (Home + Calendar refresh).
       verify(() => txChangeNotifier.ping()).called(1);
+    },
+  );
+
+  // ── Budget-guard retrofit (plan §5) ─────────────────────────────────────────
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'expense over the category safe-daily pauses with needsBudgetConfirm (no save)',
+    setUp: () => when(() => getBudgets(any())).thenAnswer(
+      // Current-month budget, full 100k limit unspent → any daily allowance is
+      // <= 100k, so a 200k expense always breaches it.
+      (_) async => Right<Failure, List<Budget>>([
+        Budget(categoryId: 1, period: currentPeriod, limitAmount: 100000),
+      ]),
+    ),
+    build: build,
+    seed: () => AddTransactionState(
+      amount: 200000,
+      accountId: 1,
+      categoryId: 1,
+      date: todayMillis,
+    ),
+    act: (cubit) => cubit.submit(),
+    expect: () => [
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.needsBudgetConfirm,
+      ),
+    ],
+    verify: (_) => verifyNever(() => saveTransaction(any())),
+  );
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'confirmSave commits the paused expense and pings',
+    setUp: () => when(
+      () => saveTransaction(any()),
+    ).thenAnswer((_) async => const Right<Failure, int>(1)),
+    build: build,
+    seed: () => const AddTransactionState(
+      amount: 200000,
+      accountId: 1,
+      categoryId: 1,
+      status: AddTxStatus.needsBudgetConfirm,
+      safeDaily: 3000,
+    ),
+    act: (cubit) => cubit.confirmSave(),
+    expect: () => [
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.saving,
+      ),
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.success,
+      ),
+    ],
+    verify: (_) {
+      verify(() => saveTransaction(any())).called(1);
+      verify(() => txChangeNotifier.ping()).called(1);
+    },
+  );
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'dismissBudgetConfirm re-arms to editing and never saves',
+    build: build,
+    seed: () => const AddTransactionState(
+      amount: 200000,
+      accountId: 1,
+      categoryId: 1,
+      status: AddTxStatus.needsBudgetConfirm,
+      safeDaily: 3000,
+    ),
+    act: (cubit) => cubit.dismissBudgetConfirm(),
+    expect: () => [
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.editing,
+      ),
+    ],
+    // "Ubah Nominal" only clears the pause — the expense is not committed.
+    verify: (_) => verifyNever(() => saveTransaction(any())),
+  );
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'expense with no budget for its category saves straight through',
+    setUp: () => when(
+      () => saveTransaction(any()),
+    ).thenAnswer((_) async => const Right<Failure, int>(1)),
+    build: build,
+    seed: () => AddTransactionState(
+      amount: 5000,
+      accountId: 1,
+      categoryId: 1,
+      date: todayMillis,
+    ),
+    act: (cubit) => cubit.submit(),
+    expect: () => [
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.saving,
+      ),
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.success,
+      ),
+    ],
+    verify: (_) {
+      // The guard checked the budget (found none) then saved.
+      verify(() => getBudgets(any())).called(1);
+      verify(() => saveTransaction(any())).called(1);
+    },
+  );
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'income never warns even with a budget on that category',
+    setUp: () {
+      when(() => getBudgets(any())).thenAnswer(
+        (_) async => Right<Failure, List<Budget>>([
+          Budget(categoryId: 1, period: currentPeriod, limitAmount: 1),
+        ]),
+      );
+      when(
+        () => saveTransaction(any()),
+      ).thenAnswer((_) async => const Right<Failure, int>(1));
+    },
+    build: build,
+    seed: () => AddTransactionState(
+      type: TransactionType.income,
+      amount: 200000,
+      accountId: 1,
+      categoryId: 1,
+      date: todayMillis,
+    ),
+    act: (cubit) => cubit.submit(),
+    expect: () => [
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.saving,
+      ),
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.success,
+      ),
+    ],
+    verify: (_) {
+      // Non-expense skips the budget read entirely.
+      verifyNever(() => getBudgets(any()));
+      verify(() => saveTransaction(any())).called(1);
     },
   );
 }

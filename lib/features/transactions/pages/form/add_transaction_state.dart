@@ -1,8 +1,10 @@
 part of 'add_transaction_cubit.dart';
 
 /// Lifecycle of a submission. A status enum (rather than nullable flags) gives
-/// the page clean one-shot transitions to listen on.
-enum AddTxStatus { editing, saving, success, failure }
+/// the page clean one-shot transitions to listen on. [needsBudgetConfirm] is the
+/// budget-guard pause (plan §5): validation passed but the expense breaches its
+/// category's safe-daily, so the page must confirm before the cubit commits.
+enum AddTxStatus { editing, saving, success, failure, needsBudgetConfirm }
 
 /// Why the last submit was rejected before touching the datasource. [none] means
 /// the failure (if any) came from the save itself, carried in `error`. The page
@@ -43,6 +45,10 @@ abstract class AddTransactionState with _$AddTransactionState {
     @Default(AddTxValidation.none) AddTxValidation validation,
     Failure? error,
     @Default(false) bool isEditing,
+
+    /// The category's safe-daily allowance, set when [status] is
+    /// [AddTxStatus.needsBudgetConfirm]; drives the warning sheet.
+    @Default(0) int safeDaily,
   }) = _AddTransactionState;
 
   const AddTransactionState._();

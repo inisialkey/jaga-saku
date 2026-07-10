@@ -12,6 +12,13 @@ import 'package:jaga_saku/features/accounts/domain/usecases/delete_account.dart'
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/reorder_accounts.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/save_account.dart';
+import 'package:jaga_saku/features/budgets/data/datasources/budget_local_datasource.dart';
+import 'package:jaga_saku/features/budgets/data/models/budget_model.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/repositories/budget_repository.dart';
+import 'package:jaga_saku/features/budgets/domain/usecases/delete_budget.dart';
+import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
+import 'package:jaga_saku/features/budgets/domain/usecases/save_budget.dart';
 import 'package:jaga_saku/features/categories/data/datasources/category_local_datasource.dart';
 import 'package:jaga_saku/features/categories/data/models/category_model.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -60,6 +67,17 @@ class MockArchiveAccount extends Mock implements ArchiveAccount {}
 
 class MockReorderAccounts extends Mock implements ReorderAccounts {}
 
+// ── Budgets ──────────────────────────────────────────────────────────────────
+class MockBudgetLocalDatasource extends Mock implements BudgetLocalDatasource {}
+
+class MockBudgetRepository extends Mock implements BudgetRepository {}
+
+class MockGetBudgetsForPeriod extends Mock implements GetBudgetsForPeriod {}
+
+class MockSaveBudget extends Mock implements SaveBudget {}
+
+class MockDeleteBudget extends Mock implements DeleteBudget {}
+
 // ── Categories ──────────────────────────────────────────────────────────────
 class MockCategoryLocalDatasource extends Mock
     implements CategoryLocalDatasource {}
@@ -100,6 +118,12 @@ void registerFallbackValues() {
   registerFallbackValue(const Account(name: '', type: AccountType.cash));
   registerFallbackValue(const AccountModel(name: '', type: AccountType.cash));
   registerFallbackValue(const ArchiveAccountParams(id: 0, archived: true));
+  registerFallbackValue(
+    const Budget(categoryId: 0, period: '2026-01', limitAmount: 0),
+  );
+  registerFallbackValue(
+    const BudgetModel(categoryId: 0, period: '2026-01', limitAmount: 0),
+  );
   registerFallbackValue(const Category(name: '', type: CategoryType.expense));
   registerFallbackValue(
     const CategoryModel(name: '', type: CategoryType.expense),
