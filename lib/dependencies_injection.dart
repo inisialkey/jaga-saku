@@ -16,6 +16,14 @@ import 'package:jaga_saku/features/categories/domain/usecases/delete_category.da
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/reorder_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/save_category.dart';
+import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
+import 'package:jaga_saku/features/transactions/data/repositories/transaction_repository_impl.dart';
+import 'package:jaga_saku/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/delete_transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_transactions.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_day.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
 
 GetIt sl = GetIt.instance;
 
@@ -35,6 +43,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
 
   _registerAccounts();
   _registerCategories();
+  _registerTransactions();
 }
 
 void _registerAccounts() {
@@ -61,4 +70,17 @@ void _registerCategories() {
     ..registerLazySingleton(() => DeleteCategory(sl()))
     ..registerLazySingleton(() => ArchiveCategory(sl()))
     ..registerLazySingleton(() => ReorderCategories(sl()));
+}
+
+void _registerTransactions() {
+  sl
+    ..registerLazySingleton(() => TransactionLocalDatasource(sl<AppDatabase>()))
+    ..registerLazySingleton<TransactionRepository>(
+      () => TransactionRepositoryImpl(sl()),
+    )
+    ..registerLazySingleton(() => GetTransactionsByMonth(sl()))
+    ..registerLazySingleton(() => GetTransactionsByDay(sl()))
+    ..registerLazySingleton(() => GetRecentTransactions(sl()))
+    ..registerLazySingleton(() => SaveTransaction(sl()))
+    ..registerLazySingleton(() => DeleteTransaction(sl()));
 }

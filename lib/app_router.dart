@@ -8,8 +8,8 @@ import 'package:jaga_saku/features/accounts/pages/form/account_form_cubit.dart';
 import 'package:jaga_saku/features/accounts/pages/form/account_form_page.dart';
 import 'package:jaga_saku/features/accounts/pages/list/account_list_cubit.dart';
 import 'package:jaga_saku/features/accounts/pages/list/account_list_page.dart';
-import 'package:jaga_saku/features/add_transaction/add_transaction_page.dart';
-import 'package:jaga_saku/features/calendar/calendar_page.dart';
+import 'package:jaga_saku/features/calendar/pages/calendar_cubit.dart';
+import 'package:jaga_saku/features/calendar/pages/calendar_page.dart';
 import 'package:jaga_saku/features/categories/pages/form/category_form_cubit.dart';
 import 'package:jaga_saku/features/categories/pages/form/category_form_page.dart';
 import 'package:jaga_saku/features/categories/pages/list/category_list_cubit.dart';
@@ -18,6 +18,9 @@ import 'package:jaga_saku/features/home/home_page.dart';
 import 'package:jaga_saku/features/insight/insight_page.dart';
 import 'package:jaga_saku/features/more/more_page.dart';
 import 'package:jaga_saku/features/shell/app_shell.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
+import 'package:jaga_saku/features/transactions/pages/form/add_transaction_page.dart';
 
 /// App route locations. Add is not a tab — it is a full-screen route pushed on
 /// the root navigator by the shell FAB.
@@ -61,7 +64,16 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: AppRoute.calendar,
-              builder: (_, _) => const CalendarPage(),
+              builder: (_, _) => BlocProvider(
+                create: (_) => CalendarCubit(
+                  getTransactionsByMonth: sl(),
+                  getTransactionsByDay: sl(),
+                  deleteTransaction: sl(),
+                  getAccounts: sl(),
+                  getCategories: sl(),
+                )..load(),
+                child: const CalendarPage(),
+              ),
             ),
           ],
         ),
@@ -83,7 +95,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoute.add,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const AddTransactionPage(),
+      builder: (_, state) => BlocProvider(
+        create: (_) => AddTransactionCubit(
+          saveTransaction: sl(),
+          getAccounts: sl(),
+          getCategories: sl(),
+          initial: state.extra as Transaction?,
+        )..load(),
+        child: const AddTransactionPage(),
+      ),
     ),
     // ── Accounts (M1) ────────────────────────────────────────────────────
     GoRoute(

@@ -43,6 +43,8 @@ class AppIcons {
     'investment': Iconsax.trend_up,
     // ── Misc ────────────────────────────────────────────────────────────
     'category': Iconsax.category,
+    // Used by transfer transactions (no user-facing category) — M2.
+    'transfer': Iconsax.arrow_swap_horizontal,
   };
 
   /// Resolves a stored key to its icon, falling back to a neutral glyph for a
