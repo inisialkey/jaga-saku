@@ -64,6 +64,9 @@ dependencies:
 
   intl: ^0.20.2
 
+  # Offline month-grid calendar for the transactions ledger (M2, style guide §2)
+  table_calendar: ^3.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

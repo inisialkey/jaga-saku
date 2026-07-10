@@ -23,3 +23,4 @@ export 'spacer_h.dart';
 export 'spacer_v.dart';
 export 'state_views.dart';
 export 'toast.dart';
+export 'transaction_tile.dart';

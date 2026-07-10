@@ -1,0 +1,177 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/usecase/usecase.dart';
+import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
+import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
+import 'package:jaga_saku/features/categories/domain/entities/category.dart';
+import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
+
+part 'add_transaction_state.dart';
+part 'add_transaction_cubit.freezed.dart';
+
+/// Backs the create/edit transaction form. Loads accounts + categories for the
+/// pickers, seeds fields from [initial] when editing, validates on [submit], and
+/// folds [SaveTransaction] into a status the page reacts to. Every emit is
+/// guarded by [isClosed] (rule 5).
+class AddTransactionCubit extends Cubit<AddTransactionState> {
+  AddTransactionCubit({
+    required SaveTransaction saveTransaction,
+    required GetAccounts getAccounts,
+    required GetCategories getCategories,
+    Transaction? initial,
+  }) : _saveTransaction = saveTransaction,
+       _getAccounts = getAccounts,
+       _getCategories = getCategories,
+       _initial = initial,
+       super(_seed(initial));
+
+  final SaveTransaction _saveTransaction;
+  final GetAccounts _getAccounts;
+  final GetCategories _getCategories;
+  final Transaction? _initial;
+
+  static AddTransactionState _seed(Transaction? initial) {
+    if (initial == null) {
+      final now = DateTime.now();
+      return AddTransactionState(
+        date: DateTime(now.year, now.month, now.day).millisecondsSinceEpoch,
+      );
+    }
+    return AddTransactionState(
+      type: initial.type,
+      amount: initial.amount,
+      accountId: initial.accountId,
+      toAccountId: initial.toAccountId,
+      categoryId: initial.categoryId,
+      plannedStatus: initial.plannedStatus,
+      spendingType: initial.spendingType,
+      date: initial.date,
+      note: initial.note ?? '',
+      isEditing: true,
+    );
+  }
+
+  /// Loads active accounts + both category sets for the pickers. Read failures
+  /// leave the lists empty (the pickers show an empty state) rather than
+  /// blocking the form — a save still surfaces its own failure.
+  Future<void> load() async {
+    final accountsResult = await _getAccounts(NoParams());
+    final expenseResult = await _getCategories(CategoryType.expense);
+    final incomeResult = await _getCategories(CategoryType.income);
+    if (isClosed) return;
+    final accounts =
+        accountsResult.getRight().toNullable() ?? const <Account>[];
+    final expense = expenseResult.getRight().toNullable() ?? const <Category>[];
+    final income = incomeResult.getRight().toNullable() ?? const <Category>[];
+    emit(
+      state.copyWith(accounts: accounts, categories: [...expense, ...income]),
+    );
+  }
+
+  void typeChanged(TransactionType type) {
+    if (type == state.type) return;
+    // Switching type resets the type-specific fields. Rebuild the state (not
+    // copyWith) so category / toAccount / planned / spending genuinely clear to
+    // null — freezed's copyWith cannot set a field back to null.
+    emit(
+      AddTransactionState(
+        type: type,
+        amount: state.amount,
+        accountId: state.accountId,
+        date: state.date,
+        note: state.note,
+        accounts: state.accounts,
+        categories: state.categories,
+        isEditing: state.isEditing,
+      ),
+    );
+  }
+
+  void amountChanged(int amount) => emit(state.copyWith(amount: amount));
+
+  void accountChanged(int accountId) =>
+      emit(state.copyWith(accountId: accountId));
+
+  void toAccountChanged(int toAccountId) =>
+      emit(state.copyWith(toAccountId: toAccountId));
+
+  void categoryChanged(int categoryId) =>
+      emit(state.copyWith(categoryId: categoryId));
+
+  void plannedStatusChanged(PlannedStatus status) =>
+      emit(state.copyWith(plannedStatus: status));
+
+  void spendingTypeChanged(SpendingType spendingType) =>
+      emit(state.copyWith(spendingType: spendingType));
+
+  void noteChanged(String note) => emit(state.copyWith(note: note));
+
+  /// Normalizes [date] to midnight-local so day-grouping stays deterministic.
+  void dateChanged(DateTime date) => emit(
+    state.copyWith(
+      date: DateTime(date.year, date.month, date.day).millisecondsSinceEpoch,
+    ),
+  );
+
+  Future<void> submit() async {
+    if (state.isSaving) return;
+
+    final validation = _validate();
+    if (validation != AddTxValidation.none) {
+      emit(state.copyWith(status: AddTxStatus.failure, validation: validation));
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        status: AddTxStatus.saving,
+        validation: AddTxValidation.none,
+      ),
+    );
+
+    // Built explicitly (not via copyWith) so type-specific fields are dropped
+    // for the types that don't own them (transfer has no category, income has
+    // no planned/spending, etc.).
+    final transaction = Transaction(
+      id: _initial?.id,
+      type: state.type,
+      amount: state.amount,
+      accountId: state.accountId!,
+      toAccountId: state.isTransfer ? state.toAccountId : null,
+      categoryId: state.isTransfer ? null : state.categoryId,
+      plannedStatus: state.isExpense ? state.plannedStatus : null,
+      spendingType: state.isExpense ? state.spendingType : null,
+      date: state.date,
+      note: state.note.trim().isEmpty ? null : state.note.trim(),
+      createdAt: _initial?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+    );
+
+    final result = await _saveTransaction(transaction);
+    if (isClosed) return;
+    emit(
+      result.fold(
+        (failure) =>
+            state.copyWith(status: AddTxStatus.failure, error: failure),
+        (_) => state.copyWith(status: AddTxStatus.success),
+      ),
+    );
+  }
+
+  /// First failing rule for the current type, or [AddTxValidation.none].
+  AddTxValidation _validate() {
+    if (state.amount <= 0) return AddTxValidation.amountRequired;
+    if (state.accountId == null) return AddTxValidation.accountRequired;
+    if (state.isTransfer) {
+      if (state.toAccountId == null) return AddTxValidation.toAccountRequired;
+      if (state.toAccountId == state.accountId) {
+        return AddTxValidation.transferSameAccount;
+      }
+    } else if (state.categoryId == null) {
+      return AddTxValidation.categoryRequired;
+    }
+    return AddTxValidation.none;
+  }
+}
