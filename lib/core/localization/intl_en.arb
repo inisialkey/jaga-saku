@@ -223,6 +223,20 @@
   "appearance": "Appearance",
   "security": "Security",
   "appTagline": "Track spending, understand habits.",
+  "language": "Language",
+  "languageSystem": "System",
+  "languageIndonesian": "Indonesia",
+  "languageEnglish": "English",
+  "nameHint": "Your name",
+  "appVersion": "Version {version}",
+  "@appVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "licenses": "Licenses",
   "editTransaction": "Edit Transaction",
   "saveTransaction": "Save Transaction",
   "saveTransfer": "Save Transfer",

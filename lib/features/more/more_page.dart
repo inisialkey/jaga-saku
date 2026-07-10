@@ -5,9 +5,9 @@ import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
 
 /// The More tab: an app-info header + grouped menu (Finance / Data / App).
-/// The Finance -> Accounts / Categories / Budget tiles are live; the rest
-/// (Recurring / Export / Backup / Appearance / Security / Settings / About)
-/// render a muted "Soon" badge and are inert.
+/// Live tiles: Accounts / Categories / Budget (Finance) and Appearance /
+/// Settings / About (App). Still deferred to V2 (muted "Soon" badge, inert):
+/// Recurring, Export CSV, Backup & Restore, and Security.
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
 
@@ -81,7 +81,7 @@ class MorePage extends StatelessWidget {
                 icon: Iconsax.brush_1,
                 iconColor: colors.warning,
                 title: s.appearance,
-                trailing: const ComingSoonBadge(),
+                onTap: () => context.push(AppRoute.appearance),
               ),
               MenuTile(
                 icon: Iconsax.shield_tick,
@@ -93,13 +93,13 @@ class MorePage extends StatelessWidget {
                 icon: Iconsax.setting_2,
                 iconColor: colors.textSecondary,
                 title: s.settings,
-                trailing: const ComingSoonBadge(),
+                onTap: () => context.push(AppRoute.settings),
               ),
               MenuTile(
                 icon: Iconsax.info_circle,
                 iconColor: colors.info,
                 title: s.about,
-                trailing: const ComingSoonBadge(),
+                onTap: () => context.push(AppRoute.about),
               ),
             ],
           ),

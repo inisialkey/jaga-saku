@@ -20,7 +20,6 @@ void main() {
   late MockGetRecentTransactions getRecent;
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
-  late MockSettingsService settings;
   late TxChangeNotifier txChanges;
 
   // Anchor everything to the local "today" the cubit computes against.
@@ -49,9 +48,7 @@ void main() {
     getRecent = MockGetRecentTransactions();
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
-    settings = MockSettingsService();
     txChanges = TxChangeNotifier();
-    when(() => settings.getString(any())).thenAnswer((_) async => null);
   });
 
   tearDown(() => txChanges.dispose());
@@ -62,7 +59,6 @@ void main() {
     getRecentTransactions: getRecent,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
-    settingsService: settings,
     txChangeNotifier: txChanges,
   );
 
@@ -162,7 +158,6 @@ void main() {
           Category(id: 3, name: 'Gaji', type: CategoryType.income),
         ],
       );
-      when(() => settings.getString(any())).thenAnswer((_) async => 'Oki');
 
       final cubit = build();
       await cubit.load();
@@ -177,7 +172,6 @@ void main() {
       expect(d.todayUnplanned, 63000); // 45k + 18k
       expect(d.topCategoryName, 'Makan'); // 80k today vs Transport 18k
       expect(d.recent, [income]);
-      expect(d.userName, 'Oki');
       expect(d.categoriesById[1]?.name, 'Makan');
       expect(d.accountsById[2]?.name, 'BCA');
       await cubit.close();
@@ -212,7 +206,6 @@ void main() {
     expect(d.todaySpent, 0);
     expect(d.todayUnplanned, 0);
     expect(d.topCategoryName, isNull);
-    expect(d.userName, isNull);
     expect(d.recent, isEmpty);
     await cubit.close();
   });

@@ -9,6 +9,7 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/home_page.dart';
+import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -27,6 +28,7 @@ void main() {
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
   late MockSettingsService settings;
+  late AppSettingsCubit appSettings;
   late TxChangeNotifier txChanges;
 
   final now = DateTime.now();
@@ -38,14 +40,22 @@ void main() {
     getRecent = MockGetRecentTransactions();
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
+    // The greeting name now flows from the app-global AppSettingsCubit (M6),
+    // backed by a mocked SettingsService.
     settings = MockSettingsService();
+    appSettings = AppSettingsCubit(settings);
     txChanges = TxChangeNotifier();
+    when(() => settings.getString(any())).thenAnswer((_) async => null);
+    when(() => settings.setString(any(), any())).thenAnswer((_) async {});
     when(
       () => getBudgets(any()),
     ).thenAnswer((_) async => const Right<Failure, List<Budget>>([]));
   });
 
-  tearDown(() => txChanges.dispose());
+  tearDown(() async {
+    await appSettings.close();
+    txChanges.dispose();
+  });
 
   HomeCubit build() => HomeCubit(
     getAccounts: getAccounts,
@@ -53,7 +63,6 @@ void main() {
     getRecentTransactions: getRecent,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
-    settingsService: settings,
     txChangeNotifier: txChanges,
   );
 
@@ -67,9 +76,17 @@ void main() {
   }
 
   Future<void> pumpLoaded(WidgetTester tester, HomeCubit cubit) async {
+    // Seed the app-global settings (greeting name) from the mocked store first.
+    await appSettings.load();
     await pumpApp(
       tester,
-      BlocProvider.value(value: cubit, child: const HomePage()),
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: cubit),
+          BlocProvider.value(value: appSettings),
+        ],
+        child: const HomePage(),
+      ),
       scaffold: false,
     );
     await cubit.load();
@@ -176,6 +193,38 @@ void main() {
     await pumpLoaded(tester, cubit);
 
     expect(find.text('Retry'), findsOneWidget);
+
+    await cubit.close();
+  });
+
+  testWidgets('editing the name in settings updates the Home greeting live', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    when(
+      () => getAccounts(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Account>>([]));
+    when(
+      () => getByMonth(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
+    when(
+      () => getRecent(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
+    when(
+      () => getCategories(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Category>>([]));
+
+    final cubit = build();
+    await pumpLoaded(tester, cubit);
+
+    // Starts as guest, then the app-global name change flows into the header.
+    expect(find.text('Hi 👋'), findsOneWidget);
+    await appSettings.setUserName('Budi');
+    expect(appSettings.state.userName, 'Budi');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hi, Budi 👋'), findsOneWidget);
+    expect(find.text('Hi 👋'), findsNothing);
 
     await cubit.close();
   });

@@ -16,11 +16,15 @@ import 'package:jaga_saku/core/core.dart';
 /// By default the widget is pumped under a [Scaffold] (a `Material` ancestor is
 /// required by buttons, `InkWell`, `TextField`, …). Pass `scaffold: false` for
 /// widgets that provide their own [Scaffold] (e.g. `AppScaffold`).
+///
+/// Defaults to [AppTheme.light]; pass `theme: AppTheme.dark` to render under the
+/// dark [AppPalette] (used by `dark_mode_smoke_test.dart`).
 Future<void> pumpApp(
   WidgetTester tester,
   Widget child, {
   bool scaffold = true,
   Locale locale = const Locale('en'),
+  ThemeData? theme,
 }) async {
   await tester.pumpWidget(
     ScreenUtilInit(
@@ -31,7 +35,7 @@ Future<void> pumpApp(
         locale: locale,
         localizationsDelegates: Strings.localizationsDelegates,
         supportedLocales: Strings.supportedLocales,
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         home: scaffold ? Scaffold(body: child) : child,
       ),
     ),

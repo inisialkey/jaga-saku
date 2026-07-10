@@ -223,6 +223,20 @@
   "appearance": "Tampilan",
   "security": "Keamanan",
   "appTagline": "Jaga pengeluaran, pahami kebiasaan.",
+  "language": "Bahasa",
+  "languageSystem": "Sistem",
+  "languageIndonesian": "Indonesia",
+  "languageEnglish": "Inggris",
+  "nameHint": "Nama kamu",
+  "appVersion": "Versi {version}",
+  "@appVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "licenses": "Lisensi",
   "editTransaction": "Ubah Transaksi",
   "saveTransaction": "Simpan Transaksi",
   "saveTransfer": "Simpan Transfer",

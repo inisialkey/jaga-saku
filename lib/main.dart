@@ -3,6 +3,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:jaga_saku/app.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/dependencies_injection.dart';
+import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,10 @@ Future<void> main() async {
   await AppDatabase.instance.open();
 
   await serviceLocator();
+
+  // Load persisted theme / locale / name before the first frame so there is no
+  // theme or language flash on cold start (M6).
+  await sl<AppSettingsCubit>().load();
 
   runApp(const App());
 }
