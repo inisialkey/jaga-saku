@@ -20,7 +20,8 @@ import 'package:jaga_saku/features/categories/pages/list/category_list_cubit.dar
 import 'package:jaga_saku/features/categories/pages/list/category_list_page.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/home_page.dart';
-import 'package:jaga_saku/features/insight/insight_page.dart';
+import 'package:jaga_saku/features/insight/pages/insight_cubit.dart';
+import 'package:jaga_saku/features/insight/pages/insight_page.dart';
 import 'package:jaga_saku/features/more/more_page.dart';
 import 'package:jaga_saku/features/shell/app_shell.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
@@ -103,7 +104,15 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: AppRoute.insight,
-              builder: (_, _) => const InsightPage(),
+              builder: (_, _) => BlocProvider(
+                create: (_) => InsightCubit(
+                  getTransactionsByMonth: sl(),
+                  getCategories: sl(),
+                  getBudgetsForPeriod: sl(),
+                  txChangeNotifier: sl(),
+                )..load(DateTime.now()),
+                child: const InsightPage(),
+              ),
             ),
           ],
         ),

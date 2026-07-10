@@ -20,9 +20,10 @@ const List<String> _idMonths = [
   'Desember',
 ];
 
-/// A `‹ Month YYYY ›` selector (wireframe Budget screen): prev / next chevrons
-/// around the current month label. Dumb widget — the cubit owns the month and
-/// reloads on [onPrevious] / [onNext].
+/// A `‹ Month YYYY ›` selector (wireframe Budget + Insight screens): prev / next
+/// chevrons around the current month label. Dumb widget — the cubit owns the
+/// month and reloads on [onPrevious] / [onNext]. Shared by Budget and Insight
+/// (promoted from `budgets/` to `core/widgets` in M5).
 class MonthSelector extends StatelessWidget {
   const MonthSelector({
     required this.month,

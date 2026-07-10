@@ -14,6 +14,7 @@ export 'icon_picker_sheet.dart';
 export 'loading.dart';
 export 'menu_tile.dart';
 export 'money_text.dart';
+export 'month_selector.dart';
 export 'progress_bar_x.dart';
 export 'section_header.dart';
 export 'segmented_control.dart';
