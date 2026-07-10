@@ -23,9 +23,6 @@ abstract class HomeDashboard with _$HomeDashboard {
     /// Name of today's largest-expense category; null when nothing was spent.
     String? topCategoryName,
 
-    /// Greeting name from settings; null → guest greeting.
-    String? userName,
-
     /// Up to 5 most recent transactions, newest first.
     @Default(<Transaction>[]) List<Transaction> recent,
 

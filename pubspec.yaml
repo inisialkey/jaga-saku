@@ -67,6 +67,10 @@ dependencies:
   # Offline month-grid calendar for the transactions ledger (M2, style guide §2)
   table_calendar: ^3.2.0
 
+  # Reads the app name / version at runtime for the About screen (M6, offline —
+  # never hardcode the version).
+  package_info_plus: ^10.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

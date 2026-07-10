@@ -8,6 +8,7 @@ import 'package:jaga_saku/features/home/pages/widgets/budget_guard_card.dart';
 import 'package:jaga_saku/features/home/pages/widgets/daily_review_card.dart';
 import 'package:jaga_saku/features/home/pages/widgets/home_header.dart';
 import 'package:jaga_saku/features/home/pages/widgets/total_balance_card.dart';
+import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 
 /// Home dashboard (wireframe §1): greeting header, the Total Balance hero, a
@@ -46,7 +47,12 @@ class _HomeBody extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(AppSpacing.lg),
     children: [
-      HomeHeader(userName: dashboard.userName),
+      // The greeting name is app-global (M6): read it from AppSettingsCubit so
+      // editing it in Settings updates Home live. Only the header rebuilds.
+      BlocBuilder<AppSettingsCubit, AppSettingsState>(
+        buildWhen: (a, b) => a.userName != b.userName,
+        builder: (context, settings) => HomeHeader(userName: settings.userName),
+      ),
       const SizedBox(height: AppSpacing.xl),
       TotalBalanceCard(
         totalBalance: dashboard.totalBalance,

@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
-import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
@@ -34,14 +33,12 @@ class HomeCubit extends Cubit<HomeState> {
     required GetRecentTransactions getRecentTransactions,
     required GetCategories getCategories,
     required GetBudgetsForPeriod getBudgetsForPeriod,
-    required SettingsService settingsService,
     required TxChangeNotifier txChangeNotifier,
   }) : _getAccounts = getAccounts,
        _getTransactionsByMonth = getTransactionsByMonth,
        _getRecentTransactions = getRecentTransactions,
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
-       _settings = settingsService,
        _txChanges = txChangeNotifier,
        super(const HomeState.initial()) {
     _txSub = _txChanges.changes.listen((_) => load());
@@ -52,23 +49,21 @@ class HomeCubit extends Cubit<HomeState> {
   final GetRecentTransactions _getRecentTransactions;
   final GetCategories _getCategories;
   final GetBudgetsForPeriod _getBudgetsForPeriod;
-  final SettingsService _settings;
   final TxChangeNotifier _txChanges;
   late final StreamSubscription<void> _txSub;
 
   static const int _recentLimit = 5;
-  static const String _userNameKey = 'user_name';
 
-  /// Loads the four usecases + the greeting name and folds them into a
-  /// [HomeDashboard]. Emits [HomeLoading] only on the first load; a
-  /// notifier-triggered reload keeps the current dashboard on screen (no loading
-  /// flash). Any usecase `Left` → [HomeError]; empty data is a valid
-  /// zero-dashboard (first run), never an error.
+  /// Loads the usecases and folds them into a [HomeDashboard]. Emits
+  /// [HomeLoading] only on the first load; a notifier-triggered reload keeps the
+  /// current dashboard on screen (no loading flash). Any usecase `Left` →
+  /// [HomeError]; empty data is a valid zero-dashboard (first run), never an
+  /// error. The greeting name is no longer loaded here — it lives in the
+  /// app-global `AppSettingsCubit` (M6), read directly by the Home header.
   Future<void> load() async {
     if (state is! HomeLoaded) emit(const HomeState.loading());
 
     final now = DateTime.now();
-    final userName = await _readName();
     final accountsResult = await _getAccounts(NoParams());
     final monthResult = await _getTransactionsByMonth(
       DateTime(now.year, now.month),
@@ -112,23 +107,9 @@ class HomeCubit extends Cubit<HomeState> {
           recent: recent,
           categories: categories,
           budgets: budgets,
-          userName: userName,
         ),
       ),
     );
-  }
-
-  /// The greeting name from settings, or null (guest) when unset. A settings
-  /// read failure is cosmetic, so it falls back to the guest greeting rather
-  /// than failing the dashboard.
-  Future<String?> _readName() async {
-    try {
-      final name = (await _settings.getString(_userNameKey))?.trim();
-      return (name == null || name.isEmpty) ? null : name;
-    } catch (_) {
-      // ponytail: name is decorative — never let it error the whole load.
-      return null;
-    }
   }
 
   /// Folds the month's rows into the dashboard totals + today's review. Balances
@@ -141,7 +122,6 @@ class HomeCubit extends Cubit<HomeState> {
     required List<Transaction> recent,
     required List<Category> categories,
     required List<Budget> budgets,
-    required String? userName,
   }) {
     final totalBalance = accounts
         .where((a) => !a.archived)
@@ -199,7 +179,6 @@ class HomeCubit extends Cubit<HomeState> {
       todaySpent: todaySpent,
       todayUnplanned: todayUnplanned,
       topCategoryName: _topCategoryName(expenseByCategory, categoriesById),
-      userName: userName,
       recent: recent,
       categoriesById: categoriesById,
       accountsById: accountsById,

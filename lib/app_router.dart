@@ -23,6 +23,9 @@ import 'package:jaga_saku/features/home/pages/home_page.dart';
 import 'package:jaga_saku/features/insight/pages/insight_cubit.dart';
 import 'package:jaga_saku/features/insight/pages/insight_page.dart';
 import 'package:jaga_saku/features/more/more_page.dart';
+import 'package:jaga_saku/features/settings/pages/about_page.dart';
+import 'package:jaga_saku/features/settings/pages/appearance_page.dart';
+import 'package:jaga_saku/features/settings/pages/settings_page.dart';
 import 'package:jaga_saku/features/shell/app_shell.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
@@ -46,6 +49,12 @@ class AppRoute {
   static const String categoryForm = '/categories/form';
   static const String budget = '/budget';
   static const String budgetForm = '/budget/form';
+
+  // Settings screens (M6) — full-screen, pushed on the root navigator. They read
+  // the app-global AppSettingsCubit provided in `app.dart` (no per-route cubit).
+  static const String appearance = '/appearance';
+  static const String settings = '/settings';
+  static const String about = '/about';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -74,7 +83,6 @@ final GoRouter appRouter = GoRouter(
                   getRecentTransactions: sl(),
                   getCategories: sl(),
                   getBudgetsForPeriod: sl(),
-                  settingsService: sl(),
                   txChangeNotifier: sl(),
                 )..load(),
                 child: const HomePage(),
@@ -225,6 +233,24 @@ final GoRouter appRouter = GoRouter(
           child: const BudgetFormPage(),
         );
       },
+    ),
+    // ── Settings (M6) ────────────────────────────────────────────────────
+    // No per-route BlocProvider: these read the app-global AppSettingsCubit
+    // provided above MaterialApp.router in `app.dart`.
+    GoRoute(
+      path: AppRoute.appearance,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => const AppearancePage(),
+    ),
+    GoRoute(
+      path: AppRoute.settings,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: AppRoute.about,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => const AboutPage(),
     ),
   ],
 );

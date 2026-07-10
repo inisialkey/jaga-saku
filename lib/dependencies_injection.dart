@@ -22,6 +22,7 @@ import 'package:jaga_saku/features/categories/domain/usecases/delete_category.da
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/reorder_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/save_category.dart';
+import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:jaga_saku/features/transactions/domain/repositories/transaction_repository.dart';
@@ -46,6 +47,10 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
 
   sl.registerSingleton<AppDatabase>(AppDatabase.instance);
   sl.registerLazySingleton<SettingsService>(() => SettingsService(sl()));
+  // App-global preferences (theme / locale / greeting name). Singleton so
+  // `app.dart` + the Home greeting + the Settings screens all share one
+  // reactive instance; `main()` `load()`s it before `runApp` (no flash).
+  sl.registerLazySingleton<AppSettingsCubit>(() => AppSettingsCubit(sl()));
   // Cross-feature "transactions changed" signal (M3 / W2 fix). App-lifetime
   // singleton — producers ping it, Home + Calendar cubits subscribe.
   sl.registerLazySingleton<TxChangeNotifier>(() => TxChangeNotifier());
