@@ -13,6 +13,7 @@ import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_perio
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/transaction_aggregator.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_transactions.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
 
@@ -127,41 +128,27 @@ class HomeCubit extends Cubit<HomeState> {
         .where((a) => !a.archived)
         .fold<int>(0, (sum, a) => sum + a.balance);
 
-    var monthIncome = 0;
-    var monthExpense = 0;
-    for (final t in monthTx) {
-      switch (t.type) {
-        case TransactionType.income:
-          monthIncome += t.amount;
-        case TransactionType.expense:
-          monthExpense += t.amount;
-        case TransactionType.transfer:
-          break; // internal move — excluded from both income and expense
-      }
-    }
+    final (income: monthIncome, expense: monthExpense) =
+        TransactionAggregator.incomeExpense(monthTx);
 
     final today = DateTime(now.year, now.month, now.day);
+    final todayTx = monthTx.where((t) {
+      final d = DateTime.fromMillisecondsSinceEpoch(t.date);
+      return d.year == today.year &&
+          d.month == today.month &&
+          d.day == today.day;
+    }).toList();
+
     var todaySpent = 0;
     var todayUnplanned = 0;
-    final expenseByCategory = <int, int>{};
-    for (final t in monthTx) {
+    for (final t in todayTx) {
       if (t.type != TransactionType.expense) continue;
-      final d = DateTime.fromMillisecondsSinceEpoch(t.date);
-      if (d.year != today.year ||
-          d.month != today.month ||
-          d.day != today.day) {
-        continue;
-      }
       todaySpent += t.amount;
       if (t.plannedStatus == PlannedStatus.unplanned) {
         todayUnplanned += t.amount;
       }
-      final categoryId = t.categoryId;
-      if (categoryId != null) {
-        expenseByCategory[categoryId] =
-            (expenseByCategory[categoryId] ?? 0) + t.amount;
-      }
     }
+    final expenseByCategory = TransactionAggregator.expenseByCategory(todayTx);
 
     final categoriesById = <int, Category>{
       for (final c in categories)
