@@ -11,6 +11,7 @@ import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/insight/pages/insight_rules.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/transaction_aggregator.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
 
 part 'insight_state.dart';
@@ -128,21 +129,12 @@ class InsightCubit extends Cubit<InsightState> {
     };
 
     // ── Overview ──────────────────────────────────────────────────────────
-    var income = 0;
-    var expense = 0;
-    for (final t in currentTx) {
-      switch (t.type) {
-        case TransactionType.income:
-          income += t.amount;
-        case TransactionType.expense:
-          expense += t.amount;
-        case TransactionType.transfer:
-          break; // internal move — excluded from both
-      }
-    }
+    final (:income, :expense) = TransactionAggregator.incomeExpense(currentTx);
 
     // ── Expense by category (current month) ───────────────────────────────
-    final currentByCategory = _expenseByCategory(currentTx);
+    final currentByCategory = TransactionAggregator.expenseByCategory(
+      currentTx,
+    );
     final slices = currentByCategory.entries.map((e) {
       final category = categoriesById[e.key];
       return CategorySlice(
@@ -182,18 +174,6 @@ class InsightCubit extends Cubit<InsightState> {
       insights: insights,
       categoriesById: categoriesById,
     );
-  }
-
-  /// Sum of expense amounts per (non-null) category id.
-  Map<int, int> _expenseByCategory(List<Transaction> txs) {
-    final byCategory = <int, int>{};
-    for (final t in txs) {
-      if (t.type != TransactionType.expense) continue;
-      final categoryId = t.categoryId;
-      if (categoryId == null) continue;
-      byCategory[categoryId] = (byCategory[categoryId] ?? 0) + t.amount;
-    }
-    return byCategory;
   }
 
   PlannedSplit _plannedSplit(List<Transaction> txs) {
@@ -262,7 +242,9 @@ class InsightCubit extends Cubit<InsightState> {
       gauges.add(BudgetGauge(categoryName: name, percent: status.percent));
     }
 
-    final previousByCategory = _expenseByCategory(previousTx);
+    final previousByCategory = TransactionAggregator.expenseByCategory(
+      previousTx,
+    );
     final trends = <CategoryTrend>[
       for (final id in {...currentByCategory.keys, ...previousByCategory.keys})
         CategoryTrend(
