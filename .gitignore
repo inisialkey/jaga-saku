@@ -175,6 +175,10 @@ docs/superpowers/
 # Claude Code config — local only, never pushed
 .claude/
 
+# Local tooling — agent definitions + skills lockfile (per-developer, never pushed)
+.agents/
+skills-lock.json
+
 # Boilerplate: keep real Firebase configs local-only (run flutterfire configure per project)
 **/google-services.json
 **/GoogleService-Info.plist
