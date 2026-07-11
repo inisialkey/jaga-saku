@@ -1,4 +1,5 @@
 import 'package:jaga_saku/core/database/app_database.dart';
+import 'package:jaga_saku/core/database/sort_order_dao.dart';
 import 'package:jaga_saku/features/categories/data/models/category_model.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 
@@ -29,14 +30,12 @@ class CategoryLocalDatasource {
   /// Next `sort_order` within [type] (numbering is per-type): one past the max,
   /// so a new category appends to its list. Returns `0` for the first row of
   /// that type (`-1 + 1`).
-  Future<int> nextSortOrder(CategoryType type) async {
-    final rows = await _database.db.rawQuery(
-      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM $_table '
-      'WHERE type = ?',
-      [type.value],
-    );
-    return rows.first['next']! as int;
-  }
+  Future<int> nextSortOrder(CategoryType type) => SortOrderDao.nextSortOrder(
+    _database.db,
+    _table,
+    where: 'type = ?',
+    whereArgs: [type.value],
+  );
 
   /// Inserts a row appended to the end of its type (via [nextSortOrder]),
   /// returning the new id. Insert is only ever a create.
@@ -69,14 +68,5 @@ class CategoryLocalDatasource {
       );
 
   Future<void> reorder(List<int> orderedIds) =>
-      _database.db.transaction((txn) async {
-        for (var i = 0; i < orderedIds.length; i++) {
-          await txn.update(
-            _table,
-            {'sort_order': i},
-            where: 'id = ?',
-            whereArgs: [orderedIds[i]],
-          );
-        }
-      });
+      SortOrderDao.reorder(_database.db, _table, orderedIds);
 }

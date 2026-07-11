@@ -29,7 +29,12 @@ class DailyReviewCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _ReviewIcon(),
+              CategoryIconAvatar.glyph(
+                icon: Icons.insights_rounded,
+                color: context.colors.info,
+                size: 36,
+                iconSize: 20,
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(s.dailyReview, style: theme.textTheme.titleMedium),
@@ -72,19 +77,4 @@ class DailyReviewCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Soft-tinted analytics glyph for the review header.
-class _ReviewIcon extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 36,
-    height: 36,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: context.colors.info.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(AppRadius.md),
-    ),
-    child: Icon(Icons.insights_rounded, size: 20, color: context.colors.info),
-  );
 }

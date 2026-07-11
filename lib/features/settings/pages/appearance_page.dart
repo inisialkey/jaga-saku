@@ -32,7 +32,7 @@ class AppearancePage extends StatelessWidget {
         children: [
           BlocBuilder<AppSettingsCubit, AppSettingsState>(
             buildWhen: (a, b) => a.themeMode != b.themeMode,
-            builder: (context, state) => SettingsCard(
+            builder: (context, state) => HairlineCard(
               children: [
                 for (final (label, mode) in options)
                   SettingOptionTile(

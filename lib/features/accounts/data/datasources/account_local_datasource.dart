@@ -1,4 +1,5 @@
 import 'package:jaga_saku/core/database/app_database.dart';
+import 'package:jaga_saku/core/database/sort_order_dao.dart';
 import 'package:jaga_saku/features/accounts/data/models/account_model.dart';
 
 /// sqflite DAO for the `accounts` table. Reads/writes through the shared
@@ -33,12 +34,8 @@ class AccountLocalDatasource {
   /// Next `sort_order` for a new row: one past the current max, so inserts
   /// append to the end of the list instead of jumping to the top. Returns `0`
   /// for the first row (`-1 + 1`).
-  Future<int> nextSortOrder() async {
-    final rows = await _database.db.rawQuery(
-      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM $_table',
-    );
-    return rows.first['next']! as int;
-  }
+  Future<int> nextSortOrder() =>
+      SortOrderDao.nextSortOrder(_database.db, _table);
 
   /// Inserts a row appended to the end (via [nextSortOrder]), returning the new
   /// id. Insert is only ever a create, so the row's `sort_order` is always the
@@ -72,14 +69,5 @@ class AccountLocalDatasource {
 
   /// Rewrites `sort_order` to match [orderedIds] in a single transaction.
   Future<void> reorder(List<int> orderedIds) =>
-      _database.db.transaction((txn) async {
-        for (var i = 0; i < orderedIds.length; i++) {
-          await txn.update(
-            _table,
-            {'sort_order': i},
-            where: 'id = ?',
-            whereArgs: [orderedIds[i]],
-          );
-        }
-      });
+      SortOrderDao.reorder(_database.db, _table, orderedIds);
 }
