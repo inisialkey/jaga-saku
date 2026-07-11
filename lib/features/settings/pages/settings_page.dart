@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:jaga_saku/core/core.dart';
-import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/features/settings/pages/widgets/setting_option_tile.dart';
 
 /// Settings screen (More → Settings, M6): switch the app language

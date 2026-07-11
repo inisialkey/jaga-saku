@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/dependencies_injection.dart';
-import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:oktoast/oktoast.dart';
 
 /// Root widget: wires the theme, localization, responsive sizing and router.

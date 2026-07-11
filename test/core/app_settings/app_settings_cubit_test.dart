@@ -1,10 +1,10 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:mocktail/mocktail.dart';
 
-import '../../../helpers/mocks.dart';
+import '../../helpers/mocks.dart';
 
 /// [AppSettingsCubit] over a mocked [SettingsService]: `load` reads (and
 /// defaults) the three persisted keys; each setter emits the new state AND

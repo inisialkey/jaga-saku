@@ -9,7 +9,7 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/home_page.dart';
-import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 
