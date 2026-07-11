@@ -22,7 +22,7 @@ import 'package:jaga_saku/features/categories/domain/usecases/delete_category.da
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/reorder_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/save_category.dart';
-import 'package:jaga_saku/features/settings/pages/app_settings_cubit.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:jaga_saku/features/transactions/domain/repositories/transaction_repository.dart';

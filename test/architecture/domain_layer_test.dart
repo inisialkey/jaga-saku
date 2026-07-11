@@ -46,4 +46,28 @@ void main() {
       reason: 'Domain layer purity violated:\n${violations.join('\n')}',
     );
   });
+
+  test('core layer never depends on a feature', () {
+    final coreFiles = Directory('lib/core')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))
+        .where((f) => !f.path.endsWith('.freezed.dart'))
+        .where((f) => !f.path.endsWith('.g.dart'));
+
+    final featureImport = RegExp("import 'package:jaga_saku/features/");
+
+    final violations = <String>[
+      for (final file in coreFiles)
+        if (featureImport.hasMatch(file.readAsStringSync())) file.path,
+    ];
+
+    expect(
+      violations,
+      isEmpty,
+      reason:
+          'Core layer must not depend on a feature (inverts layering):\n'
+          '${violations.join('\n')}',
+    );
+  });
 }
