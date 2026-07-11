@@ -32,16 +32,7 @@ class MenuTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(icon, size: 20, color: color),
-          ),
+          CategoryIconAvatar.glyph(icon: icon, color: color, iconSize: 20),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
@@ -80,17 +71,7 @@ class MenuSection extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       SectionHeader(title: title),
-      AppCard(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: Column(
-          children: [
-            for (var i = 0; i < tiles.length; i++) ...[
-              if (i > 0) Divider(height: 1, color: context.colors.border),
-              tiles[i],
-            ],
-          ],
-        ),
-      ),
+      HairlineCard(children: tiles),
     ],
   );
 }

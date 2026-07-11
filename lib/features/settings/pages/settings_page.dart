@@ -83,7 +83,7 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionHeader(title: s.language),
           BlocBuilder<AppSettingsCubit, AppSettingsState>(
             buildWhen: (a, b) => a.locale != b.locale,
-            builder: (context, state) => SettingsCard(
+            builder: (context, state) => HairlineCard(
               children: [
                 for (final (label, locale) in languages)
                   SettingOptionTile(

@@ -107,7 +107,7 @@ void main() {
       saved: -1000000,
     ),
     // Settings option rows (Appearance / language selectors).
-    SettingsCard(
+    HairlineCard(
       children: [
         SettingOptionTile(label: 'Dark', selected: true, onTap: () {}),
         SettingOptionTile(label: 'Light', selected: false, onTap: () {}),

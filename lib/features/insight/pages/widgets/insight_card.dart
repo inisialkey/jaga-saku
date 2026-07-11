@@ -19,15 +19,11 @@ class InsightCard extends StatelessWidget {
     return AppCard(
       child: Row(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(_icon(item.type), size: 18, color: color),
+          CategoryIconAvatar.glyph(
+            icon: _icon(item.type),
+            color: color,
+            size: 32,
+            iconSize: 18,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

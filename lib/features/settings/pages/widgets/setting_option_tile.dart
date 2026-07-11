@@ -3,7 +3,7 @@ import 'package:jaga_saku/core/core.dart';
 
 /// A selectable settings row (M6): title on the left, a primary check on the
 /// right when [selected]. Backs the Appearance theme options and the Settings
-/// language options. Group several inside a [SettingsCard].
+/// language options. Group several inside a [HairlineCard].
 class SettingOptionTile extends StatelessWidget {
   const SettingOptionTile({
     required this.label,
@@ -45,25 +45,4 @@ class SettingOptionTile extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Groups selectable option rows in one [AppCard], hairline-divided (like
-/// [MenuSection], but for arbitrary settings rows).
-class SettingsCard extends StatelessWidget {
-  const SettingsCard({required this.children, super.key});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => AppCard(
-    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-    child: Column(
-      children: [
-        for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) Divider(height: 1, color: context.colors.border),
-          children[i],
-        ],
-      ],
-    ),
-  );
 }

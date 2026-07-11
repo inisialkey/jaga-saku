@@ -28,7 +28,12 @@ class BudgetGuardCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _GuardIcon(),
+              const CategoryIconAvatar.glyph(
+                icon: Icons.shield_outlined,
+                color: AppColors.primary,
+                size: 36,
+                iconSize: 20,
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(s.budgetGuard, style: theme.textTheme.titleMedium),
@@ -117,25 +122,4 @@ class BudgetGuardCard extends StatelessWidget {
       ),
     ];
   }
-}
-
-/// Brand-green shield in a soft tinted square (the Budget Guard glyph). Uses a
-/// Material icon directly rather than an [AppIcons] catalog key — the catalog is
-/// for DB-stored account/category icons, not decorative feature glyphs.
-class _GuardIcon extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 36,
-    height: 36,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: AppColors.primary.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(AppRadius.md),
-    ),
-    child: const Icon(
-      Icons.shield_outlined,
-      size: 20,
-      color: AppColors.primary,
-    ),
-  );
 }
