@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:jaga_saku/core/core.dart';
 
-/// Large amount entry (style guide §13.11): 72h, 28 bold, `Rp` prefix,
-/// digits-only. The caller owns the [controller].
+/// Large amount entry (style guide §13.11): 72h, 28 bold, `Rp` prefix. Tapping
+/// the field opens the in-app [CalculatorKeypadSheet] instead of the system
+/// keyboard; the sheet returns the evaluated integer rupiah.
+///
+/// The caller owns the [controller] and receives the value as a decimal string
+/// via [onChanged] (parse with `int.tryParse`) — the pre-keypad public API, so
+/// the four amount call sites need no change.
 class AmountInputField extends StatelessWidget {
   const AmountInputField({
     required this.controller,
@@ -17,6 +21,18 @@ class AmountInputField extends StatelessWidget {
   final String hint;
   final bool autofocus;
   final ValueChanged<String>? onChanged;
+
+  Future<void> _openKeypad(BuildContext context) async {
+    final result = await CalculatorKeypadSheet.show(
+      context,
+      initial: controller.text,
+    );
+    if (!context.mounted) return;
+    if (result == null) return; // dismissed — leave the amount unchanged
+    final display = result == 0 ? '' : '$result';
+    controller.text = display;
+    onChanged?.call(display);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,9 +56,9 @@ class AmountInputField extends StatelessWidget {
             child: TextField(
               controller: controller,
               autofocus: autofocus,
-              onChanged: onChanged,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              readOnly: true,
+              showCursor: true,
+              onTap: () => _openKeypad(context),
               style: amountStyle,
               decoration: InputDecoration(
                 border: InputBorder.none,

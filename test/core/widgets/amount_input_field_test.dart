@@ -17,27 +17,46 @@ void main() {
       expect(find.text('0'), findsOneWidget); // default hint
     });
 
-    testWidgets('writes typed digits to the controller and calls onChanged', (
+    testWidgets('tapping opens the keypad and keeps the system keyboard shut', (
       tester,
     ) async {
+      await pumpApp(tester, AmountInputField(controller: controller));
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(find.byType(CalculatorKeypadSheet), findsOneWidget);
+      // A read-only field never opens an input connection.
+      expect(tester.testTextInput.hasAnyClients, isFalse);
+    });
+
+    testWidgets('an expression confirmed with Done fires onChanged as an int '
+        'string', (tester) async {
       String? changed;
       await pumpApp(
         tester,
         AmountInputField(controller: controller, onChanged: (v) => changed = v),
       );
-      await tester.enterText(find.byType(TextField), '25000');
-      await tester.pump();
-      expect(controller.text, '25000');
-      expect(changed, '25000');
-    });
-
-    testWidgets('strips non-digit characters via the input formatter', (
-      tester,
-    ) async {
-      await pumpApp(tester, AmountInputField(controller: controller));
-      await tester.enterText(find.byType(TextField), '12a3b');
-      await tester.pump();
-      expect(controller.text, '123');
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      for (final id in const [
+        'calcKey_1',
+        'calcKey_2',
+        'calcKey_0',
+        'calcKey_0',
+        'calcKey_0',
+        'calcKey_add',
+        'calcKey_3',
+        'calcKey_5',
+        'calcKey_0',
+        'calcKey_0',
+      ]) {
+        await tester.tap(find.byKey(ValueKey(id)));
+        await tester.pump();
+      }
+      await tester.tap(find.byKey(const ValueKey('calcDone')));
+      await tester.pumpAndSettle();
+      // 12000 + 3500 evaluated to 15500, emitted as the plain int string.
+      expect(controller.text, '15500');
+      expect(changed, '15500');
     });
   });
 }

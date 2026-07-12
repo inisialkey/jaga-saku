@@ -410,5 +410,7 @@
   "insightUnplannedUp": "Unplanned spending is higher than last month.",
   "noExpenseThisMonth": "No expenses this month yet",
   "noInsightThisMonth": "No insights this month yet.",
-  "noDataThisMonth": "No data this month yet"
+  "noDataThisMonth": "No data this month yet",
+  "calcClear": "C",
+  "calcDone": "Done"
 }
