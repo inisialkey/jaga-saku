@@ -3,7 +3,9 @@ import 'package:jaga_saku/core/database/migrations.dart';
 import 'package:jaga_saku/features/accounts/data/datasources/account_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
+import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/transaction_aggregator.dart';
 import 'package:mocktail/mocktail.dart';
 // sqflite_ffi re-exports sqflite's `Transaction`; hide it so it does not clash
 // with the domain entity of the same name.
@@ -264,5 +266,184 @@ void main() {
     final bca = rows.firstWhere((a) => a.id == 2);
     expect(cash.balance, 100000 - 20000);
     expect(bca.balance, 50000 + 20000);
+  });
+
+  // ── monthlyNetDeltas + asset trend (V2-M7) ───────────────────────────────
+
+  group('monthlyNetDeltas + asset trend', () {
+    // A reserved/adjustment expense category the harness normally strips; the
+    // trend must still count it (it moves real assets) while the report cards
+    // must exclude it.
+    Future<void> seedAdjustmentCategory() => db.insert('categories', {
+      'id': 8,
+      'name': 'Penyesuaian',
+      'type': 'expense',
+      'system_key': 'adjustment_out',
+      'created_at': 0,
+    });
+
+    // Full-history window end: start of the month after [now].
+    int endOfNextMonth(DateTime now) =>
+        DateTime(now.year, now.month + 1).millisecondsSinceEpoch;
+
+    test('income adds and expense subtracts within a month bucket', () async {
+      await datasource.insert(
+        model(
+          type: TransactionType.income,
+          amount: 75000,
+          categoryId: 7,
+          date: millis(2026, 7, 10),
+        ),
+      );
+      await datasource.insert(
+        model(amount: 30000, categoryId: 1, date: millis(2026, 7, 20)),
+      );
+
+      final deltas = await datasource.monthlyNetDeltas(
+        0,
+        endOfNextMonth(DateTime(2026, 7, 31)),
+      );
+      expect(deltas, hasLength(1));
+      expect(deltas.single.monthMillis, millis(2026, 7, 1));
+      expect(deltas.single.delta, 45000);
+    });
+
+    test('a transfer nets to zero in the monthly delta', () async {
+      await datasource.insert(
+        model(
+          type: TransactionType.transfer,
+          amount: 20000,
+          toAccountId: 2,
+          date: millis(2026, 7, 8),
+        ),
+      );
+
+      final deltas = await datasource.monthlyNetDeltas(
+        0,
+        endOfNextMonth(DateTime(2026, 7, 31)),
+      );
+      // A single transfer row still produces its month bucket (SUM over the
+      // CASE), but its contribution is 0.
+      expect(deltas.single.monthMillis, millis(2026, 7, 1));
+      expect(deltas.single.delta, 0);
+    });
+
+    test('a reserved adjustment expense is INCLUDED in the delta', () async {
+      await seedAdjustmentCategory();
+      await datasource.insert(
+        model(amount: 40000, categoryId: 8, date: millis(2026, 7, 5)),
+      );
+
+      final deltas = await datasource.monthlyNetDeltas(
+        0,
+        endOfNextMonth(DateTime(2026, 7, 31)),
+      );
+      // The SQL has no category filter, so the adjustment subtracts real assets.
+      expect(deltas.single.delta, -40000);
+    });
+
+    test('rows split into distinct buckets across a year boundary', () async {
+      await datasource.insert(
+        model(
+          type: TransactionType.income,
+          amount: 10000,
+          categoryId: 7,
+          date: millis(2025, 12, 31, 23, 59, 59, 999),
+        ),
+      );
+      await datasource.insert(
+        model(amount: 5000, categoryId: 1, date: millis(2026, 1, 1)),
+      );
+
+      final deltas = await datasource.monthlyNetDeltas(
+        0,
+        endOfNextMonth(DateTime(2026, 1, 31)),
+      );
+      // Ordered oldest→newest, one bucket per calendar month.
+      expect(deltas.map((d) => d.monthMillis).toList(), [
+        millis(2025, 12, 1),
+        millis(2026, 1, 1),
+      ]);
+      expect(deltas.map((d) => d.delta).toList(), [10000, -5000]);
+    });
+
+    // ★ C1 — the mandatory anti-drift anchor. A >12-month-old transaction is in
+    // the history, so cumulating from the opening baseline over the FULL window
+    // must land the last point exactly on the summed account balance (Home's
+    // totalBalance). A literal 12-month delta query would drop the old row and
+    // fail here.
+    test('cumulated trend endpoint equals the summed account balance', () async {
+      final now = DateTime(2026, 7, 15);
+      // Old expense (>12 months before `now`) — proves full-history cumulation.
+      await datasource.insert(
+        model(amount: 20000, categoryId: 1, date: millis(2025, 1, 15)),
+      );
+      // Recent income + expense + transfer in the current month.
+      await datasource.insert(
+        model(
+          type: TransactionType.income,
+          amount: 75000,
+          categoryId: 7,
+          date: millis(2026, 7, 3),
+        ),
+      );
+      await datasource.insert(
+        model(amount: 30000, categoryId: 1, date: millis(2026, 7, 9)),
+      );
+      await datasource.insert(
+        model(
+          type: TransactionType.transfer,
+          amount: 20000,
+          toAccountId: 2,
+          date: millis(2026, 7, 12),
+        ),
+      );
+
+      final deltas = await datasource.monthlyNetDeltas(0, endOfNextMonth(now));
+      const baseline = 150000; // Σ opening_balance (100_000 + 50_000).
+      final points = AssetTrendCalculator.cumulate(
+        baseline: baseline,
+        deltas: deltas,
+      );
+
+      final sumBalance = (await accounts.getAccounts()).fold<int>(
+        0,
+        (sum, a) => sum + a.balance,
+      );
+      expect(points.last.netWorth, sumBalance);
+    });
+
+    // ★ C2 — two-directional exclusion pinned on the SAME rows. A real expense
+    // and a bigger system adjustment sit in one month: the report cards exclude
+    // the adjustment (aggregator side), the trend includes it (SQL side).
+    test(
+      'adjustment moves the trend but not the income/expense cards',
+      () async {
+        await seedAdjustmentCategory();
+        await datasource.insert(
+          model(amount: 100000, categoryId: 1, date: millis(2026, 7, 6)),
+        );
+        await datasource.insert(
+          model(amount: 300000, categoryId: 8, date: millis(2026, 7, 7)),
+        );
+
+        // Cards side — exclude the adjustment.
+        final rows = (await datasource.getByMonth(
+          DateTime(2026, 7),
+        )).map((m) => m.toEntity()).toList();
+        final totals = TransactionAggregator.incomeExpense(
+          rows,
+          excludeCategoryIds: {8},
+        );
+        expect(totals.expense, 100000);
+
+        // Trend side — include the adjustment.
+        final deltas = await datasource.monthlyNetDeltas(
+          0,
+          endOfNextMonth(DateTime(2026, 7, 31)),
+        );
+        expect(deltas.single.delta, -(100000 + 300000));
+      },
+    );
   });
 }

@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 
 /// Contract for transaction persistence. Implemented in the data layer; every
@@ -24,4 +25,13 @@ abstract class TransactionRepository {
 
   /// Hard-deletes the transaction by id.
   Future<Either<Failure, Unit>> deleteTransaction(int id);
+
+  /// Signed monthly net deltas (`Σincome − Σexpense`; transfers ⇒ 0) over
+  /// `[startMillis, endMillis)`, oldest→newest. Feeds the on-the-fly net-worth
+  /// trend (V2-M7) — no category exclusion (adjustments move real assets, so
+  /// the trend counts them even though the report cards do not).
+  Future<Either<Failure, List<MonthDelta>>> monthlyNetDeltas(
+    int startMillis,
+    int endMillis,
+  );
 }

@@ -44,6 +44,7 @@ import 'package:jaga_saku/features/transactions/data/models/transaction_model.da
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/delete_transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/get_asset_trend.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_transactions.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_day.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
@@ -148,6 +149,8 @@ class MockGetTransactionsByDay extends Mock implements GetTransactionsByDay {}
 
 class MockGetRecentTransactions extends Mock implements GetRecentTransactions {}
 
+class MockGetAssetTrend extends Mock implements GetAssetTrend {}
+
 class MockSaveTransaction extends Mock implements SaveTransaction {}
 
 class MockDeleteTransaction extends Mock implements DeleteTransaction {}
@@ -211,6 +214,7 @@ void registerFallbackValues() {
     ),
   );
   registerFallbackValue(DateTime(2000));
+  registerFallbackValue(AssetTrendParams(baseline: 0, now: DateTime(2000)));
   // For `pickImage(source: any(named: 'source'))` / `pickAndStore(any())`.
   registerFallbackValue(ImageSource.gallery);
   // ── Recurring (V2-M5) ──

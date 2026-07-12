@@ -36,6 +36,7 @@ import 'package:jaga_saku/features/transactions/data/datasources/transaction_loc
 import 'package:jaga_saku/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:jaga_saku/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/delete_transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/get_asset_trend.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_transactions.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_day.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
@@ -146,7 +147,8 @@ void _registerTransactions() {
     ..registerLazySingleton(() => GetTransactionsByDay(sl()))
     ..registerLazySingleton(() => GetRecentTransactions(sl()))
     ..registerLazySingleton(() => SaveTransaction(sl()))
-    ..registerLazySingleton(() => DeleteTransaction(sl()));
+    ..registerLazySingleton(() => DeleteTransaction(sl()))
+    ..registerLazySingleton(() => GetAssetTrend(sl()));
 }
 
 void _registerRecurring() {

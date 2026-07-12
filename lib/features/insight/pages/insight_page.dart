@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/features/insight/pages/insight_cubit.dart';
 import 'package:jaga_saku/features/insight/pages/widgets/expense_donut_chart.dart';
@@ -22,7 +24,16 @@ class InsightPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = Strings.of(context)!;
     return AppScaffold(
-      appBar: AppBar(title: Text(s.insight)),
+      appBar: AppBar(
+        title: Text(s.insight),
+        actions: [
+          IconButton(
+            tooltip: s.moneyStory,
+            icon: const Icon(Icons.auto_stories_outlined),
+            onPressed: () => context.push(AppRoute.moneyStory),
+          ),
+        ],
+      ),
       body: BlocBuilder<InsightCubit, InsightState>(
         builder: (context, state) => switch (state) {
           InsightInitial() ||

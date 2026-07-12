@@ -481,5 +481,37 @@
   "noInsightThisMonth": "Belum ada wawasan bulan ini.",
   "noDataThisMonth": "Belum ada data bulan ini",
   "calcClear": "C",
-  "calcDone": "Selesai"
+  "calcDone": "Selesai",
+  "moneyStory": "Cerita Uangmu",
+  "moneyStoryTitle": "Cerita Uangmu",
+  "storySavedHero": "Kamu hemat {amount}",
+  "@storySavedHero": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "storyDeficit": "Kamu defisit {amount}",
+  "@storyDeficit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "storySavingsRate": "Rasio menabung {pct}%",
+  "@storySavingsRate": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "storyTopCategory": "Kategori terbesar",
+  "storyBiggestExpense": "Transaksi terbesar",
+  "storyVsLastMonth": "Dibanding bulan lalu",
+  "storyNeedWant": "Kebutuhan vs Keinginan",
+  "netWorth": "Kekayaan bersih",
+  "assetTrend12mo": "12 bulan terakhir"
 }
