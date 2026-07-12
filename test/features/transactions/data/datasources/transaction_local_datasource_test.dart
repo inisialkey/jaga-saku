@@ -46,6 +46,7 @@ void main() {
     SpendingType? spendingType,
     int date = 0,
     String? note,
+    String? receiptPath,
   }) => TransactionModel(
     type: type,
     amount: amount,
@@ -57,6 +58,7 @@ void main() {
     date: date,
     note: note,
     createdAt: 1,
+    receiptPath: receiptPath,
   );
 
   setUp(() async {
@@ -194,6 +196,19 @@ void main() {
 
     final recent = await datasource.getRecent(2);
     expect(recent.map((t) => t.amount), [3, 2]);
+  });
+
+  test('receipt_path round-trips and getReceiptPath reads it', () async {
+    final id = await datasource.insert(
+      model(date: millis(2026, 7, 8), receiptPath: 'receipts/1.jpg'),
+    );
+    final row = (await datasource.getByDay(DateTime(2026, 7, 8))).single;
+    expect(row.receiptPath, 'receipts/1.jpg');
+    expect(await datasource.getReceiptPath(id), 'receipts/1.jpg');
+
+    // A row with no receipt reads back null (write-through null, not '').
+    final id2 = await datasource.insert(model(date: millis(2026, 7, 9)));
+    expect(await datasource.getReceiptPath(id2), isNull);
   });
 
   test('delete removes the row and returns the delete count', () async {

@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
@@ -21,6 +22,7 @@ void main() {
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
   late MockTxChangeNotifier txChangeNotifier;
+  late MockReceiptStorageService receiptStorage;
 
   // A current-month date so the budget guard runs (period matches "now").
   final now = DateTime.now();
@@ -37,10 +39,16 @@ void main() {
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
     txChangeNotifier = MockTxChangeNotifier();
+    receiptStorage = MockReceiptStorageService();
     // No budget by default → expenses save straight through.
     when(
       () => getBudgets(any()),
     ).thenAnswer((_) async => const Right<Failure, List<Budget>>([]));
+    // Default receipt stubs: a pick stores a fixed path; delete is a no-op.
+    when(
+      () => receiptStorage.pickAndStore(any()),
+    ).thenAnswer((_) async => 'receipts/x.jpg');
+    when(() => receiptStorage.delete(any())).thenAnswer((_) async {});
   });
 
   AddTransactionCubit build() => AddTransactionCubit(
@@ -49,6 +57,7 @@ void main() {
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
     txChangeNotifier: txChangeNotifier,
+    receiptStorage: receiptStorage,
   );
 
   test('seeds fields from the initial transaction when editing', () {
@@ -58,6 +67,7 @@ void main() {
       getCategories: getCategories,
       getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChangeNotifier,
+      receiptStorage: receiptStorage,
       initial: const Transaction(
         id: 9,
         type: TransactionType.income,
@@ -83,6 +93,7 @@ void main() {
       getCategories: getCategories,
       getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChangeNotifier,
+      receiptStorage: receiptStorage,
       prefill: const TxTemplate(
         label: 'Coffee',
         type: TransactionType.expense,
@@ -114,6 +125,7 @@ void main() {
       getCategories: getCategories,
       getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChangeNotifier,
+      receiptStorage: receiptStorage,
       prefill: const TxTemplate(
         label: 'Ask each time',
         type: TransactionType.expense,
@@ -410,4 +422,166 @@ void main() {
       verify(() => saveTransaction(any())).called(1);
     },
   );
+
+  // ── Receipt attachment (V2-M4) ──────────────────────────────────────────────
+
+  test('pickReceipt stores the path and returns true', () async {
+    final cubit = build();
+    final ok = await cubit.pickReceipt(ImageSource.camera);
+
+    expect(ok, isTrue);
+    expect(cubit.state.receiptPath, 'receipts/x.jpg');
+    await cubit.close();
+  });
+
+  test(
+    'pickReceipt returns false and keeps the path on a genuine error',
+    () async {
+      when(
+        () => receiptStorage.pickAndStore(any()),
+      ).thenThrow(Exception('boom'));
+
+      final cubit = build();
+      final ok = await cubit.pickReceipt(ImageSource.gallery);
+
+      expect(ok, isFalse);
+      expect(
+        cubit.state.receiptPath,
+        '',
+      ); // unchanged — the page toasts the error
+      await cubit.close();
+    },
+  );
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'pickReceipt replacing a session file deletes the prior one',
+    build: build,
+    seed: () => const AddTransactionState(receiptPath: 'receipts/old.jpg'),
+    act: (cubit) => cubit.pickReceipt(ImageSource.gallery),
+    expect: () => [
+      isA<AddTransactionState>().having(
+        (s) => s.receiptPath,
+        'receiptPath',
+        'receipts/x.jpg',
+      ),
+    ],
+    verify: (_) =>
+        verify(() => receiptStorage.delete('receipts/old.jpg')).called(1),
+  );
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'removeReceipt clears the path and deletes a session file',
+    build: build,
+    seed: () => const AddTransactionState(receiptPath: 'receipts/old.jpg'),
+    act: (cubit) => cubit.removeReceipt(),
+    expect: () => [
+      isA<AddTransactionState>().having(
+        (s) => s.receiptPath,
+        'receiptPath',
+        '',
+      ),
+    ],
+    verify: (_) =>
+        verify(() => receiptStorage.delete('receipts/old.jpg')).called(1),
+  );
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'a valid submit carries the receiptPath into the saved transaction',
+    setUp: () => when(
+      () => saveTransaction(any()),
+    ).thenAnswer((_) async => const Right<Failure, int>(1)),
+    build: build,
+    seed: () => const AddTransactionState(
+      amount: 1000,
+      accountId: 1,
+      categoryId: 1,
+      receiptPath: 'receipts/x.jpg',
+    ),
+    act: (cubit) => cubit.submit(),
+    expect: () => [
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.saving,
+      ),
+      isA<AddTransactionState>().having(
+        (s) => s.status,
+        'status',
+        AddTxStatus.success,
+      ),
+    ],
+    verify: (_) {
+      final captured =
+          verify(() => saveTransaction(captureAny())).captured.single
+              as Transaction;
+      expect(captured.receiptPath, 'receipts/x.jpg');
+    },
+  );
+
+  test('editing seeds receiptPath from the initial transaction', () {
+    final cubit = AddTransactionCubit(
+      saveTransaction: saveTransaction,
+      getAccounts: getAccounts,
+      getCategories: getCategories,
+      getBudgetsForPeriod: getBudgets,
+      txChangeNotifier: txChangeNotifier,
+      receiptStorage: receiptStorage,
+      initial: const Transaction(
+        id: 5,
+        type: TransactionType.expense,
+        amount: 1000,
+        accountId: 1,
+        categoryId: 1,
+        receiptPath: 'receipts/z.jpg',
+      ),
+    );
+
+    expect(cubit.state.receiptPath, 'receipts/z.jpg');
+  });
+
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'typeChanged keeps a picked receipt (C3 regression)',
+    build: build,
+    seed: () => const AddTransactionState(
+      amount: 1000,
+      accountId: 1,
+      categoryId: 1,
+      receiptPath: 'receipts/x.jpg',
+    ),
+    act: (cubit) => cubit.typeChanged(TransactionType.transfer),
+    expect: () => [
+      isA<AddTransactionState>()
+          .having((s) => s.type, 'type', TransactionType.transfer)
+          .having((s) => s.receiptPath, 'receiptPath', 'receipts/x.jpg'),
+    ],
+  );
+
+  test('close deletes an uncommitted picked receipt', () async {
+    final cubit = build();
+    await cubit.pickReceipt(ImageSource.camera); // sets 'receipts/x.jpg'
+    await cubit.close();
+
+    verify(() => receiptStorage.delete('receipts/x.jpg')).called(1);
+  });
+
+  test('close keeps a receipt the save already committed (W1 save-race)', () async {
+    when(
+      () => saveTransaction(any()),
+    ).thenAnswer((_) async => const Right<Failure, int>(1));
+
+    // A new tx (no initial → _originalPath == '') with a session receipt, then a
+    // successful save persists the row pointing at it.
+    final cubit = build()
+      ..amountChanged(1000)
+      ..accountChanged(1)
+      ..categoryChanged(1);
+    await cubit.pickReceipt(ImageSource.camera); // sets 'receipts/x.jpg'
+    await cubit
+        .submit(); // saves → _committed = true (before any isClosed guard)
+    await cubit.close();
+
+    // The persisted row now points at receipts/x.jpg, so the orphan sweep must
+    // never delete it — contrast the uncommitted-picked test above, which does.
+    verifyNever(() => receiptStorage.delete('receipts/x.jpg'));
+  });
 }

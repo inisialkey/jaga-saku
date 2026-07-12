@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
+import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
@@ -14,9 +15,10 @@ import 'package:sqflite/sqflite.dart' hide Transaction;
 /// [DatabaseException] becomes [CacheFailure] (there is no unique constraint on
 /// the table, but the mapping mirrors the accounts repository for uniformity).
 class TransactionRepositoryImpl implements TransactionRepository {
-  TransactionRepositoryImpl(this._datasource);
+  TransactionRepositoryImpl(this._datasource, this._receiptStorage);
 
   final TransactionLocalDatasource _datasource;
+  final ReceiptStorageService _receiptStorage;
 
   @override
   Future<Either<Failure, List<Transaction>>> getTransactionsByMonth(
@@ -52,7 +54,12 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<Either<Failure, Unit>> deleteTransaction(int id) => _guard(() async {
+    // Read the receipt path before the row goes, so every delete caller (edit
+    // form, any future swipe-to-delete) frees the file — the root-cause fix.
+    final path = await _datasource.getReceiptPath(id);
     await _datasource.delete(id);
+    // No-throw (logs on failure) → a stale file never blocks the row delete.
+    if (path != null) await _receiptStorage.delete(path);
     return unit;
   });
 

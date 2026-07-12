@@ -23,7 +23,10 @@ mixin _$Transaction {
  PlannedStatus? get plannedStatus;/// Need / want / lifestyle / emergency — expense only.
  SpendingType? get spendingType;/// Day the entry belongs to, stored as midnight-local epoch millis so
 /// day-grouping is deterministic. Time-of-day lives in [createdAt].
- int get date; String? get note; int get createdAt;
+ int get date; String? get note; int get createdAt;/// Relative path (`receipts/<micros>.jpg`) under app-docs, resolved at read;
+/// null when the entry has no receipt. I/O, not aggregation (no effect on
+/// TransactionType / spend / balance).
+ String? get receiptPath;
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -34,16 +37,16 @@ $TransactionCopyWith<Transaction> get copyWith => _$TransactionCopyWithImpl<Tran
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Transaction&&(identical(other.type, type) || other.type == type)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.id, id) || other.id == id)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.date, date) || other.date == date)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Transaction&&(identical(other.type, type) || other.type == type)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.id, id) || other.id == id)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.date, date) || other.date == date)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.receiptPath, receiptPath) || other.receiptPath == receiptPath));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,amount,accountId,id,toAccountId,categoryId,plannedStatus,spendingType,date,note,createdAt);
+int get hashCode => Object.hash(runtimeType,type,amount,accountId,id,toAccountId,categoryId,plannedStatus,spendingType,date,note,createdAt,receiptPath);
 
 @override
 String toString() {
-  return 'Transaction(type: $type, amount: $amount, accountId: $accountId, id: $id, toAccountId: $toAccountId, categoryId: $categoryId, plannedStatus: $plannedStatus, spendingType: $spendingType, date: $date, note: $note, createdAt: $createdAt)';
+  return 'Transaction(type: $type, amount: $amount, accountId: $accountId, id: $id, toAccountId: $toAccountId, categoryId: $categoryId, plannedStatus: $plannedStatus, spendingType: $spendingType, date: $date, note: $note, createdAt: $createdAt, receiptPath: $receiptPath)';
 }
 
 
@@ -54,7 +57,7 @@ abstract mixin class $TransactionCopyWith<$Res>  {
   factory $TransactionCopyWith(Transaction value, $Res Function(Transaction) _then) = _$TransactionCopyWithImpl;
 @useResult
 $Res call({
- TransactionType type, int amount, int accountId, int? id, int? toAccountId, int? categoryId, PlannedStatus? plannedStatus, SpendingType? spendingType, int date, String? note, int createdAt
+ TransactionType type, int amount, int accountId, int? id, int? toAccountId, int? categoryId, PlannedStatus? plannedStatus, SpendingType? spendingType, int date, String? note, int createdAt, String? receiptPath
 });
 
 
@@ -71,7 +74,7 @@ class _$TransactionCopyWithImpl<$Res>
 
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? amount = null,Object? accountId = null,Object? id = freezed,Object? toAccountId = freezed,Object? categoryId = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? date = null,Object? note = freezed,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? amount = null,Object? accountId = null,Object? id = freezed,Object? toAccountId = freezed,Object? categoryId = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? date = null,Object? note = freezed,Object? createdAt = null,Object? receiptPath = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as TransactionType,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
@@ -84,7 +87,8 @@ as PlannedStatus?,spendingType: freezed == spendingType ? _self.spendingType : s
 as SpendingType?,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as int,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as int,
+as int,receiptPath: freezed == receiptPath ? _self.receiptPath : receiptPath // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -169,10 +173,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TransactionType type,  int amount,  int accountId,  int? id,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String? note,  int createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TransactionType type,  int amount,  int accountId,  int? id,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String? note,  int createdAt,  String? receiptPath)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Transaction() when $default != null:
-return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.createdAt);case _:
+return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.createdAt,_that.receiptPath);case _:
   return orElse();
 
 }
@@ -190,10 +194,10 @@ return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccount
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TransactionType type,  int amount,  int accountId,  int? id,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String? note,  int createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TransactionType type,  int amount,  int accountId,  int? id,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String? note,  int createdAt,  String? receiptPath)  $default,) {final _that = this;
 switch (_that) {
 case _Transaction():
-return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.createdAt);case _:
+return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.createdAt,_that.receiptPath);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +214,10 @@ return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccount
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TransactionType type,  int amount,  int accountId,  int? id,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String? note,  int createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TransactionType type,  int amount,  int accountId,  int? id,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String? note,  int createdAt,  String? receiptPath)?  $default,) {final _that = this;
 switch (_that) {
 case _Transaction() when $default != null:
-return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.createdAt);case _:
+return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.createdAt,_that.receiptPath);case _:
   return null;
 
 }
@@ -225,7 +229,7 @@ return $default(_that.type,_that.amount,_that.accountId,_that.id,_that.toAccount
 
 
 class _Transaction implements Transaction {
-  const _Transaction({required this.type, required this.amount, required this.accountId, this.id, this.toAccountId, this.categoryId, this.plannedStatus, this.spendingType, this.date = 0, this.note, this.createdAt = 0});
+  const _Transaction({required this.type, required this.amount, required this.accountId, this.id, this.toAccountId, this.categoryId, this.plannedStatus, this.spendingType, this.date = 0, this.note, this.createdAt = 0, this.receiptPath});
   
 
 @override final  TransactionType type;
@@ -248,6 +252,10 @@ class _Transaction implements Transaction {
 @override@JsonKey() final  int date;
 @override final  String? note;
 @override@JsonKey() final  int createdAt;
+/// Relative path (`receipts/<micros>.jpg`) under app-docs, resolved at read;
+/// null when the entry has no receipt. I/O, not aggregation (no effect on
+/// TransactionType / spend / balance).
+@override final  String? receiptPath;
 
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
@@ -259,16 +267,16 @@ _$TransactionCopyWith<_Transaction> get copyWith => __$TransactionCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Transaction&&(identical(other.type, type) || other.type == type)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.id, id) || other.id == id)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.date, date) || other.date == date)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Transaction&&(identical(other.type, type) || other.type == type)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.id, id) || other.id == id)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.date, date) || other.date == date)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.receiptPath, receiptPath) || other.receiptPath == receiptPath));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,amount,accountId,id,toAccountId,categoryId,plannedStatus,spendingType,date,note,createdAt);
+int get hashCode => Object.hash(runtimeType,type,amount,accountId,id,toAccountId,categoryId,plannedStatus,spendingType,date,note,createdAt,receiptPath);
 
 @override
 String toString() {
-  return 'Transaction(type: $type, amount: $amount, accountId: $accountId, id: $id, toAccountId: $toAccountId, categoryId: $categoryId, plannedStatus: $plannedStatus, spendingType: $spendingType, date: $date, note: $note, createdAt: $createdAt)';
+  return 'Transaction(type: $type, amount: $amount, accountId: $accountId, id: $id, toAccountId: $toAccountId, categoryId: $categoryId, plannedStatus: $plannedStatus, spendingType: $spendingType, date: $date, note: $note, createdAt: $createdAt, receiptPath: $receiptPath)';
 }
 
 
@@ -279,7 +287,7 @@ abstract mixin class _$TransactionCopyWith<$Res> implements $TransactionCopyWith
   factory _$TransactionCopyWith(_Transaction value, $Res Function(_Transaction) _then) = __$TransactionCopyWithImpl;
 @override @useResult
 $Res call({
- TransactionType type, int amount, int accountId, int? id, int? toAccountId, int? categoryId, PlannedStatus? plannedStatus, SpendingType? spendingType, int date, String? note, int createdAt
+ TransactionType type, int amount, int accountId, int? id, int? toAccountId, int? categoryId, PlannedStatus? plannedStatus, SpendingType? spendingType, int date, String? note, int createdAt, String? receiptPath
 });
 
 
@@ -296,7 +304,7 @@ class __$TransactionCopyWithImpl<$Res>
 
 /// Create a copy of Transaction
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? amount = null,Object? accountId = null,Object? id = freezed,Object? toAccountId = freezed,Object? categoryId = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? date = null,Object? note = freezed,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? amount = null,Object? accountId = null,Object? id = freezed,Object? toAccountId = freezed,Object? categoryId = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? date = null,Object? note = freezed,Object? createdAt = null,Object? receiptPath = freezed,}) {
   return _then(_Transaction(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as TransactionType,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
@@ -309,7 +317,8 @@ as PlannedStatus?,spendingType: freezed == spendingType ? _self.spendingType : s
 as SpendingType?,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as int,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as int,
+as int,receiptPath: freezed == receiptPath ? _self.receiptPath : receiptPath // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

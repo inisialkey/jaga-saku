@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
@@ -207,6 +210,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 textCapitalization: TextCapitalization.sentences,
                 decoration: _inputDecoration(context, hint: s.noteHint),
               ),
+              const SizedBox(height: AppSpacing.xl),
+              _FieldLabel(s.receiptAttach),
+              _ReceiptAttachment(
+                receiptPath: state.receiptPath,
+                resolve: cubit.resolveReceipt,
+                onPick: () => _pickReceiptSource(context),
+                onRemove: cubit.removeReceipt,
+                onView: (file) => _viewReceipt(context, file),
+              ),
             ],
           ),
           bottomNavigationBar: SafeArea(
@@ -269,6 +281,49 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     );
     if (picked != null) cubit.dateChanged(picked);
   }
+
+  /// Opens the Kamera / Galeri source sheet, then delegates the pick to the
+  /// cubit (rule 5 — the widget never touches the picker/service). A genuine
+  /// pick error toasts [Strings.receiptPickFailed]; cancel is silent.
+  Future<void> _pickReceiptSource(BuildContext context) async {
+    final s = Strings.of(context)!;
+    final cubit = context.read<AddTransactionCubit>();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => AppBottomSheet(
+        title: s.receiptAttach,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MenuTile(
+              icon: Iconsax.camera,
+              title: s.receiptCamera,
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            MenuTile(
+              icon: Iconsax.gallery,
+              title: s.receiptGallery,
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final ok = await cubit.pickReceipt(source);
+    if (!context.mounted) return;
+    if (!ok) s.receiptPickFailed.toToastError(context);
+  }
+
+  /// Full-screen pinch-zoom view of the receipt (no new dep / route, doc §9).
+  void _viewReceipt(BuildContext context, File file) => showDialog<void>(
+    context: context,
+    builder: (_) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(AppSpacing.md),
+      child: InteractiveViewer(child: Image.file(file)),
+    ),
+  );
 
   /// Captures the current form shape as a favorite seed and opens the favorite
   /// form (empty label) to name + save it. A favorite needs a source account, so
@@ -345,4 +400,91 @@ class _FieldLabel extends StatelessWidget {
       ).textTheme.bodySmall?.copyWith(color: context.colors.textSecondary),
     ),
   );
+}
+
+/// Receipt attach row (V2-M4). Empty → a "Tambah struk" selector that opens the
+/// source sheet. Set → a thumbnail (tap to view full-screen) with a ✕ to remove.
+/// A stored-but-missing file (iOS restore) renders a graceful placeholder, never
+/// a crash (doc §13). The path is resolved via the cubit — the widget never
+/// touches the service (rule 5).
+class _ReceiptAttachment extends StatelessWidget {
+  const _ReceiptAttachment({
+    required this.receiptPath,
+    required this.resolve,
+    required this.onPick,
+    required this.onRemove,
+    required this.onView,
+  });
+
+  final String receiptPath;
+  final Future<File?> Function() resolve;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+  final void Function(File file) onView;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Strings.of(context)!;
+    if (receiptPath.isEmpty) {
+      return SelectorField(
+        label: s.receiptAttach,
+        icon: Icons.attach_file,
+        onTap: onPick,
+      );
+    }
+    return FutureBuilder<File?>(
+      future: resolve(),
+      builder: (context, snapshot) {
+        final file = snapshot.data;
+        final theme = Theme.of(context);
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: context.colors.border),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: file != null
+                      ? GestureDetector(
+                          onTap: () => onView(file),
+                          child: Image.file(file, fit: BoxFit.cover),
+                        )
+                      : ColoredBox(
+                          color: context.colors.surfaceSoft,
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            color: context.colors.textTertiary,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  s.receiptView,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: file != null
+                        ? context.colors.textSecondary
+                        : context.colors.textTertiary,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: s.receiptRemove,
+                onPressed: onRemove,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

@@ -172,6 +172,7 @@ class _RecentTile extends StatelessWidget {
       subtitle: subtitle,
       amount: t.amount,
       sign: sign,
+      hasReceipt: t.receiptPath != null,
       onTap: () =>
           context.push(AppRoute.add, extra: AddTransactionArgs(edit: t)),
     );

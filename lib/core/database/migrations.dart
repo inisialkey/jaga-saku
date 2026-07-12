@@ -15,7 +15,7 @@ class Migrations {
   /// Current schema version. Bump when adding a new `_v<N>` step; wire that step
   /// into BOTH [onCreate] (append `await _vN(db);`) and [migrate]
   /// (append `if (oldVersion < N) await _vN(db);`).
-  static const int latestVersion = 3;
+  static const int latestVersion = 4;
 
   /// Runs on a brand-new database — replays every version step in order so a
   /// fresh install produces the exact schema an upgrade-from-v1 produces. Steps
@@ -25,6 +25,7 @@ class Migrations {
     await _v1(db);
     await _v2(db);
     await _v3(db);
+    await _v4(db);
   }
 
   /// Steps an existing database from [oldVersion] to [newVersion], applying only
@@ -36,6 +37,7 @@ class Migrations {
   ) async {
     if (oldVersion < 2) await _v2(db);
     if (oldVersion < 3) await _v3(db);
+    if (oldVersion < 4) await _v4(db);
   }
 
   /// Builds the v1 baseline only. Exposed for the schema-parity test, which
@@ -155,5 +157,14 @@ class Migrations {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_tpl_sort ON tx_templates(sort_order);',
     );
+  }
+
+  /// v4 — receipt attachment (V2-M4). Adds a nullable relative-path column to the
+  /// existing `transactions` table. `ADD COLUMN` has no `IF NOT EXISTS`, but `_v4`
+  /// runs exactly once per path (onCreate replays it once on a fresh DB; migrate
+  /// runs it once for oldVersion < 4), so there is no double-add. Money/date
+  /// conventions untouched.
+  static Future<void> _v4(Database db) async {
+    await db.execute('ALTER TABLE transactions ADD COLUMN receipt_path TEXT;');
   }
 }

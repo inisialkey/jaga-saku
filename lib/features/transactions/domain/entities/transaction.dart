@@ -109,5 +109,10 @@ abstract class Transaction with _$Transaction {
     @Default(0) int date,
     String? note,
     @Default(0) int createdAt,
+
+    /// Relative path (`receipts/<micros>.jpg`) under app-docs, resolved at read;
+    /// null when the entry has no receipt. I/O, not aggregation (no effect on
+    /// TransactionType / spend / balance).
+    String? receiptPath,
   }) = _Transaction;
 }

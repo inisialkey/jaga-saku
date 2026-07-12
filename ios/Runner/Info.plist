@@ -47,6 +47,10 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Allow Flutter tools to debug your application</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Jaga Saku memerlukan akses kamera untuk memotret struk transaksi.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Jaga Saku memerlukan akses galeri untuk melampirkan foto struk.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

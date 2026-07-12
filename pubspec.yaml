@@ -71,6 +71,14 @@ dependencies:
   # never hardcode the version).
   package_info_plus: ^10.2.0
 
+  # Camera + gallery picker for receipt attachment (V2-M4). image_picker handles
+  # its own runtime permission prompts — no permission_handler (YAGNI).
+  image_picker: ^1.1.2
+
+  # Resolves <app-docs> so receipts persist under <docs>/receipts/ as relative
+  # paths (resolved at read; survives iOS container migration).
+  path_provider: ^2.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

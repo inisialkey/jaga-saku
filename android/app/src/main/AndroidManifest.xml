@@ -1,5 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- image_picker delegates to the system camera app via intent; declare the
+         feature as optional (required=false) so camera-less devices can still
+         install (Play Store filter). No CAMERA uses-permission — the intent-based
+         picker needs none, and declaring it would force a runtime prompt. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Android 11+ package visibility: lets url_launcher open https URLs
          (e.g. the app store from the force-update gate). -->
     <queries>
