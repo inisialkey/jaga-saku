@@ -10,6 +10,7 @@ import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/home_page.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
+import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
@@ -29,6 +30,7 @@ void main() {
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
   late MockGetFavorites getFavorites;
+  late MockGetDueOccurrences getDueOccurrences;
   late MockSaveTransaction saveTransaction;
   late MockDeleteTransaction deleteTransaction;
   late MockSettingsService settings;
@@ -45,6 +47,7 @@ void main() {
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
     getFavorites = MockGetFavorites();
+    getDueOccurrences = MockGetDueOccurrences();
     saveTransaction = MockSaveTransaction();
     deleteTransaction = MockDeleteTransaction();
     // The greeting name now flows from the app-global AppSettingsCubit (M6),
@@ -60,6 +63,9 @@ void main() {
     when(
       () => getFavorites(any()),
     ).thenAnswer((_) async => const Right<Failure, List<TxTemplate>>([]));
+    when(() => getDueOccurrences(any())).thenAnswer(
+      (_) async => const Right<Failure, List<PendingOccurrence>>([]),
+    );
   });
 
   tearDown(() async {
@@ -74,6 +80,7 @@ void main() {
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
     getFavorites: getFavorites,
+    getDueOccurrences: getDueOccurrences,
     saveTransaction: saveTransaction,
     deleteTransaction: deleteTransaction,
     txChangeNotifier: txChanges,

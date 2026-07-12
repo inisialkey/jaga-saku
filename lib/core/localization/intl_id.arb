@@ -223,6 +223,47 @@
   "receiptRemove": "Hapus struk",
   "receiptView": "Lihat struk",
   "receiptPickFailed": "Gagal melampirkan foto",
+  "recurringAdd": "Tambah berulang",
+  "recurringEdit": "Ubah berulang",
+  "recurringEmpty": "Belum ada transaksi berulang",
+  "recurringEmptyMessage": "Jadwalkan transaksi agar tercatat otomatis.",
+  "recurringEvery": "Setiap {count}",
+  "@recurringEvery": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freqDaily": "Harian",
+  "freqWeekly": "Mingguan",
+  "freqMonthly": "Bulanan",
+  "freqYearly": "Tahunan",
+  "recurringStartDate": "Tanggal mulai",
+  "recurringEndDate": "Tanggal akhir (opsional)",
+  "recurringNextDue": "Jatuh tempo berikutnya",
+  "recurringReviewTitle": "Konfirmasi berulang",
+  "recurringReviewEmpty": "Tidak ada yang perlu dikonfirmasi",
+  "recurringConfirm": "Konfirmasi",
+  "recurringConfirmAll": "Konfirmasi semua",
+  "recurringSkip": "Lewati",
+  "recurringPendingBadge": "{count} transaksi berulang",
+  "@recurringPendingBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurringDeleteConfirm": "Hapus transaksi berulang ini?",
+  "recurringOverflow": "Menampilkan {count} pertama",
+  "@recurringOverflow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "icon": "Ikon",
   "color": "Warna",
   "archive": "Arsipkan",

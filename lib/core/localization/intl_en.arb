@@ -223,6 +223,47 @@
   "receiptRemove": "Remove receipt",
   "receiptView": "View receipt",
   "receiptPickFailed": "Couldn't attach the photo",
+  "recurringAdd": "Add recurring",
+  "recurringEdit": "Edit recurring",
+  "recurringEmpty": "No recurring rules yet",
+  "recurringEmptyMessage": "Schedule a transaction to log it automatically.",
+  "recurringEvery": "Every {count}",
+  "@recurringEvery": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "freqDaily": "Daily",
+  "freqWeekly": "Weekly",
+  "freqMonthly": "Monthly",
+  "freqYearly": "Yearly",
+  "recurringStartDate": "Start date",
+  "recurringEndDate": "End date (optional)",
+  "recurringNextDue": "Next due",
+  "recurringReviewTitle": "Confirm recurring",
+  "recurringReviewEmpty": "Nothing to confirm",
+  "recurringConfirm": "Confirm",
+  "recurringConfirmAll": "Confirm all",
+  "recurringSkip": "Skip",
+  "recurringPendingBadge": "{count} recurring due",
+  "@recurringPendingBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurringDeleteConfirm": "Delete this recurring rule?",
+  "recurringOverflow": "Showing the first {count}",
+  "@recurringOverflow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "icon": "Icon",
   "color": "Color",
   "archive": "Archive",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
@@ -55,6 +56,10 @@ class _HomeBody extends StatelessWidget {
         buildWhen: (a, b) => a.userName != b.userName,
         builder: (context, settings) => HomeHeader(userName: settings.userName),
       ),
+      if (dashboard.pendingRecurring > 0) ...[
+        const SizedBox(height: AppSpacing.lg),
+        _RecurringBanner(count: dashboard.pendingRecurring),
+      ],
       const SizedBox(height: AppSpacing.xl),
       TotalBalanceCard(
         totalBalance: dashboard.totalBalance,
@@ -77,6 +82,46 @@ class _HomeBody extends StatelessWidget {
       _RecentSection(dashboard: dashboard),
     ],
   );
+}
+
+/// Tappable banner shown only when recurring occurrences are pending (V2-M5) →
+/// taps through to the review screen. Home already listens to [TxChangeNotifier],
+/// so confirming / skipping there refreshes this count live.
+class _RecurringBanner extends StatelessWidget {
+  const _RecurringBanner({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Strings.of(context)!;
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: () => context.push(AppRoute.recurringReview),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: AppCard(
+        child: Row(
+          children: [
+            CategoryIconAvatar.glyph(
+              icon: Iconsax.repeat,
+              color: context.colors.info,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                s.recurringPendingBadge(count),
+                style: theme.textTheme.bodyLarge,
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: context.colors.textTertiary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// "Recent Transactions" header + up to 5 tiles. "See All" switches to the

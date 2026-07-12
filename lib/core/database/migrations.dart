@@ -15,7 +15,7 @@ class Migrations {
   /// Current schema version. Bump when adding a new `_v<N>` step; wire that step
   /// into BOTH [onCreate] (append `await _vN(db);`) and [migrate]
   /// (append `if (oldVersion < N) await _vN(db);`).
-  static const int latestVersion = 4;
+  static const int latestVersion = 5;
 
   /// Runs on a brand-new database — replays every version step in order so a
   /// fresh install produces the exact schema an upgrade-from-v1 produces. Steps
@@ -26,6 +26,7 @@ class Migrations {
     await _v2(db);
     await _v3(db);
     await _v4(db);
+    await _v5(db);
   }
 
   /// Steps an existing database from [oldVersion] to [newVersion], applying only
@@ -38,6 +39,7 @@ class Migrations {
     if (oldVersion < 2) await _v2(db);
     if (oldVersion < 3) await _v3(db);
     if (oldVersion < 4) await _v4(db);
+    if (oldVersion < 5) await _v5(db);
   }
 
   /// Builds the v1 baseline only. Exposed for the schema-parity test, which
@@ -166,5 +168,31 @@ class Migrations {
   /// conventions untouched.
   static Future<void> _v4(Database db) async {
     await db.execute('ALTER TABLE transactions ADD COLUMN receipt_path TEXT;');
+  }
+
+  /// v5 — recurring rules (V2-M5). A rule = a `tx_templates` shape
+  /// (`is_favorite = 0`) + a schedule; `next_due` is the idempotency cursor (the
+  /// earliest UNRESOLVED occurrence). FK `ON DELETE CASCADE`: deleting the owned
+  /// template drops the rule (`foreign_keys` is ON at runtime — see
+  /// `app_database.dart`). `IF NOT EXISTS` + append-only, so replaying under
+  /// [onCreate] on a fresh DB is a no-op-safe re-run. (`interval` is not a
+  /// reserved SQLite identifier — SQLite has no INTERVAL type — so it needs no
+  /// quoting.)
+  static Future<void> _v5(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS recurring (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        template_id INTEGER NOT NULL REFERENCES tx_templates(id) ON DELETE CASCADE,
+        freq        TEXT    NOT NULL,
+        interval    INTEGER NOT NULL DEFAULT 1,
+        start_date  INTEGER NOT NULL,
+        end_date    INTEGER,
+        next_due    INTEGER NOT NULL,
+        created_at  INTEGER NOT NULL
+      );
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_recurring_due ON recurring(next_due);',
+    );
   }
 }

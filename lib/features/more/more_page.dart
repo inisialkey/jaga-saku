@@ -57,7 +57,7 @@ class MorePage extends StatelessWidget {
                 icon: Iconsax.repeat,
                 iconColor: colors.info,
                 title: s.recurring,
-                trailing: const ComingSoonBadge(),
+                onTap: () => context.push(AppRoute.recurring),
               ),
             ],
           ),
