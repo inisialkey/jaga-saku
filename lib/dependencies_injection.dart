@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:jaga_saku/core/core.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:jaga_saku/features/accounts/data/datasources/account_local_datasource.dart';
 import 'package:jaga_saku/features/accounts/data/repositories/account_repository_impl.dart';
 import 'package:jaga_saku/features/accounts/domain/repositories/account_repository.dart';
@@ -61,6 +62,13 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   // Cross-feature "transactions changed" signal (M3 / W2 fix). App-lifetime
   // singleton — producers ping it, Home + Calendar cubits subscribe.
   sl.registerLazySingleton<TxChangeNotifier>(() => TxChangeNotifier());
+  // First file-I/O service (V2-M4). docsDirProvider is the testability seam —
+  // prod wires path_provider; unit tests inject a temp dir (no MethodChannel).
+  sl.registerLazySingleton<ReceiptStorageService>(
+    () => ReceiptStorageService(
+      docsDirProvider: getApplicationDocumentsDirectory,
+    ),
+  );
 
   _registerAccounts();
   _registerCategories();
@@ -120,7 +128,7 @@ void _registerTransactions() {
   sl
     ..registerLazySingleton(() => TransactionLocalDatasource(sl<AppDatabase>()))
     ..registerLazySingleton<TransactionRepository>(
-      () => TransactionRepositoryImpl(sl()),
+      () => TransactionRepositoryImpl(sl(), sl()),
     )
     ..registerLazySingleton(() => GetTransactionsByMonth(sl()))
     ..registerLazySingleton(() => GetTransactionsByDay(sl()))

@@ -21,6 +21,7 @@ abstract class TransactionModel with _$TransactionModel {
     @Default(0) int date,
     String? note,
     @Default(0) int createdAt,
+    String? receiptPath,
   }) = _TransactionModel;
 
   const TransactionModel._();
@@ -40,6 +41,7 @@ abstract class TransactionModel with _$TransactionModel {
         date: (map['date'] as int?) ?? 0,
         note: map['note'] as String?,
         createdAt: (map['created_at'] as int?) ?? 0,
+        receiptPath: map['receipt_path'] as String?,
       );
 
   factory TransactionModel.fromEntity(Transaction transaction) =>
@@ -55,6 +57,7 @@ abstract class TransactionModel with _$TransactionModel {
         date: transaction.date,
         note: transaction.note,
         createdAt: transaction.createdAt,
+        receiptPath: transaction.receiptPath,
       );
 
   /// Column map for insert/update. Omits `id` when null so AUTOINCREMENT fires;
@@ -71,6 +74,7 @@ abstract class TransactionModel with _$TransactionModel {
     'date': date,
     'note': note,
     'created_at': createdAt,
+    'receipt_path': receiptPath,
   };
 
   Transaction toEntity() => Transaction(
@@ -85,5 +89,6 @@ abstract class TransactionModel with _$TransactionModel {
     date: date,
     note: note,
     createdAt: createdAt,
+    receiptPath: receiptPath,
   );
 }

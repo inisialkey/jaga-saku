@@ -29,6 +29,20 @@ class TransactionLocalDatasource {
   Future<int> delete(int id) =>
       _database.db.delete(_table, where: 'id = ?', whereArgs: [id]);
 
+  /// The stored `receipt_path` for [id] (or null if none / row absent). Used by
+  /// the repository to clean up the file before deleting the row.
+  Future<String?> getReceiptPath(int id) async {
+    final rows = await _database.db.query(
+      _table,
+      columns: ['receipt_path'],
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return rows.first['receipt_path'] as String?;
+  }
+
   /// Every transaction whose `date` lands in [month]'s calendar month
   /// (`[monthStart, nextMonthStart)`), newest first.
   Future<List<TransactionModel>> getByMonth(DateTime month) {

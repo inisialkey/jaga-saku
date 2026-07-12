@@ -21,6 +21,7 @@ class TransactionTile extends StatelessWidget {
     this.badges = const [],
     this.onTap,
     this.onLongPress,
+    this.hasReceipt = false,
   });
 
   /// [AppIcons] catalog key for the leading avatar.
@@ -41,6 +42,10 @@ class TransactionTile extends StatelessWidget {
   final MoneySign sign;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+
+  /// Shows a small paperclip before the amount when the tx has a receipt
+  /// (V2-M4). Callers pass `transaction.receiptPath != null`.
+  final bool hasReceipt;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +94,14 @@ class TransactionTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
+            if (hasReceipt) ...[
+              Icon(
+                Icons.attach_file,
+                size: 14,
+                color: context.colors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+            ],
             MoneyText(
               amount: amount,
               sign: sign,

@@ -26,7 +26,10 @@ dependencyResolutionManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.7.3" apply false
+    // image_picker (V2-M4) pulls AndroidX libs (androidx.core 1.18, activity
+    // 1.12) whose AAR metadata requires AGP >= 8.9.1; 8.9.1 is compatible with
+    // the committed Gradle 8.12 wrapper (no wrapper bump needed).
+    id("com.android.application") version "8.9.1" apply false
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 

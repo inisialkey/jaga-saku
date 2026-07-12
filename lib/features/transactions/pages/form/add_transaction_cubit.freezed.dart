@@ -19,7 +19,11 @@ mixin _$AddTransactionState {
  List<Account> get accounts;/// Expense + income categories loaded once; filtered by [categoriesForType].
  List<Category> get categories; AddTxStatus get status; AddTxValidation get validation; Failure? get error; bool get isEditing;/// The category's safe-daily allowance, set when [status] is
 /// [AddTxStatus.needsBudgetConfirm]; drives the warning sheet.
- int get safeDaily;
+ int get safeDaily;/// Relative receipt path being edited. Non-nullable with a `''` sentinel (=
+/// "no receipt") so `copyWith` handles pick/remove — freezed's copyWith can't
+/// set a field back to null (see [AddTransactionCubit.typeChanged]). `_commit`
+/// maps `''`→null. Mirrors how `amount` (0) and `note` ('') model "empty".
+ String get receiptPath;
 /// Create a copy of AddTransactionState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,16 +34,16 @@ $AddTransactionStateCopyWith<AddTransactionState> get copyWith => _$AddTransacti
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AddTransactionState&&(identical(other.type, type) || other.type == type)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.date, date) || other.date == date)&&(identical(other.note, note) || other.note == note)&&const DeepCollectionEquality().equals(other.accounts, accounts)&&const DeepCollectionEquality().equals(other.categories, categories)&&(identical(other.status, status) || other.status == status)&&(identical(other.validation, validation) || other.validation == validation)&&(identical(other.error, error) || other.error == error)&&(identical(other.isEditing, isEditing) || other.isEditing == isEditing)&&(identical(other.safeDaily, safeDaily) || other.safeDaily == safeDaily));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AddTransactionState&&(identical(other.type, type) || other.type == type)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.date, date) || other.date == date)&&(identical(other.note, note) || other.note == note)&&const DeepCollectionEquality().equals(other.accounts, accounts)&&const DeepCollectionEquality().equals(other.categories, categories)&&(identical(other.status, status) || other.status == status)&&(identical(other.validation, validation) || other.validation == validation)&&(identical(other.error, error) || other.error == error)&&(identical(other.isEditing, isEditing) || other.isEditing == isEditing)&&(identical(other.safeDaily, safeDaily) || other.safeDaily == safeDaily)&&(identical(other.receiptPath, receiptPath) || other.receiptPath == receiptPath));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,amount,accountId,toAccountId,categoryId,plannedStatus,spendingType,date,note,const DeepCollectionEquality().hash(accounts),const DeepCollectionEquality().hash(categories),status,validation,error,isEditing,safeDaily);
+int get hashCode => Object.hash(runtimeType,type,amount,accountId,toAccountId,categoryId,plannedStatus,spendingType,date,note,const DeepCollectionEquality().hash(accounts),const DeepCollectionEquality().hash(categories),status,validation,error,isEditing,safeDaily,receiptPath);
 
 @override
 String toString() {
-  return 'AddTransactionState(type: $type, amount: $amount, accountId: $accountId, toAccountId: $toAccountId, categoryId: $categoryId, plannedStatus: $plannedStatus, spendingType: $spendingType, date: $date, note: $note, accounts: $accounts, categories: $categories, status: $status, validation: $validation, error: $error, isEditing: $isEditing, safeDaily: $safeDaily)';
+  return 'AddTransactionState(type: $type, amount: $amount, accountId: $accountId, toAccountId: $toAccountId, categoryId: $categoryId, plannedStatus: $plannedStatus, spendingType: $spendingType, date: $date, note: $note, accounts: $accounts, categories: $categories, status: $status, validation: $validation, error: $error, isEditing: $isEditing, safeDaily: $safeDaily, receiptPath: $receiptPath)';
 }
 
 
@@ -50,7 +54,7 @@ abstract mixin class $AddTransactionStateCopyWith<$Res>  {
   factory $AddTransactionStateCopyWith(AddTransactionState value, $Res Function(AddTransactionState) _then) = _$AddTransactionStateCopyWithImpl;
 @useResult
 $Res call({
- TransactionType type, int amount, int? accountId, int? toAccountId, int? categoryId, PlannedStatus? plannedStatus, SpendingType? spendingType, int date, String note, List<Account> accounts, List<Category> categories, AddTxStatus status, AddTxValidation validation, Failure? error, bool isEditing, int safeDaily
+ TransactionType type, int amount, int? accountId, int? toAccountId, int? categoryId, PlannedStatus? plannedStatus, SpendingType? spendingType, int date, String note, List<Account> accounts, List<Category> categories, AddTxStatus status, AddTxValidation validation, Failure? error, bool isEditing, int safeDaily, String receiptPath
 });
 
 
@@ -67,7 +71,7 @@ class _$AddTransactionStateCopyWithImpl<$Res>
 
 /// Create a copy of AddTransactionState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? amount = null,Object? accountId = freezed,Object? toAccountId = freezed,Object? categoryId = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? date = null,Object? note = null,Object? accounts = null,Object? categories = null,Object? status = null,Object? validation = null,Object? error = freezed,Object? isEditing = null,Object? safeDaily = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? amount = null,Object? accountId = freezed,Object? toAccountId = freezed,Object? categoryId = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? date = null,Object? note = null,Object? accounts = null,Object? categories = null,Object? status = null,Object? validation = null,Object? error = freezed,Object? isEditing = null,Object? safeDaily = null,Object? receiptPath = null,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as TransactionType,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
@@ -85,7 +89,8 @@ as AddTxStatus,validation: null == validation ? _self.validation : validation //
 as AddTxValidation,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as Failure?,isEditing: null == isEditing ? _self.isEditing : isEditing // ignore: cast_nullable_to_non_nullable
 as bool,safeDaily: null == safeDaily ? _self.safeDaily : safeDaily // ignore: cast_nullable_to_non_nullable
-as int,
+as int,receiptPath: null == receiptPath ? _self.receiptPath : receiptPath // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -170,10 +175,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TransactionType type,  int amount,  int? accountId,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String note,  List<Account> accounts,  List<Category> categories,  AddTxStatus status,  AddTxValidation validation,  Failure? error,  bool isEditing,  int safeDaily)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TransactionType type,  int amount,  int? accountId,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String note,  List<Account> accounts,  List<Category> categories,  AddTxStatus status,  AddTxValidation validation,  Failure? error,  bool isEditing,  int safeDaily,  String receiptPath)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AddTransactionState() when $default != null:
-return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.accounts,_that.categories,_that.status,_that.validation,_that.error,_that.isEditing,_that.safeDaily);case _:
+return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.accounts,_that.categories,_that.status,_that.validation,_that.error,_that.isEditing,_that.safeDaily,_that.receiptPath);case _:
   return orElse();
 
 }
@@ -191,10 +196,10 @@ return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TransactionType type,  int amount,  int? accountId,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String note,  List<Account> accounts,  List<Category> categories,  AddTxStatus status,  AddTxValidation validation,  Failure? error,  bool isEditing,  int safeDaily)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TransactionType type,  int amount,  int? accountId,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String note,  List<Account> accounts,  List<Category> categories,  AddTxStatus status,  AddTxValidation validation,  Failure? error,  bool isEditing,  int safeDaily,  String receiptPath)  $default,) {final _that = this;
 switch (_that) {
 case _AddTransactionState():
-return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.accounts,_that.categories,_that.status,_that.validation,_that.error,_that.isEditing,_that.safeDaily);case _:
+return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.accounts,_that.categories,_that.status,_that.validation,_that.error,_that.isEditing,_that.safeDaily,_that.receiptPath);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -211,10 +216,10 @@ return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TransactionType type,  int amount,  int? accountId,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String note,  List<Account> accounts,  List<Category> categories,  AddTxStatus status,  AddTxValidation validation,  Failure? error,  bool isEditing,  int safeDaily)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TransactionType type,  int amount,  int? accountId,  int? toAccountId,  int? categoryId,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  int date,  String note,  List<Account> accounts,  List<Category> categories,  AddTxStatus status,  AddTxValidation validation,  Failure? error,  bool isEditing,  int safeDaily,  String receiptPath)?  $default,) {final _that = this;
 switch (_that) {
 case _AddTransactionState() when $default != null:
-return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.accounts,_that.categories,_that.status,_that.validation,_that.error,_that.isEditing,_that.safeDaily);case _:
+return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.categoryId,_that.plannedStatus,_that.spendingType,_that.date,_that.note,_that.accounts,_that.categories,_that.status,_that.validation,_that.error,_that.isEditing,_that.safeDaily,_that.receiptPath);case _:
   return null;
 
 }
@@ -226,7 +231,7 @@ return $default(_that.type,_that.amount,_that.accountId,_that.toAccountId,_that.
 
 
 class _AddTransactionState extends AddTransactionState {
-  const _AddTransactionState({this.type = TransactionType.expense, this.amount = 0, this.accountId, this.toAccountId, this.categoryId, this.plannedStatus, this.spendingType, this.date = 0, this.note = '', final  List<Account> accounts = const <Account>[], final  List<Category> categories = const <Category>[], this.status = AddTxStatus.editing, this.validation = AddTxValidation.none, this.error, this.isEditing = false, this.safeDaily = 0}): _accounts = accounts,_categories = categories,super._();
+  const _AddTransactionState({this.type = TransactionType.expense, this.amount = 0, this.accountId, this.toAccountId, this.categoryId, this.plannedStatus, this.spendingType, this.date = 0, this.note = '', final  List<Account> accounts = const <Account>[], final  List<Category> categories = const <Category>[], this.status = AddTxStatus.editing, this.validation = AddTxValidation.none, this.error, this.isEditing = false, this.safeDaily = 0, this.receiptPath = ''}): _accounts = accounts,_categories = categories,super._();
   
 
 @override@JsonKey() final  TransactionType type;
@@ -264,6 +269,11 @@ class _AddTransactionState extends AddTransactionState {
 /// The category's safe-daily allowance, set when [status] is
 /// [AddTxStatus.needsBudgetConfirm]; drives the warning sheet.
 @override@JsonKey() final  int safeDaily;
+/// Relative receipt path being edited. Non-nullable with a `''` sentinel (=
+/// "no receipt") so `copyWith` handles pick/remove — freezed's copyWith can't
+/// set a field back to null (see [AddTransactionCubit.typeChanged]). `_commit`
+/// maps `''`→null. Mirrors how `amount` (0) and `note` ('') model "empty".
+@override@JsonKey() final  String receiptPath;
 
 /// Create a copy of AddTransactionState
 /// with the given fields replaced by the non-null parameter values.
@@ -275,16 +285,16 @@ _$AddTransactionStateCopyWith<_AddTransactionState> get copyWith => __$AddTransa
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AddTransactionState&&(identical(other.type, type) || other.type == type)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.date, date) || other.date == date)&&(identical(other.note, note) || other.note == note)&&const DeepCollectionEquality().equals(other._accounts, _accounts)&&const DeepCollectionEquality().equals(other._categories, _categories)&&(identical(other.status, status) || other.status == status)&&(identical(other.validation, validation) || other.validation == validation)&&(identical(other.error, error) || other.error == error)&&(identical(other.isEditing, isEditing) || other.isEditing == isEditing)&&(identical(other.safeDaily, safeDaily) || other.safeDaily == safeDaily));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AddTransactionState&&(identical(other.type, type) || other.type == type)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.date, date) || other.date == date)&&(identical(other.note, note) || other.note == note)&&const DeepCollectionEquality().equals(other._accounts, _accounts)&&const DeepCollectionEquality().equals(other._categories, _categories)&&(identical(other.status, status) || other.status == status)&&(identical(other.validation, validation) || other.validation == validation)&&(identical(other.error, error) || other.error == error)&&(identical(other.isEditing, isEditing) || other.isEditing == isEditing)&&(identical(other.safeDaily, safeDaily) || other.safeDaily == safeDaily)&&(identical(other.receiptPath, receiptPath) || other.receiptPath == receiptPath));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,amount,accountId,toAccountId,categoryId,plannedStatus,spendingType,date,note,const DeepCollectionEquality().hash(_accounts),const DeepCollectionEquality().hash(_categories),status,validation,error,isEditing,safeDaily);
+int get hashCode => Object.hash(runtimeType,type,amount,accountId,toAccountId,categoryId,plannedStatus,spendingType,date,note,const DeepCollectionEquality().hash(_accounts),const DeepCollectionEquality().hash(_categories),status,validation,error,isEditing,safeDaily,receiptPath);
 
 @override
 String toString() {
-  return 'AddTransactionState(type: $type, amount: $amount, accountId: $accountId, toAccountId: $toAccountId, categoryId: $categoryId, plannedStatus: $plannedStatus, spendingType: $spendingType, date: $date, note: $note, accounts: $accounts, categories: $categories, status: $status, validation: $validation, error: $error, isEditing: $isEditing, safeDaily: $safeDaily)';
+  return 'AddTransactionState(type: $type, amount: $amount, accountId: $accountId, toAccountId: $toAccountId, categoryId: $categoryId, plannedStatus: $plannedStatus, spendingType: $spendingType, date: $date, note: $note, accounts: $accounts, categories: $categories, status: $status, validation: $validation, error: $error, isEditing: $isEditing, safeDaily: $safeDaily, receiptPath: $receiptPath)';
 }
 
 
@@ -295,7 +305,7 @@ abstract mixin class _$AddTransactionStateCopyWith<$Res> implements $AddTransact
   factory _$AddTransactionStateCopyWith(_AddTransactionState value, $Res Function(_AddTransactionState) _then) = __$AddTransactionStateCopyWithImpl;
 @override @useResult
 $Res call({
- TransactionType type, int amount, int? accountId, int? toAccountId, int? categoryId, PlannedStatus? plannedStatus, SpendingType? spendingType, int date, String note, List<Account> accounts, List<Category> categories, AddTxStatus status, AddTxValidation validation, Failure? error, bool isEditing, int safeDaily
+ TransactionType type, int amount, int? accountId, int? toAccountId, int? categoryId, PlannedStatus? plannedStatus, SpendingType? spendingType, int date, String note, List<Account> accounts, List<Category> categories, AddTxStatus status, AddTxValidation validation, Failure? error, bool isEditing, int safeDaily, String receiptPath
 });
 
 
@@ -312,7 +322,7 @@ class __$AddTransactionStateCopyWithImpl<$Res>
 
 /// Create a copy of AddTransactionState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? amount = null,Object? accountId = freezed,Object? toAccountId = freezed,Object? categoryId = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? date = null,Object? note = null,Object? accounts = null,Object? categories = null,Object? status = null,Object? validation = null,Object? error = freezed,Object? isEditing = null,Object? safeDaily = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? amount = null,Object? accountId = freezed,Object? toAccountId = freezed,Object? categoryId = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? date = null,Object? note = null,Object? accounts = null,Object? categories = null,Object? status = null,Object? validation = null,Object? error = freezed,Object? isEditing = null,Object? safeDaily = null,Object? receiptPath = null,}) {
   return _then(_AddTransactionState(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as TransactionType,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
@@ -330,7 +340,8 @@ as AddTxStatus,validation: null == validation ? _self.validation : validation //
 as AddTxValidation,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
 as Failure?,isEditing: null == isEditing ? _self.isEditing : isEditing // ignore: cast_nullable_to_non_nullable
 as bool,safeDaily: null == safeDaily ? _self.safeDaily : safeDaily // ignore: cast_nullable_to_non_nullable
-as int,
+as int,receiptPath: null == receiptPath ? _self.receiptPath : receiptPath // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

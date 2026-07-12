@@ -17,7 +17,11 @@ val flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "
 
 android {
     namespace = "com.consteon.jagasaku"
-    compileSdk = 35
+    // image_picker_android (+ transitive flutter_plugin_android_lifecycle) ship
+    // AAR metadata requiring compileSdk 36 (V2-M4); their checkAarMetadata task
+    // hard-fails against 35. targetSdk stays 35 — this is a compile bump only,
+    // no runtime-behavior opt-in.
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {

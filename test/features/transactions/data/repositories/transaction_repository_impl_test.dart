@@ -43,6 +43,7 @@ void main() {
   });
 
   late MockTransactionLocalDatasource datasource;
+  late MockReceiptStorageService receiptStorage;
   late TransactionRepositoryImpl repository;
 
   const transaction = Transaction(
@@ -53,7 +54,8 @@ void main() {
 
   setUp(() {
     datasource = MockTransactionLocalDatasource();
-    repository = TransactionRepositoryImpl(datasource);
+    receiptStorage = MockReceiptStorageService();
+    repository = TransactionRepositoryImpl(datasource, receiptStorage);
   });
 
   test(
@@ -94,6 +96,7 @@ void main() {
   });
 
   test('unexpected (non-DB) error → Left(CacheFailure)', () async {
+    when(() => datasource.getReceiptPath(1)).thenAnswer((_) async => null);
     when(() => datasource.delete(1)).thenThrow(Exception('boom'));
 
     final result = await repository.deleteTransaction(1);
@@ -101,11 +104,37 @@ void main() {
     expect(result.getLeft().toNullable(), isA<CacheFailure>());
   });
 
-  test('deleteTransaction success → Right(unit)', () async {
-    when(() => datasource.delete(1)).thenAnswer((_) async => 1);
+  test(
+    'deleteTransaction success without a receipt removes only the row',
+    () async {
+      when(() => datasource.getReceiptPath(1)).thenAnswer((_) async => null);
+      when(() => datasource.delete(1)).thenAnswer((_) async => 1);
+      when(() => receiptStorage.delete(any())).thenAnswer((_) async {});
 
-    final result = await repository.deleteTransaction(1);
+      final result = await repository.deleteTransaction(1);
 
-    expect(result.isRight(), isTrue);
-  });
+      expect(result.isRight(), isTrue);
+      // No receipt on the row → no file delete attempted.
+      verifyNever(() => receiptStorage.delete(any()));
+    },
+  );
+
+  test(
+    'deleteTransaction with a receipt deletes the file once and removes the row',
+    () async {
+      when(
+        () => datasource.getReceiptPath(1),
+      ).thenAnswer((_) async => 'receipts/x.jpg');
+      when(() => datasource.delete(1)).thenAnswer((_) async => 1);
+      when(
+        () => receiptStorage.delete('receipts/x.jpg'),
+      ).thenAnswer((_) async {});
+
+      final result = await repository.deleteTransaction(1);
+
+      expect(result.isRight(), isTrue);
+      verify(() => datasource.delete(1)).called(1);
+      verify(() => receiptStorage.delete('receipts/x.jpg')).called(1);
+    },
+  );
 }

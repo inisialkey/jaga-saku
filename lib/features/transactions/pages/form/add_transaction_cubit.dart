@@ -1,7 +1,13 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
+import 'package:jaga_saku/core/utils/helper/common.dart';
+import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
@@ -28,6 +34,7 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
     required GetCategories getCategories,
     required GetBudgetsForPeriod getBudgetsForPeriod,
     required TxChangeNotifier txChangeNotifier,
+    required ReceiptStorageService receiptStorage,
     Transaction? initial,
     TxTemplate? prefill,
   }) : _saveTransaction = saveTransaction,
@@ -35,6 +42,7 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
        _txChanges = txChangeNotifier,
+       _receiptStorage = receiptStorage,
        _initial = initial,
        super(_seed(initial, prefill));
 
@@ -43,7 +51,19 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
   final GetCategories _getCategories;
   final GetBudgetsForPeriod _getBudgetsForPeriod;
   final TxChangeNotifier _txChanges;
+  final ReceiptStorageService _receiptStorage;
   final Transaction? _initial;
+
+  /// True once a save has persisted the current [state.receiptPath]. Gates
+  /// [close]'s orphan sweep: an uncommitted picked file is deleted on dismiss,
+  /// a committed one is kept.
+  bool _committed = false;
+
+  /// The receipt path already persisted for the edited transaction (empty for a
+  /// new tx). A picked file that differs from this is a *session* file — safe to
+  /// delete on replace/remove/dismiss; the committed original is deleted only
+  /// after a successful save.
+  String get _originalPath => _initial?.receiptPath ?? '';
 
   /// Seeds the form. [initial] → the existing editing behavior
   /// (`isEditing: true`); [prefill] (a favorite applied via the amount-less
@@ -63,6 +83,7 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
         spendingType: initial.spendingType,
         date: initial.date,
         note: initial.note ?? '',
+        receiptPath: initial.receiptPath ?? '',
         isEditing: true,
       );
     }
@@ -116,6 +137,9 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
         accounts: state.accounts,
         categories: state.categories,
         isEditing: state.isEditing,
+        // C3: this rebuild drops any field not re-listed. Carry the picked
+        // receipt so switching type never silently discards it.
+        receiptPath: state.receiptPath,
       ),
     );
   }
@@ -145,6 +169,43 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
       date: DateTime(date.year, date.month, date.day).millisecondsSinceEpoch,
     ),
   );
+
+  /// Picks a receipt from [source] and stores it. Returns false only on a
+  /// genuine pick/copy error (the page toasts `receiptPickFailed`); a user-cancel
+  /// returns true silently. When replacing, a prior *session-new* file (not the
+  /// committed original) is deleted immediately.
+  Future<bool> pickReceipt(ImageSource source) async {
+    try {
+      final path = await _receiptStorage.pickAndStore(source);
+      // A cancelled pick (null) or a closed cubit is not an error.
+      if (isClosed || path == null) return true;
+      final previous = state.receiptPath;
+      emit(state.copyWith(receiptPath: path));
+      if (previous.isNotEmpty && previous != _originalPath) {
+        await _receiptStorage.delete(previous); // session orphan
+      }
+      return true;
+    } catch (e, s) {
+      log.e('receipt pick failed', error: e, stackTrace: s);
+      return false;
+    }
+  }
+
+  /// Clears the receipt (the ✕ action). A session-new file is deleted now; the
+  /// committed original is deleted only after a successful save (see [_commit]).
+  Future<void> removeReceipt() async {
+    final previous = state.receiptPath;
+    emit(state.copyWith(receiptPath: '')); // '' sentinel — copyWith-safe
+    if (previous.isNotEmpty && previous != _originalPath) {
+      await _receiptStorage.delete(previous);
+    }
+  }
+
+  /// Absolute [File] for the current receipt (rule 5 — the widget never calls the
+  /// service). Null when empty or missing → the form shows a placeholder.
+  Future<File?> resolveReceipt() => state.receiptPath.isEmpty
+      ? Future.value()
+      : _receiptStorage.resolve(state.receiptPath);
 
   Future<void> submit() async {
     if (state.isSaving) return;
@@ -209,14 +270,27 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
       date: state.date,
       note: state.note.trim().isEmpty ? null : state.note.trim(),
       createdAt: _initial?.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+      receiptPath: state.receiptPath.isEmpty ? null : state.receiptPath,
     );
 
     final result = await _saveTransaction(transaction);
+    // W1: a Right result means the row — and the receiptPath it now points at —
+    // is persisted. Mark committed BEFORE the isClosed short-circuit so close()'s
+    // orphan sweep can never delete the just-saved receipt when the form is
+    // dismissed mid-save (the save-race data-loss path).
+    if (result.isRight()) _committed = true;
     if (isClosed) return;
     final failure = result.getLeft().toNullable();
     if (failure != null) {
       emit(state.copyWith(status: AddTxStatus.failure, error: failure));
       return;
+    }
+    // After a successful save: if editing changed/removed the receipt, the old
+    // file is now orphaned (the persisted row no longer references it). Covers
+    // both replace and remove on an edit; a no-op for a new tx (_originalPath '').
+    final saved = state.receiptPath.isEmpty ? null : state.receiptPath;
+    if (_originalPath.isNotEmpty && _originalPath != saved) {
+      await _receiptStorage.delete(_originalPath);
     }
     // W2 fix: a successful write pings the shared notifier so Home + Calendar +
     // the Budget guard refresh live — even for the fire-and-forget shell FAB
@@ -271,5 +345,17 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
       return AddTxValidation.categoryRequired;
     }
     return AddTxValidation.none;
+  }
+
+  @override
+  Future<void> close() {
+    // A picked-but-unsaved receipt (not the committed original) is an orphan when
+    // the form is dismissed. Fire-and-forget — delete is no-throw.
+    if (!_committed &&
+        state.receiptPath.isNotEmpty &&
+        state.receiptPath != _originalPath) {
+      unawaited(_receiptStorage.delete(state.receiptPath));
+    }
+    return super.close();
   }
 }

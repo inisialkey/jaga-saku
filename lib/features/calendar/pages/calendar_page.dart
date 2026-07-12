@@ -276,6 +276,7 @@ class _TransactionRow extends StatelessWidget {
       badges: badges,
       amount: t.amount,
       sign: sign,
+      hasReceipt: t.receiptPath != null,
       onTap: () => _edit(context),
       onLongPress: () => _confirmDelete(context),
     );

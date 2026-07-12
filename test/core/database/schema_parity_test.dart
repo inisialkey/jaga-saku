@@ -63,7 +63,7 @@ void main() {
     );
   });
 
-  test('latestVersion is 3 so existing installs run the _v3 upgrade', () {
-    expect(Migrations.latestVersion, 3);
+  test('latestVersion is 4 so existing installs run the _v4 upgrade', () {
+    expect(Migrations.latestVersion, 4);
   });
 }

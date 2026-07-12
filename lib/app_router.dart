@@ -152,6 +152,7 @@ final GoRouter appRouter = GoRouter(
             getCategories: sl(),
             getBudgetsForPeriod: sl(),
             txChangeNotifier: sl(),
+            receiptStorage: sl(),
             initial: args?.edit,
             prefill: args?.prefill,
           )..load(),

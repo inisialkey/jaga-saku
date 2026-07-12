@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:jaga_saku/core/database/app_database.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
+import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
 import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/data/datasources/account_local_datasource.dart';
@@ -58,6 +60,10 @@ class MockAppDatabase extends Mock implements AppDatabase {}
 class MockSettingsService extends Mock implements SettingsService {}
 
 class MockTxChangeNotifier extends Mock implements TxChangeNotifier {}
+
+class MockReceiptStorageService extends Mock implements ReceiptStorageService {}
+
+class MockImagePicker extends Mock implements ImagePicker {}
 
 // ── Accounts ────────────────────────────────────────────────────────────────
 class MockAccountLocalDatasource extends Mock
@@ -174,4 +180,6 @@ void registerFallbackValues() {
     ),
   );
   registerFallbackValue(DateTime(2000));
+  // For `pickImage(source: any(named: 'source'))` / `pickAndStore(any())`.
+  registerFallbackValue(ImageSource.gallery);
 }
