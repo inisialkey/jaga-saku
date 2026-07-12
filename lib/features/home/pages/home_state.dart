@@ -20,6 +20,9 @@ abstract class HomeDashboard with _$HomeDashboard {
     /// Today's expense sum for [PlannedStatus.unplanned] rows.
     required int todayUnplanned,
 
+    /// Count of pending recurring occurrences (V2-M5); `0` hides the banner.
+    @Default(0) int pendingRecurring,
+
     /// Name of today's largest-expense category; null when nothing was spent.
     String? topCategoryName,
 

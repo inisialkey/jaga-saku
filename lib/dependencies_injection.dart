@@ -39,6 +39,15 @@ import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_trans
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_day.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
+import 'package:jaga_saku/features/recurring/data/datasources/recurring_local_datasource.dart';
+import 'package:jaga_saku/features/recurring/data/repositories/recurring_repository_impl.dart';
+import 'package:jaga_saku/features/recurring/domain/repositories/recurring_repository.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/confirm_occurrence.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/delete_recurring_rule.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/get_due_occurrences.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/get_recurring_rules.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/save_recurring_rule.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/skip_occurrence.dart';
 
 GetIt sl = GetIt.instance;
 
@@ -75,6 +84,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   _registerBudgets();
   _registerTemplates();
   _registerTransactions();
+  _registerRecurring();
 }
 
 void _registerAccounts() {
@@ -135,4 +145,20 @@ void _registerTransactions() {
     ..registerLazySingleton(() => GetRecentTransactions(sl()))
     ..registerLazySingleton(() => SaveTransaction(sl()))
     ..registerLazySingleton(() => DeleteTransaction(sl()));
+}
+
+void _registerRecurring() {
+  sl
+    ..registerLazySingleton(() => RecurringLocalDatasource(sl<AppDatabase>()))
+    ..registerLazySingleton<RecurringRepository>(
+      () => RecurringRepositoryImpl(sl()),
+    )
+    ..registerLazySingleton(() => GetRecurringRules(sl()))
+    ..registerLazySingleton(() => SaveRecurringRule(sl()))
+    ..registerLazySingleton(() => DeleteRecurringRule(sl()))
+    ..registerLazySingleton(() => GetDueOccurrences(sl()))
+    // SaveTransaction (from _registerTransactions) + RecurringRepository — both
+    // lazy, so cross-feature resolution works regardless of registration order.
+    ..registerLazySingleton(() => ConfirmOccurrence(sl(), sl()))
+    ..registerLazySingleton(() => SkipOccurrence(sl()));
 }

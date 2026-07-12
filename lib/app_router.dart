@@ -23,6 +23,13 @@ import 'package:jaga_saku/features/home/pages/home_page.dart';
 import 'package:jaga_saku/features/insight/pages/insight_cubit.dart';
 import 'package:jaga_saku/features/insight/pages/insight_page.dart';
 import 'package:jaga_saku/features/more/more_page.dart';
+import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
+import 'package:jaga_saku/features/recurring/pages/form/recurring_form_cubit.dart';
+import 'package:jaga_saku/features/recurring/pages/form/recurring_form_page.dart';
+import 'package:jaga_saku/features/recurring/pages/list/recurring_list_cubit.dart';
+import 'package:jaga_saku/features/recurring/pages/list/recurring_list_page.dart';
+import 'package:jaga_saku/features/recurring/pages/review/recurring_review_cubit.dart';
+import 'package:jaga_saku/features/recurring/pages/review/recurring_review_page.dart';
 import 'package:jaga_saku/features/settings/pages/about_page.dart';
 import 'package:jaga_saku/features/settings/pages/appearance_page.dart';
 import 'package:jaga_saku/features/settings/pages/settings_page.dart';
@@ -55,6 +62,9 @@ class AppRoute {
   static const String budgetForm = '/budget/form';
   static const String favorites = '/favorites';
   static const String favoriteForm = '/favorites/form';
+  static const String recurring = '/recurring';
+  static const String recurringForm = '/recurring/form';
+  static const String recurringReview = '/recurring/review';
 
   // Settings screens (M6) — full-screen, pushed on the root navigator. They read
   // the app-global AppSettingsCubit provided in `app.dart` (no per-route cubit).
@@ -90,6 +100,7 @@ final GoRouter appRouter = GoRouter(
                   getCategories: sl(),
                   getBudgetsForPeriod: sl(),
                   getFavorites: sl(),
+                  getDueOccurrences: sl(),
                   saveTransaction: sl(),
                   deleteTransaction: sl(),
                   txChangeNotifier: sl(),
@@ -272,6 +283,42 @@ final GoRouter appRouter = GoRouter(
           initial: state.extra as TxTemplate?,
         )..load(),
         child: const FavoriteFormPage(),
+      ),
+    ),
+    // ── Recurring (V2-M5) ────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.recurring,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) =>
+            RecurringListCubit(getRules: sl(), deleteRule: sl())..load(),
+        child: const RecurringListPage(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.recurringForm,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) => BlocProvider(
+        create: (_) => RecurringFormCubit(
+          saveRule: sl(),
+          getAccounts: sl(),
+          getCategories: sl(),
+          initial: state.extra as RecurringRule?,
+        )..load(),
+        child: const RecurringFormPage(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.recurringReview,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => RecurringReviewCubit(
+          getDueOccurrences: sl(),
+          confirmOccurrence: sl(),
+          skipOccurrence: sl(),
+          txChangeNotifier: sl(),
+        )..load(),
+        child: const RecurringReviewPage(),
       ),
     ),
     // ── Settings (M6) ────────────────────────────────────────────────────

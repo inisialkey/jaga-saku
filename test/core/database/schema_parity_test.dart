@@ -45,25 +45,29 @@ void main() {
     expect(await dumpSchema(migrated), equals(await dumpSchema(fresh)));
   });
 
-  test('_v2/_v3 register the audit + tx_template indexes', () async {
-    final db = await openBlank();
-    addTearDown(db.close);
-    await Migrations.onCreate(db);
-    final indexes = await db.rawQuery(
-      "SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%'",
-    );
-    final names = indexes.map((r) => r['name']! as String).toSet();
-    expect(
-      names,
-      containsAll(<String>[
-        'idx_budget_period',
-        'idx_cat_type',
-        'idx_tpl_sort',
-      ]),
-    );
-  });
+  test(
+    '_v2/_v3/_v5 register the audit + tx_template + recurring indexes',
+    () async {
+      final db = await openBlank();
+      addTearDown(db.close);
+      await Migrations.onCreate(db);
+      final indexes = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%'",
+      );
+      final names = indexes.map((r) => r['name']! as String).toSet();
+      expect(
+        names,
+        containsAll(<String>[
+          'idx_budget_period',
+          'idx_cat_type',
+          'idx_tpl_sort',
+          'idx_recurring_due',
+        ]),
+      );
+    },
+  );
 
-  test('latestVersion is 4 so existing installs run the _v4 upgrade', () {
-    expect(Migrations.latestVersion, 4);
+  test('latestVersion is 5 so existing installs run the _v5 upgrade', () {
+    expect(Migrations.latestVersion, 5);
   });
 }

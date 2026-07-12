@@ -7,6 +7,7 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
+import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
@@ -22,6 +23,7 @@ void main() {
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
   late MockGetFavorites getFavorites;
+  late MockGetDueOccurrences getDueOccurrences;
   late MockSaveTransaction saveTransaction;
   late MockDeleteTransaction deleteTransaction;
   late TxChangeNotifier txChanges;
@@ -53,6 +55,7 @@ void main() {
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
     getFavorites = MockGetFavorites();
+    getDueOccurrences = MockGetDueOccurrences();
     saveTransaction = MockSaveTransaction();
     deleteTransaction = MockDeleteTransaction();
     txChanges = TxChangeNotifier();
@@ -67,6 +70,7 @@ void main() {
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
     getFavorites: getFavorites,
+    getDueOccurrences: getDueOccurrences,
     saveTransaction: saveTransaction,
     deleteTransaction: deleteTransaction,
     txChangeNotifier: txChanges,
@@ -101,6 +105,9 @@ void main() {
     when(
       () => getFavorites(any()),
     ).thenAnswer((_) async => const Right<Failure, List<TxTemplate>>([]));
+    when(() => getDueOccurrences(any())).thenAnswer(
+      (_) async => const Right<Failure, List<PendingOccurrence>>([]),
+    );
   }
 
   test(
@@ -367,6 +374,56 @@ void main() {
 
       expect(cubit.state, isA<HomeLoaded>());
       expect((cubit.state as HomeLoaded).dashboard.favorites, isEmpty);
+      await cubit.close();
+    },
+  );
+
+  // ── Recurring badge (V2-M5) ─────────────────────────────────────────────────
+
+  test('getDueOccurrences populates pendingRecurring with the count', () async {
+    stubAll(accounts: const [], month: const [], recent: const []);
+    const template = TxTemplate(
+      label: 'Rent',
+      type: TransactionType.expense,
+      accountId: 1,
+      amount: 50000,
+    );
+    const rule = RecurringRule(
+      id: 1,
+      templateId: 1,
+      freq: RecurrenceFreq.monthly,
+      startDate: 0,
+      nextDue: 0,
+    );
+    final pending = [
+      for (var i = 0; i < 3; i++)
+        PendingOccurrence(rule: rule, template: template, dueDate: i),
+    ];
+    when(
+      () => getDueOccurrences(any()),
+    ).thenAnswer((_) async => Right<Failure, List<PendingOccurrence>>(pending));
+
+    final cubit = build();
+    await cubit.load();
+
+    expect((cubit.state as HomeLoaded).dashboard.pendingRecurring, 3);
+    await cubit.close();
+  });
+
+  test(
+    'a getDueOccurrences Left hides the badge but does not error the dashboard',
+    () async {
+      stubAll(accounts: const [], month: const [], recent: const []);
+      when(() => getDueOccurrences(any())).thenAnswer(
+        (_) async =>
+            const Left<Failure, List<PendingOccurrence>>(CacheFailure()),
+      );
+
+      final cubit = build();
+      await cubit.load();
+
+      expect(cubit.state, isA<HomeLoaded>());
+      expect((cubit.state as HomeLoaded).dashboard.pendingRecurring, 0);
       await cubit.close();
     },
   );

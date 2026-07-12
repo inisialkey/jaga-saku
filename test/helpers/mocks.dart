@@ -47,6 +47,16 @@ import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_trans
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_day.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
+import 'package:jaga_saku/features/recurring/data/datasources/recurring_local_datasource.dart';
+import 'package:jaga_saku/features/recurring/data/models/recurring_model.dart';
+import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
+import 'package:jaga_saku/features/recurring/domain/repositories/recurring_repository.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/confirm_occurrence.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/delete_recurring_rule.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/get_due_occurrences.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/get_recurring_rules.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/save_recurring_rule.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/skip_occurrence.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// Shared mocktail declarations + fallback registration for the test suite.
@@ -139,6 +149,24 @@ class MockSaveTransaction extends Mock implements SaveTransaction {}
 
 class MockDeleteTransaction extends Mock implements DeleteTransaction {}
 
+// ── Recurring (V2-M5) ─────────────────────────────────────────────────────────
+class MockRecurringLocalDatasource extends Mock
+    implements RecurringLocalDatasource {}
+
+class MockRecurringRepository extends Mock implements RecurringRepository {}
+
+class MockGetRecurringRules extends Mock implements GetRecurringRules {}
+
+class MockSaveRecurringRule extends Mock implements SaveRecurringRule {}
+
+class MockDeleteRecurringRule extends Mock implements DeleteRecurringRule {}
+
+class MockGetDueOccurrences extends Mock implements GetDueOccurrences {}
+
+class MockConfirmOccurrence extends Mock implements ConfirmOccurrence {}
+
+class MockSkipOccurrence extends Mock implements SkipOccurrence {}
+
 /// Registers fallback sentinels for custom (non-nullable) types used with
 /// `any()` / `captureAny()` matchers. Idempotent — safe to call repeatedly.
 void registerFallbackValues() {
@@ -182,4 +210,38 @@ void registerFallbackValues() {
   registerFallbackValue(DateTime(2000));
   // For `pickImage(source: any(named: 'source'))` / `pickAndStore(any())`.
   registerFallbackValue(ImageSource.gallery);
+  // ── Recurring (V2-M5) ──
+  const recurringRuleFallback = RecurringRule(
+    templateId: 0,
+    freq: RecurrenceFreq.monthly,
+    startDate: 0,
+    nextDue: 0,
+  );
+  const txTemplateFallback = TxTemplate(
+    label: '',
+    type: TransactionType.expense,
+    accountId: 0,
+  );
+  registerFallbackValue(recurringRuleFallback);
+  registerFallbackValue(
+    const RecurringModel(
+      templateId: 0,
+      freq: RecurrenceFreq.monthly,
+      startDate: 0,
+      nextDue: 0,
+    ),
+  );
+  registerFallbackValue(
+    const PendingOccurrence(
+      rule: recurringRuleFallback,
+      template: txTemplateFallback,
+      dueDate: 0,
+    ),
+  );
+  registerFallbackValue(
+    const SaveRecurringRuleParams(
+      template: txTemplateFallback,
+      rule: recurringRuleFallback,
+    ),
+  );
 }

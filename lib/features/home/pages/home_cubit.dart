@@ -12,6 +12,8 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
+import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
+import 'package:jaga_saku/features/recurring/domain/usecases/get_due_occurrences.dart';
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/templates/domain/template_to_transaction.dart';
 import 'package:jaga_saku/features/templates/domain/usecases/get_favorites.dart';
@@ -67,6 +69,7 @@ class HomeCubit extends Cubit<HomeState> {
     required GetCategories getCategories,
     required GetBudgetsForPeriod getBudgetsForPeriod,
     required GetFavorites getFavorites,
+    required GetDueOccurrences getDueOccurrences,
     required SaveTransaction saveTransaction,
     required DeleteTransaction deleteTransaction,
     required TxChangeNotifier txChangeNotifier,
@@ -76,6 +79,7 @@ class HomeCubit extends Cubit<HomeState> {
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
        _getFavorites = getFavorites,
+       _getDueOccurrences = getDueOccurrences,
        _saveTransaction = saveTransaction,
        _deleteTransaction = deleteTransaction,
        _txChanges = txChangeNotifier,
@@ -89,6 +93,7 @@ class HomeCubit extends Cubit<HomeState> {
   final GetCategories _getCategories;
   final GetBudgetsForPeriod _getBudgetsForPeriod;
   final GetFavorites _getFavorites;
+  final GetDueOccurrences _getDueOccurrences;
   final SaveTransaction _saveTransaction;
   final DeleteTransaction _deleteTransaction;
   final TxChangeNotifier _txChanges;
@@ -115,6 +120,7 @@ class HomeCubit extends Cubit<HomeState> {
     final incomeCatsResult = await _getCategories(CategoryType.income);
     final budgetsResult = await _getBudgetsForPeriod(periodKey(now));
     final favoritesResult = await _getFavorites(NoParams());
+    final dueResult = await _getDueOccurrences(NoParams());
     if (isClosed) return;
 
     final failure =
@@ -144,6 +150,9 @@ class HomeCubit extends Cubit<HomeState> {
     // category lists) rather than erroring the whole dashboard.
     final favorites =
         favoritesResult.getRight().toNullable() ?? const <TxTemplate>[];
+    // Recurring catch-up is non-blocking too: a read failure hides the badge.
+    final pending =
+        dueResult.getRight().toNullable() ?? const <PendingOccurrence>[];
 
     emit(
       HomeState.loaded(
@@ -155,6 +164,7 @@ class HomeCubit extends Cubit<HomeState> {
           categories: categories,
           budgets: budgets,
           favorites: favorites,
+          pendingRecurring: pending.length,
         ),
       ),
     );
@@ -171,6 +181,7 @@ class HomeCubit extends Cubit<HomeState> {
     required List<Category> categories,
     required List<Budget> budgets,
     required List<TxTemplate> favorites,
+    required int pendingRecurring,
   }) {
     final totalBalance = accounts
         .where((a) => !a.archived)
@@ -213,6 +224,7 @@ class HomeCubit extends Cubit<HomeState> {
       monthExpense: monthExpense,
       todaySpent: todaySpent,
       todayUnplanned: todayUnplanned,
+      pendingRecurring: pendingRecurring,
       topCategoryName: _topCategoryName(expenseByCategory, categoriesById),
       recent: recent,
       categoriesById: categoriesById,
