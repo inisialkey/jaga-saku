@@ -28,6 +28,13 @@ class CategoryRepositoryImpl implements CategoryRepository {
   });
 
   @override
+  Future<Either<Failure, Category?>> getBySystemKey(String systemKey) =>
+      _guard(() async {
+        final model = await _datasource.getBySystemKey(systemKey);
+        return model?.toEntity();
+      });
+
+  @override
   Future<Either<Failure, int>> saveCategory(Category category) =>
       _guard(() async {
         final model = CategoryModel.fromEntity(category);

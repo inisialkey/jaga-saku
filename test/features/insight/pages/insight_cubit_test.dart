@@ -258,4 +258,43 @@ void main() {
     expect((cubit.state as InsightLoaded).report.month, prevMonth);
     await cubit.close();
   });
+
+  // ── Reserved-category exclusion (V2-M6) ─────────────────────────────────────
+
+  test(
+    'reconcile adjustments are excluded from overview, donut slices and trends',
+    () async {
+      const systemCat = Category(
+        id: 8,
+        name: 'Penyesuaian',
+        type: CategoryType.expense,
+        systemKey: 'adjustment_out',
+      );
+      stub(
+        current: [
+          tx(amount: 100000, categoryId: 1), // Makan — a real expense
+          tx(amount: 30000, categoryId: 8), // reconcile adjustment (current)
+        ],
+        previous: [
+          tx(amount: 80000, categoryId: 1), // Makan last month
+          tx(amount: 20000, categoryId: 8), // reconcile adjustment (previous)
+        ],
+        expenseCats: const [...expenseCats, systemCat],
+        incomeCats: incomeCats,
+      );
+
+      final cubit = build();
+      await cubit.load(thisMonth);
+
+      final r = (cubit.state as InsightLoaded).report;
+      // Overview excludes the adjustment.
+      expect(r.expense, 100000);
+      // The donut has no reserved wedge.
+      expect(r.expenseByCategory.map((s) => s.categoryId), isNot(contains(8)));
+      // C2: the month-over-month trend fold (:245) excluded it too, so no
+      // insight references "Penyesuaian".
+      expect(r.insights.every((i) => i.category != 'Penyesuaian'), isTrue);
+      await cubit.close();
+    },
+  );
 }

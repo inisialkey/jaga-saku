@@ -17,6 +17,7 @@ abstract class CategoryModel with _$CategoryModel {
     @Default(0) int sortOrder,
     @Default(false) bool archived,
     @Default(0) int createdAt,
+    String? systemKey,
   }) = _CategoryModel;
 
   const CategoryModel._();
@@ -31,6 +32,7 @@ abstract class CategoryModel with _$CategoryModel {
     sortOrder: (map['sort_order'] as int?) ?? 0,
     archived: ((map['archived'] as int?) ?? 0) == 1,
     createdAt: (map['created_at'] as int?) ?? 0,
+    systemKey: map['system_key'] as String?,
   );
 
   factory CategoryModel.fromEntity(Category category) => CategoryModel(
@@ -43,9 +45,12 @@ abstract class CategoryModel with _$CategoryModel {
     sortOrder: category.sortOrder,
     archived: category.archived,
     createdAt: category.createdAt,
+    systemKey: category.systemKey,
   );
 
   /// Column map for insert/update. Omits `id` when null so AUTOINCREMENT fires.
+  /// `system_key` writes null for a user category — the form never sets it; the
+  /// reserved pair is created by the `_v6` migration, not this path.
   Map<String, Object?> toMap() => {
     if (id != null) 'id': id,
     'name': name,
@@ -56,6 +61,7 @@ abstract class CategoryModel with _$CategoryModel {
     'sort_order': sortOrder,
     'archived': archived ? 1 : 0,
     'created_at': createdAt,
+    'system_key': systemKey,
   };
 
   Category toEntity() => Category(
@@ -68,5 +74,6 @@ abstract class CategoryModel with _$CategoryModel {
     sortOrder: sortOrder,
     archived: archived,
     createdAt: createdAt,
+    systemKey: systemKey,
   );
 }

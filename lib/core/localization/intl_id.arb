@@ -264,6 +264,28 @@
       }
     }
   },
+  "reconcile": "Sesuaikan saldo",
+  "reconcileCurrent": "Saldo saat ini",
+  "reconcileCounted": "Saldo hasil hitung",
+  "reconcileWillAdd": "Akan menambah {amount}",
+  "@reconcileWillAdd": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reconcileWillSubtract": "Akan mengurangi {amount}",
+  "@reconcileWillSubtract": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reconcileNoChange": "Saldo sudah sesuai",
+  "reconcileNote": "Penyesuaian saldo",
+  "categoryAdjustment": "Penyesuaian",
   "icon": "Ikon",
   "color": "Warna",
   "archive": "Arsipkan",

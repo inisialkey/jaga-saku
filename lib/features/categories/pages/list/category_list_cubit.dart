@@ -50,8 +50,12 @@ class CategoryListCubit extends Cubit<CategoryListState> {
     emit(
       result.fold(
         (failure) => CategoryListState.error(failure: failure, type: target),
+        // V2-M6: app-owned reserved categories (the reconcile pair) never appear
+        // in the manage list, so they can't be edited / archived / deleted /
+        // reordered. getCategories still returns them (Home/Insight need them for
+        // the report exclude set); the filter lives here, at the consumer.
         (items) => CategoryListState.loaded(
-          items: items,
+          items: items.where((c) => !c.isSystem).toList(),
           type: target,
           showArchived: showArchived,
         ),

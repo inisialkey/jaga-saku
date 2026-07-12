@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/archive_account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/delete_account.dart';
@@ -19,22 +22,32 @@ enum DeleteOutcome { deleted, archivedFallback }
 /// Drives the accounts list: load, archive toggle, per-item archive/delete and
 /// drag reorder. Failures from usecases are folded into [AccountListError];
 /// the widget localizes them (rule 17). Every emit is guarded by [isClosed].
+///
+/// Subscribes to [TxChangeNotifier] (F1, mirroring Home/Calendar/Insight) so a
+/// reconcile — or any tx write — refreshes the derived balances live; the
+/// subscription is cancelled in [close] (rule 7).
 class AccountListCubit extends Cubit<AccountListState> {
   AccountListCubit({
     required GetAccounts getAccounts,
     required DeleteAccount deleteAccount,
     required ArchiveAccount archiveAccount,
     required ReorderAccounts reorderAccounts,
+    required TxChangeNotifier txChangeNotifier,
   }) : _getAccounts = getAccounts,
        _deleteAccount = deleteAccount,
        _archiveAccount = archiveAccount,
        _reorderAccounts = reorderAccounts,
-       super(const AccountListState.initial());
+       _txChanges = txChangeNotifier,
+       super(const AccountListState.initial()) {
+    _txSub = _txChanges.changes.listen((_) => load());
+  }
 
   final GetAccounts _getAccounts;
   final DeleteAccount _deleteAccount;
   final ArchiveAccount _archiveAccount;
   final ReorderAccounts _reorderAccounts;
+  final TxChangeNotifier _txChanges;
+  late final StreamSubscription<void> _txSub;
 
   Future<void> load() async {
     final showArchived = switch (state) {
@@ -132,5 +145,11 @@ class AccountListCubit extends Cubit<AccountListState> {
           if (a.id != null) a.id!,
       ],
     );
+  }
+
+  @override
+  Future<void> close() {
+    _txSub.cancel();
+    return super.close();
   }
 }

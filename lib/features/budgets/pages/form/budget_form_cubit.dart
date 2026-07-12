@@ -56,7 +56,11 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
     if (isClosed) return;
     emit(
       state.copyWith(
-        categories: result.getRight().toNullable() ?? const <Category>[],
+        // V2-M6: reserved system categories (the reconcile pair) can't be
+        // budgeted, so filter them out of the picker.
+        categories: (result.getRight().toNullable() ?? const <Category>[])
+            .where((c) => !c.isSystem)
+            .toList(),
       ),
     );
   }

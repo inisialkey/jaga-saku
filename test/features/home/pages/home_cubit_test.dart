@@ -482,4 +482,52 @@ void main() {
     verify(() => deleteTransaction(42)).called(1);
     await cubit.close();
   });
+
+  // ── Reserved-category exclusion (V2-M6) ─────────────────────────────────────
+
+  test(
+    'a reconcile adjustment is excluded from month + today totals (reports stay clean)',
+    () async {
+      final month = [
+        tx(
+          type: TransactionType.expense,
+          amount: 50000,
+          categoryId: 1,
+          date: today,
+        ),
+        // A reconcile correction tagged the reserved adjustment_out category,
+        // dated today. Balance already reflects it (unchanged SQL); the reports
+        // must NOT — neither the month total, the today loop, nor top category.
+        tx(
+          type: TransactionType.expense,
+          amount: 30000,
+          categoryId: 8,
+          date: today,
+        ),
+      ];
+      stubAll(
+        accounts: const [],
+        month: month,
+        recent: const [],
+        expenseCats: const [
+          Category(id: 1, name: 'Makan', type: CategoryType.expense),
+          Category(
+            id: 8,
+            name: 'Penyesuaian',
+            type: CategoryType.expense,
+            systemKey: 'adjustment_out',
+          ),
+        ],
+      );
+
+      final cubit = build();
+      await cubit.load();
+
+      final d = (cubit.state as HomeLoaded).dashboard;
+      expect(d.monthExpense, 50000); // 30k adjustment excluded
+      expect(d.todaySpent, 50000); // C2: excluded from the manual today loop
+      expect(d.topCategoryName, 'Makan'); // never "Penyesuaian"
+      await cubit.close();
+    },
+  );
 }

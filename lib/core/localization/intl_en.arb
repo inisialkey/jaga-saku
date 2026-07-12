@@ -264,6 +264,28 @@
       }
     }
   },
+  "reconcile": "Reconcile balance",
+  "reconcileCurrent": "Current balance",
+  "reconcileCounted": "Counted balance",
+  "reconcileWillAdd": "Will add {amount}",
+  "@reconcileWillAdd": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reconcileWillSubtract": "Will subtract {amount}",
+  "@reconcileWillSubtract": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reconcileNoChange": "Balance is already correct",
+  "reconcileNote": "Balance adjustment",
+  "categoryAdjustment": "Adjustment",
   "icon": "Icon",
   "color": "Color",
   "archive": "Archive",

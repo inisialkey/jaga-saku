@@ -67,7 +67,14 @@ void main() {
       options: OpenDatabaseOptions(
         version: Migrations.latestVersion,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
-        onCreate: (db, _) => Migrations.onCreate(db),
+        onCreate: (db, _) async {
+          await Migrations.onCreate(db);
+          // V2-M6: _v6 seeds the reserved "Penyesuaian" pair. This suite
+          // predates it and seeds its own category fixtures at explicit ids, so
+          // drop the pair to keep the clean slate it was written against
+          // (getBySystemKey is covered in the categories suite).
+          await db.delete('categories', where: 'system_key IS NOT NULL');
+        },
       ),
     );
     await db.insert('accounts', {

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/pages/form/account_form_cubit.dart';
+import 'package:jaga_saku/features/accounts/pages/widgets/reconcile_sheet.dart';
 
 /// Create / edit account form. Owns the text controllers (rule 7); all other
 /// state lives in [AccountFormCubit]. Pops with `true` on a successful save so
@@ -104,6 +105,24 @@ class _AccountFormPageState extends State<AccountFormPage> {
                 icon: Icons.palette_outlined,
                 onTap: () => _pickColor(context),
               ),
+              // V2-M6: reconcile is only meaningful for an existing account
+              // (a new one has no history/derived balance to correct).
+              if (state.isEditing) ...[
+                const SizedBox(height: AppSpacing.xl),
+                SelectorField(
+                  label: s.reconcile,
+                  icon: Icons.tune,
+                  onTap: () {
+                    final account = cubit.initial;
+                    if (account?.id == null) return;
+                    ReconcileSheet.show(
+                      context,
+                      accountId: account!.id!,
+                      currentBalance: account.balance,
+                    );
+                  },
+                ),
+              ],
             ],
           ),
           bottomNavigationBar: SafeArea(

@@ -13,6 +13,11 @@ abstract class CategoryRepository {
     bool includeArchived = false,
   });
 
+  /// The reserved system category for [systemKey] (`adjustment_in` /
+  /// `adjustment_out`), or `Right(null)` when the pair is absent (a botched
+  /// migration — the reconcile cubit disables confirm rather than crashing).
+  Future<Either<Failure, Category?>> getBySystemKey(String systemKey);
+
   /// Inserts (when [Category.id] is null) or updates the category. Returns the
   /// row id.
   Future<Either<Failure, int>> saveCategory(Category category);

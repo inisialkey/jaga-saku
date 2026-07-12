@@ -128,12 +128,23 @@ class InsightCubit extends Cubit<InsightState> {
         if (c.id != null) c.id!: c,
     };
 
+    // V2-M6: reserved/adjustment category ids every report fold must skip (a
+    // reconcile correction moves balance, not income/expense).
+    final excludeCategoryIds = <int>{
+      for (final c in categories)
+        if (c.isSystem && c.id != null) c.id!,
+    };
+
     // ── Overview ──────────────────────────────────────────────────────────
-    final (:income, :expense) = TransactionAggregator.incomeExpense(currentTx);
+    final (:income, :expense) = TransactionAggregator.incomeExpense(
+      currentTx,
+      excludeCategoryIds: excludeCategoryIds,
+    );
 
     // ── Expense by category (current month) ───────────────────────────────
     final currentByCategory = TransactionAggregator.expenseByCategory(
       currentTx,
+      excludeCategoryIds: excludeCategoryIds,
     );
     final slices = currentByCategory.entries.map((e) {
       final category = categoriesById[e.key];
@@ -161,6 +172,7 @@ class InsightCubit extends Cubit<InsightState> {
       currentByCategory: currentByCategory,
       previousTx: previousTx,
       currentUnplanned: plannedSplit.unplanned,
+      excludeCategoryIds: excludeCategoryIds,
     );
 
     return InsightReport(
@@ -226,6 +238,7 @@ class InsightCubit extends Cubit<InsightState> {
     required Map<int, int> currentByCategory,
     required List<Transaction> previousTx,
     required int currentUnplanned,
+    required Set<int> excludeCategoryIds,
   }) {
     final now = DateTime.now();
     final gauges = <BudgetGauge>[];
@@ -242,8 +255,11 @@ class InsightCubit extends Cubit<InsightState> {
       gauges.add(BudgetGauge(categoryName: name, percent: status.percent));
     }
 
+    // C2: the month-over-month trend fold the doc missed — a last-month
+    // adjustment must not surface as a category trend.
     final previousByCategory = TransactionAggregator.expenseByCategory(
       previousTx,
+      excludeCategoryIds: excludeCategoryIds,
     );
     final trends = <CategoryTrend>[
       for (final id in {...currentByCategory.keys, ...previousByCategory.keys})

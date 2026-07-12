@@ -21,6 +21,7 @@ import 'package:jaga_saku/features/categories/domain/repositories/category_repos
 import 'package:jaga_saku/features/categories/domain/usecases/archive_category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/delete_category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
+import 'package:jaga_saku/features/categories/domain/usecases/get_system_category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/reorder_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/save_category.dart';
 import 'package:jaga_saku/features/templates/data/datasources/tx_template_local_datasource.dart';
@@ -107,6 +108,7 @@ void _registerCategories() {
       () => CategoryRepositoryImpl(sl()),
     )
     ..registerLazySingleton(() => GetCategories(sl()))
+    ..registerLazySingleton(() => GetSystemCategory(sl()))
     ..registerLazySingleton(() => SaveCategory(sl()))
     ..registerLazySingleton(() => DeleteCategory(sl()))
     ..registerLazySingleton(() => ArchiveCategory(sl()))

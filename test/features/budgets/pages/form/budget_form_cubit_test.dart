@@ -71,6 +71,23 @@ void main() {
     await cubit.close();
   });
 
+  test('load hides reserved system categories from the picker', () async {
+    const adjustment = Category(
+      id: 8,
+      name: 'Penyesuaian',
+      type: CategoryType.expense,
+      systemKey: 'adjustment_out',
+    );
+    when(() => getCategories(CategoryType.expense)).thenAnswer(
+      (_) async => const Right<Failure, List<Category>>([cat, adjustment]),
+    );
+    final cubit = build(month: DateTime(2026, 5));
+    await cubit.load();
+    // Can't budget "Penyesuaian" — it's filtered from the picker.
+    expect(cubit.state.categories, [cat]);
+    await cubit.close();
+  });
+
   blocTest<BudgetFormCubit, BudgetFormState>(
     'invalid submit (no positive limit) never saves',
     build: () => build(month: DateTime(2026, 5)),

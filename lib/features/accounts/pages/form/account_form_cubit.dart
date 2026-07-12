@@ -30,6 +30,11 @@ class AccountFormCubit extends Cubit<AccountFormState> {
   final SaveAccount _saveAccount;
   final Account? _initial;
 
+  /// The account being edited (its id + derived balance), or null for a new
+  /// account. Read by the page to launch the reconcile sheet — only reached when
+  /// `state.isEditing`, so it is non-null there (V2-M6).
+  Account? get initial => _initial;
+
   void typeChanged(AccountType type) => emit(state.copyWith(type: type));
 
   void nameChanged(String name) => emit(state.copyWith(name: name));

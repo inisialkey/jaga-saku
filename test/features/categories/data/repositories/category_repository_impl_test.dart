@@ -25,6 +25,9 @@ void main() {
         onCreate: (db, _) => Migrations.onCreate(db),
       ),
     );
+    // V2-M6: _v6 seeds the reserved "Penyesuaian" pair at ids 1/2; this capture
+    // needs a free id 1 to force the UNIQUE conflict, so drop the pair first.
+    await db.delete('categories', where: 'system_key IS NOT NULL');
     await db.insert('categories', {
       'id': 1,
       'name': 'A',
@@ -77,6 +80,42 @@ void main() {
     );
 
     expect(result.getRight().toNullable()?.single.name, 'Food');
+  });
+
+  test('getBySystemKey maps a found model to Right(Category)', () async {
+    when(() => datasource.getBySystemKey('adjustment_in')).thenAnswer(
+      (_) async => const CategoryModel(
+        id: 9,
+        name: 'Penyesuaian',
+        type: CategoryType.income,
+        systemKey: 'adjustment_in',
+      ),
+    );
+
+    final result = await repository.getBySystemKey('adjustment_in');
+
+    final category = result.getRight().toNullable();
+    expect(category?.id, 9);
+    expect(category?.isSystem, isTrue);
+  });
+
+  test('getBySystemKey maps a missing pair to Right(null)', () async {
+    when(
+      () => datasource.getBySystemKey('adjustment_in'),
+    ).thenAnswer((_) async => null);
+
+    final result = await repository.getBySystemKey('adjustment_in');
+
+    expect(result.isRight(), isTrue);
+    expect(result.getRight().toNullable(), isNull);
+  });
+
+  test('getBySystemKey DatabaseException → Left(CacheFailure)', () async {
+    when(() => datasource.getBySystemKey(any())).thenThrow(genericError);
+
+    final result = await repository.getBySystemKey('adjustment_in');
+
+    expect(result.getLeft().toNullable(), isA<CacheFailure>());
   });
 
   test('saveCategory insert returns Right(new id)', () async {

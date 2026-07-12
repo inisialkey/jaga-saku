@@ -69,9 +69,13 @@ abstract class AddTransactionState with _$AddTransactionState {
   List<Account> get selectableAccounts =>
       accounts.where((a) => !a.archived).toList();
 
-  /// Non-archived categories matching the current [type] for the category picker.
-  List<Category> get categoriesForType =>
-      categories.where((c) => !c.archived && _typeMatches(c)).toList();
+  /// Non-archived categories matching the current [type] for the category
+  /// picker. Reserved system categories (V2-M6 reconcile pair) are hidden here —
+  /// but kept in [categories] so [selectedCategory] still resolves an edited
+  /// adjustment's label.
+  List<Category> get categoriesForType => categories
+      .where((c) => !c.archived && !c.isSystem && _typeMatches(c))
+      .toList();
 
   Account? get selectedAccount => _accountById(accountId);
 

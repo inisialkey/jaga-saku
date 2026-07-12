@@ -47,6 +47,21 @@ void main() {
       expect(result.income, 0);
       expect(result.expense, 0);
     });
+
+    test('excludeCategoryIds drops adjustment rows from both sides', () {
+      final result = TransactionAggregator.incomeExpense(
+        [
+          tx(type: TransactionType.income, amount: 100, categoryId: 1),
+          tx(type: TransactionType.expense, amount: 40, categoryId: 2),
+          // Reserved adjustments — excluded from the report totals.
+          tx(type: TransactionType.income, amount: 30, categoryId: 9),
+          tx(type: TransactionType.expense, amount: 20, categoryId: 8),
+        ],
+        excludeCategoryIds: {8, 9},
+      );
+      expect(result.income, 100);
+      expect(result.expense, 40);
+    });
   });
 
   group('expenseByCategory', () {
@@ -78,6 +93,17 @@ void main() {
 
     test('an empty list yields an empty map', () {
       expect(TransactionAggregator.expenseByCategory(const []), isEmpty);
+    });
+
+    test('excludeCategoryIds omits a reserved (adjustment) slice', () {
+      final byCategory = TransactionAggregator.expenseByCategory(
+        [
+          tx(type: TransactionType.expense, amount: 40, categoryId: 2),
+          tx(type: TransactionType.expense, amount: 20, categoryId: 8),
+        ],
+        excludeCategoryIds: {8},
+      );
+      expect(byCategory, {2: 40});
     });
   });
 }

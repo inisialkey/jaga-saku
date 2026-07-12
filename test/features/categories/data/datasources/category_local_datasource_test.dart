@@ -41,7 +41,13 @@ void main() {
       options: OpenDatabaseOptions(
         version: Migrations.latestVersion,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
-        onCreate: (db, _) => Migrations.onCreate(db),
+        onCreate: (db, _) async {
+          await Migrations.onCreate(db);
+          // V2-M6: _v6 seeds the reserved "Penyesuaian" pair. The user-CRUD
+          // tests below assume a clean slate; drop the pair here and re-seed it
+          // only inside the dedicated getBySystemKey group.
+          await db.delete('categories', where: 'system_key IS NOT NULL');
+        },
       ),
     );
     final appDatabase = MockAppDatabase();
@@ -145,6 +151,56 @@ void main() {
         includeArchived: true,
       )).map((r) => r.name),
       containsAll(<String>['Active', 'Archived']),
+    );
+  });
+
+  test('a user category round-trips with a null system_key', () async {
+    final id = await datasource.insert(model('Food'));
+    final rows = await datasource.getCategories(type: CategoryType.expense);
+
+    final food = rows.firstWhere((r) => r.id == id);
+    expect(food.systemKey, isNull);
+    expect(food.toEntity().isSystem, isFalse);
+  });
+
+  // ── System categories (V2-M6) ───────────────────────────────────────────────
+  group('getBySystemKey', () {
+    // Re-seed the reserved pair the shared setUp dropped, so these tests read a
+    // realistic post-_v6 schema.
+    setUp(() => Migrations.seedSystemCategories(db));
+
+    test('resolves adjustment_in to the seeded income category', () async {
+      final adjIn = await datasource.getBySystemKey('adjustment_in');
+      expect(adjIn, isNotNull);
+      expect(adjIn!.type, CategoryType.income);
+      expect(adjIn.systemKey, 'adjustment_in');
+      expect(adjIn.toEntity().isSystem, isTrue);
+    });
+
+    test('resolves adjustment_out to the seeded expense category', () async {
+      final adjOut = await datasource.getBySystemKey('adjustment_out');
+      expect(adjOut, isNotNull);
+      expect(adjOut!.type, CategoryType.expense);
+      expect(adjOut.systemKey, 'adjustment_out');
+    });
+
+    test('returns null for an unknown system key', () async {
+      expect(await datasource.getBySystemKey('nope'), isNull);
+    });
+
+    test(
+      'getCategories still returns the reserved cat (consumers filter)',
+      () async {
+        // getCategories intentionally KEEPS system cats so Home/Insight can build
+        // the exclude set; the presentation sources filter !isSystem, not the DAO.
+        final expense = await datasource.getCategories(
+          type: CategoryType.expense,
+        );
+        expect(
+          expense.where((c) => c.systemKey == 'adjustment_out'),
+          hasLength(1),
+        );
+      },
     );
   });
 }
