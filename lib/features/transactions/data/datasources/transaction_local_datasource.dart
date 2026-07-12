@@ -1,5 +1,6 @@
 import 'package:jaga_saku/core/database/app_database.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
+import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
 
 /// sqflite DAO for the `transactions` table. Reads/writes through the shared
 /// [AppDatabase] connection (resolved per call via `.db`); never opens its own.
@@ -72,6 +73,46 @@ class TransactionLocalDatasource {
       limit: limit,
     );
     return rows.map(TransactionModel.fromMap).toList();
+  }
+
+  /// Signed monthly net deltas (`Σincome − Σexpense`; transfers ⇒ 0) over
+  /// `[startMillis, endMillis)`, grouped by the SAME local-month bucket the
+  /// budget spend SQL uses (`budget_local_datasource.dart:32`) — no new month
+  /// definition. Adjustments are income/expense rows, so they are **included**
+  /// (they move real assets — unlike the income/expense report cards, which
+  /// exclude them). Ordered oldest→newest; only months with activity appear.
+  Future<List<MonthDelta>> monthlyNetDeltas(
+    int startMillis,
+    int endMillis,
+  ) async {
+    final rows = await _database.db.rawQuery(
+      '''
+      SELECT
+        strftime('%Y-%m', datetime(date / 1000, 'unixepoch', 'localtime')) AS m,
+        SUM(CASE type
+              WHEN 'income'  THEN amount
+              WHEN 'expense' THEN -amount
+              ELSE 0
+            END) AS delta
+      FROM $_table
+      WHERE date >= ? AND date < ?
+      GROUP BY m
+      ORDER BY m
+      ''',
+      [startMillis, endMillis],
+    );
+    return rows.map((r) {
+      // GROUP BY m always yields the bucket key, so `m` is never null.
+      final parts = (r['m']! as String).split('-');
+      final monthMillis = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+      ).millisecondsSinceEpoch;
+      return MonthDelta(
+        monthMillis: monthMillis,
+        delta: (r['delta'] as int?) ?? 0,
+      );
+    }).toList();
   }
 
   Future<List<TransactionModel>> _range(int startMillis, int endMillis) async {

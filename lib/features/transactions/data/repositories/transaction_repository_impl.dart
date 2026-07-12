@@ -3,6 +3,7 @@ import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
 import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
+import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/repositories/transaction_repository.dart';
@@ -62,6 +63,12 @@ class TransactionRepositoryImpl implements TransactionRepository {
     if (path != null) await _receiptStorage.delete(path);
     return unit;
   });
+
+  @override
+  Future<Either<Failure, List<MonthDelta>>> monthlyNetDeltas(
+    int startMillis,
+    int endMillis,
+  ) => _guard(() => _datasource.monthlyNetDeltas(startMillis, endMillis));
 
   /// Runs [action], mapping any failure to a [Failure]. Errors are logged (not
   /// surfaced raw) so the UI only ever sees a localized [Failure].

@@ -481,5 +481,37 @@
   "noInsightThisMonth": "No insights this month yet.",
   "noDataThisMonth": "No data this month yet",
   "calcClear": "C",
-  "calcDone": "Done"
+  "calcDone": "Done",
+  "moneyStory": "Money Story",
+  "moneyStoryTitle": "Your Money Story",
+  "storySavedHero": "You saved {amount}",
+  "@storySavedHero": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "storyDeficit": "You overspent {amount}",
+  "@storyDeficit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "storySavingsRate": "Savings rate {pct}%",
+  "@storySavingsRate": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "storyTopCategory": "Top spending category",
+  "storyBiggestExpense": "Biggest expense",
+  "storyVsLastMonth": "vs last month",
+  "storyNeedWant": "Needs vs wants",
+  "netWorth": "Net worth",
+  "assetTrend12mo": "Last 12 months"
 }

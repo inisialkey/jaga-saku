@@ -22,6 +22,8 @@ import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/home_page.dart';
 import 'package:jaga_saku/features/insight/pages/insight_cubit.dart';
 import 'package:jaga_saku/features/insight/pages/insight_page.dart';
+import 'package:jaga_saku/features/insight/pages/money_story_cubit.dart';
+import 'package:jaga_saku/features/insight/pages/money_story_page.dart';
 import 'package:jaga_saku/features/more/more_page.dart';
 import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
 import 'package:jaga_saku/features/recurring/pages/form/recurring_form_cubit.dart';
@@ -71,6 +73,9 @@ class AppRoute {
   static const String appearance = '/appearance';
   static const String settings = '/settings';
   static const String about = '/about';
+
+  // Money Story (V2-M7) — full-screen recap pushed from the Insight tab.
+  static const String moneyStory = '/money-story';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -339,6 +344,21 @@ final GoRouter appRouter = GoRouter(
       path: AppRoute.about,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (_, _) => const AboutPage(),
+    ),
+    // ── Money Story (V2-M7) ──────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.moneyStory,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => MoneyStoryCubit(
+          getTransactionsByMonth: sl(),
+          getCategories: sl(),
+          getAccounts: sl(),
+          getAssetTrend: sl(),
+          txChangeNotifier: sl(),
+        )..load(DateTime.now()),
+        child: const MoneyStoryPage(),
+      ),
     ),
   ],
 );

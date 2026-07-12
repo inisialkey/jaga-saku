@@ -33,6 +33,36 @@ void main() {
     );
   });
 
+  group('formatCompactRupiah', () {
+    test('falls back to full formatRupiah below 1000 (incl. 0)', () {
+      expect(formatCompactRupiah(0), 'Rp 0');
+      expect(formatCompactRupiah(999), 'Rp 999');
+    });
+
+    test('uses ribu (rb) units in the thousands', () {
+      expect(formatCompactRupiah(1000), '1rb');
+      expect(formatCompactRupiah(12000), '12rb');
+    });
+
+    test('uses juta (jt) units in the millions with one decimal', () {
+      expect(formatCompactRupiah(1500000), '1,5jt');
+      expect(formatCompactRupiah(8450000), '8,5jt');
+    });
+
+    test('rounds the scaled value half-up at the boundary', () {
+      // 1_950_000 / 1e6 = 1.95 → round(19.5) = 20 → 2,0 → "2jt".
+      expect(formatCompactRupiah(1950000), '2jt');
+    });
+
+    test('uses miliar (M) units in the billions', () {
+      expect(formatCompactRupiah(2500000000), '2,5M');
+    });
+
+    test('keeps the sign for a negative compact amount', () {
+      expect(formatCompactRupiah(-12000), '-12rb');
+    });
+  });
+
   group('groupDigits', () {
     test('groups thousands with dots', () {
       expect(groupDigits('1000000'), '1.000.000');
