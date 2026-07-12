@@ -32,4 +32,23 @@ void main() {
       },
     );
   });
+
+  group('groupDigits', () {
+    test('groups thousands with dots', () {
+      expect(groupDigits('1000000'), '1.000.000');
+    });
+
+    test('leaves runs below 1000 ungrouped', () {
+      expect(groupDigits('0'), '0');
+      expect(groupDigits('999'), '999');
+    });
+
+    test('adds a separator at exactly four digits', () {
+      expect(groupDigits('1000'), '1.000');
+    });
+
+    test('returns an empty string for empty input', () {
+      expect(groupDigits(''), '');
+    });
+  });
 }

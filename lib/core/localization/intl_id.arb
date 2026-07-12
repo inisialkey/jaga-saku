@@ -410,5 +410,7 @@
   "insightUnplannedUp": "Pengeluaran tak terencana bulan ini lebih tinggi dari bulan lalu.",
   "noExpenseThisMonth": "Belum ada pengeluaran bulan ini",
   "noInsightThisMonth": "Belum ada wawasan bulan ini.",
-  "noDataThisMonth": "Belum ada data bulan ini"
+  "noDataThisMonth": "Belum ada data bulan ini",
+  "calcClear": "C",
+  "calcDone": "Selesai"
 }
