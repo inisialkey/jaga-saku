@@ -12,13 +12,45 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
+import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
+import 'package:jaga_saku/features/templates/domain/template_to_transaction.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/get_favorites.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/transaction_aggregator.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/delete_transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_transactions.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
 
 part 'home_state.dart';
 part 'home_cubit.freezed.dart';
+
+/// The outcome of [HomeCubit.applyFavorite] the strip acts on — a plain sealed
+/// class (no codegen) mirroring `AccountListCubit.delete`'s `DeleteOutcome`. The
+/// widget switches on it: SnackBar-with-undo / navigate-to-prefill / error toast.
+sealed class ApplyFavoriteResult {}
+
+/// A fixed-amount favorite committed a transaction with id [txId] (undoable).
+class FavoriteCommitted extends ApplyFavoriteResult {
+  FavoriteCommitted(this.txId);
+
+  final int txId;
+}
+
+/// An amount-less favorite: open the add-form pre-filled from [template]
+/// (a **new** tx, never an edit).
+class FavoriteNeedsPrefill extends ApplyFavoriteResult {
+  FavoriteNeedsPrefill(this.template);
+
+  final TxTemplate template;
+}
+
+/// The instant commit failed; [failure] is localized by the widget (rule 17).
+class FavoriteApplyFailed extends ApplyFavoriteResult {
+  FavoriteApplyFailed(this.failure);
+
+  final Failure failure;
+}
 
 /// Presentation-only orchestrator for the Home dashboard (M3). Owns no domain /
 /// data layer — it composes the accounts + this-month transactions + recent
@@ -34,12 +66,18 @@ class HomeCubit extends Cubit<HomeState> {
     required GetRecentTransactions getRecentTransactions,
     required GetCategories getCategories,
     required GetBudgetsForPeriod getBudgetsForPeriod,
+    required GetFavorites getFavorites,
+    required SaveTransaction saveTransaction,
+    required DeleteTransaction deleteTransaction,
     required TxChangeNotifier txChangeNotifier,
   }) : _getAccounts = getAccounts,
        _getTransactionsByMonth = getTransactionsByMonth,
        _getRecentTransactions = getRecentTransactions,
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
+       _getFavorites = getFavorites,
+       _saveTransaction = saveTransaction,
+       _deleteTransaction = deleteTransaction,
        _txChanges = txChangeNotifier,
        super(const HomeState.initial()) {
     _txSub = _txChanges.changes.listen((_) => load());
@@ -50,6 +88,9 @@ class HomeCubit extends Cubit<HomeState> {
   final GetRecentTransactions _getRecentTransactions;
   final GetCategories _getCategories;
   final GetBudgetsForPeriod _getBudgetsForPeriod;
+  final GetFavorites _getFavorites;
+  final SaveTransaction _saveTransaction;
+  final DeleteTransaction _deleteTransaction;
   final TxChangeNotifier _txChanges;
   late final StreamSubscription<void> _txSub;
 
@@ -73,6 +114,7 @@ class HomeCubit extends Cubit<HomeState> {
     final expenseCatsResult = await _getCategories(CategoryType.expense);
     final incomeCatsResult = await _getCategories(CategoryType.income);
     final budgetsResult = await _getBudgetsForPeriod(periodKey(now));
+    final favoritesResult = await _getFavorites(NoParams());
     if (isClosed) return;
 
     final failure =
@@ -98,6 +140,10 @@ class HomeCubit extends Cubit<HomeState> {
       ...incomeCatsResult.getRight().toNullable() ?? const <Category>[],
     ];
     final budgets = budgetsResult.getRight().toNullable() ?? const <Budget>[];
+    // Favorites are non-blocking: a read failure hides the strip (like the
+    // category lists) rather than erroring the whole dashboard.
+    final favorites =
+        favoritesResult.getRight().toNullable() ?? const <TxTemplate>[];
 
     emit(
       HomeState.loaded(
@@ -108,6 +154,7 @@ class HomeCubit extends Cubit<HomeState> {
           recent: recent,
           categories: categories,
           budgets: budgets,
+          favorites: favorites,
         ),
       ),
     );
@@ -123,6 +170,7 @@ class HomeCubit extends Cubit<HomeState> {
     required List<Transaction> recent,
     required List<Category> categories,
     required List<Budget> budgets,
+    required List<TxTemplate> favorites,
   }) {
     final totalBalance = accounts
         .where((a) => !a.archived)
@@ -170,6 +218,7 @@ class HomeCubit extends Cubit<HomeState> {
       categoriesById: categoriesById,
       accountsById: accountsById,
       budgetGuard: _mostAtRiskGuard(budgets, categoriesById, now),
+      favorites: favorites,
     );
   }
 
@@ -230,6 +279,34 @@ class HomeCubit extends Cubit<HomeState> {
       }
     });
     return categoriesById[topId]?.name;
+  }
+
+  /// Applies a favorite. A fixed-amount favorite instant-commits a transaction
+  /// dated today (stamping `createdAt` at persist time — the pure helper is
+  /// clock-free) and pings [TxChangeNotifier] so the strip + cards + balances
+  /// refresh via the [_txSub] subscription; an amount-less favorite returns a
+  /// prefill signal instead (no save). The strip acts on the returned result.
+  Future<ApplyFavoriteResult> applyFavorite(TxTemplate t) async {
+    if (t.amount == null) return FavoriteNeedsPrefill(t);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final tx = templateToTransaction(
+      t,
+      date: today,
+    ).copyWith(createdAt: now.millisecondsSinceEpoch);
+    final result = await _saveTransaction(tx);
+    if (isClosed) return FavoriteApplyFailed(const CacheFailure());
+    return result.fold(FavoriteApplyFailed.new, (id) {
+      _txChanges.ping();
+      return FavoriteCommitted(id);
+    });
+  }
+
+  /// Undoes a just-applied favorite by deleting its transaction and pinging so
+  /// Home refreshes. Best-effort — a failed delete leaves the tx in place.
+  Future<void> undoApply(int txId) async {
+    final result = await _deleteTransaction(txId);
+    if (result.isRight()) _txChanges.ping();
   }
 
   @override

@@ -10,6 +10,7 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
+import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
 
@@ -28,13 +29,14 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
     required GetBudgetsForPeriod getBudgetsForPeriod,
     required TxChangeNotifier txChangeNotifier,
     Transaction? initial,
+    TxTemplate? prefill,
   }) : _saveTransaction = saveTransaction,
        _getAccounts = getAccounts,
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
        _txChanges = txChangeNotifier,
        _initial = initial,
-       super(_seed(initial));
+       super(_seed(initial, prefill));
 
   final SaveTransaction _saveTransaction;
   final GetAccounts _getAccounts;
@@ -43,25 +45,43 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
   final TxChangeNotifier _txChanges;
   final Transaction? _initial;
 
-  static AddTransactionState _seed(Transaction? initial) {
-    if (initial == null) {
-      final now = DateTime.now();
+  /// Seeds the form. [initial] → the existing editing behavior
+  /// (`isEditing: true`); [prefill] (a favorite applied via the amount-less
+  /// path) → a **new** transaction pre-filled from the shape but with today's
+  /// date, no id and `isEditing: false` — `prefill` is NOT stored in `_initial`,
+  /// so `_commit` inserts it fresh (id null, `createdAt` now). A bare seed is the
+  /// blank new-tx form. [initial] wins if both are somehow supplied.
+  static AddTransactionState _seed(Transaction? initial, TxTemplate? prefill) {
+    if (initial != null) {
       return AddTransactionState(
-        date: DateTime(now.year, now.month, now.day).millisecondsSinceEpoch,
+        type: initial.type,
+        amount: initial.amount,
+        accountId: initial.accountId,
+        toAccountId: initial.toAccountId,
+        categoryId: initial.categoryId,
+        plannedStatus: initial.plannedStatus,
+        spendingType: initial.spendingType,
+        date: initial.date,
+        note: initial.note ?? '',
+        isEditing: true,
       );
     }
-    return AddTransactionState(
-      type: initial.type,
-      amount: initial.amount,
-      accountId: initial.accountId,
-      toAccountId: initial.toAccountId,
-      categoryId: initial.categoryId,
-      plannedStatus: initial.plannedStatus,
-      spendingType: initial.spendingType,
-      date: initial.date,
-      note: initial.note ?? '',
-      isEditing: true,
-    );
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    if (prefill != null) {
+      return AddTransactionState(
+        type: prefill.type,
+        amount: prefill.amount ?? 0,
+        accountId: prefill.accountId,
+        toAccountId: prefill.toAccountId,
+        categoryId: prefill.categoryId,
+        plannedStatus: prefill.plannedStatus,
+        spendingType: prefill.spendingType,
+        note: prefill.note ?? '',
+        date: today,
+      );
+    }
+    return AddTransactionState(date: today);
   }
 
   /// Loads active accounts + both category sets for the pickers. Read failures

@@ -6,6 +6,7 @@ import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
+import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
 import 'package:mocktail/mocktail.dart';
@@ -73,6 +74,56 @@ void main() {
     expect(cubit.state.categoryId, 7);
     expect(cubit.state.note, 'Salary');
     expect(cubit.state.isEditing, isTrue);
+  });
+
+  test('seeds a NEW tx from a prefill favorite (isEditing false, today)', () {
+    final cubit = AddTransactionCubit(
+      saveTransaction: saveTransaction,
+      getAccounts: getAccounts,
+      getCategories: getCategories,
+      getBudgetsForPeriod: getBudgets,
+      txChangeNotifier: txChangeNotifier,
+      prefill: const TxTemplate(
+        label: 'Coffee',
+        type: TransactionType.expense,
+        accountId: 3,
+        amount: 15000,
+        categoryId: 2,
+        plannedStatus: PlannedStatus.planned,
+        spendingType: SpendingType.need,
+        note: 'Kopi',
+      ),
+    );
+
+    // A prefill is a brand-new tx, not an edit — the #1 behavior-break guard.
+    expect(cubit.state.isEditing, isFalse);
+    expect(cubit.state.type, TransactionType.expense);
+    expect(cubit.state.amount, 15000);
+    expect(cubit.state.accountId, 3);
+    expect(cubit.state.categoryId, 2);
+    expect(cubit.state.plannedStatus, PlannedStatus.planned);
+    expect(cubit.state.spendingType, SpendingType.need);
+    expect(cubit.state.note, 'Kopi');
+    expect(cubit.state.date, todayMillis);
+  });
+
+  test('an amount-less prefill seeds amount 0', () {
+    final cubit = AddTransactionCubit(
+      saveTransaction: saveTransaction,
+      getAccounts: getAccounts,
+      getCategories: getCategories,
+      getBudgetsForPeriod: getBudgets,
+      txChangeNotifier: txChangeNotifier,
+      prefill: const TxTemplate(
+        label: 'Ask each time',
+        type: TransactionType.expense,
+        accountId: 1,
+        categoryId: 1,
+      ),
+    );
+
+    expect(cubit.state.amount, 0);
+    expect(cubit.state.isEditing, isFalse);
   });
 
   test('load populates accounts + both category sets', () async {

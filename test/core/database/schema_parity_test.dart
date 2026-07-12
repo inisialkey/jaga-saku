@@ -45,7 +45,7 @@ void main() {
     expect(await dumpSchema(migrated), equals(await dumpSchema(fresh)));
   });
 
-  test('_v2 registers the budget-period and category-type indexes', () async {
+  test('_v2/_v3 register the audit + tx_template indexes', () async {
     final db = await openBlank();
     addTearDown(db.close);
     await Migrations.onCreate(db);
@@ -53,10 +53,17 @@ void main() {
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%'",
     );
     final names = indexes.map((r) => r['name']! as String).toSet();
-    expect(names, containsAll(<String>['idx_budget_period', 'idx_cat_type']));
+    expect(
+      names,
+      containsAll(<String>[
+        'idx_budget_period',
+        'idx_cat_type',
+        'idx_tpl_sort',
+      ]),
+    );
   });
 
-  test('latestVersion is 2 so existing installs run the _v2 upgrade', () {
-    expect(Migrations.latestVersion, 2);
+  test('latestVersion is 3 so existing installs run the _v3 upgrade', () {
+    expect(Migrations.latestVersion, 3);
   });
 }

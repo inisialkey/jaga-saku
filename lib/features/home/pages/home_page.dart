@@ -6,10 +6,12 @@ import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/widgets/budget_guard_card.dart';
 import 'package:jaga_saku/features/home/pages/widgets/daily_review_card.dart';
+import 'package:jaga_saku/features/home/pages/widgets/favorites_strip.dart';
 import 'package:jaga_saku/features/home/pages/widgets/home_header.dart';
 import 'package:jaga_saku/features/home/pages/widgets/total_balance_card.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/pages/form/add_transaction_page.dart';
 
 /// Home dashboard (wireframe §1): greeting header, the Total Balance hero, a
 /// Budget Guard card (empty state until M4), a Daily Review of today's spending,
@@ -67,6 +69,10 @@ class _HomeBody extends StatelessWidget {
         todayUnplanned: dashboard.todayUnplanned,
         topCategoryName: dashboard.topCategoryName,
       ),
+      if (dashboard.favorites.isNotEmpty) ...[
+        const SizedBox(height: AppSpacing.xl),
+        FavoritesStrip(favorites: dashboard.favorites, dashboard: dashboard),
+      ],
       const SizedBox(height: AppSpacing.xl),
       _RecentSection(dashboard: dashboard),
     ],
@@ -166,7 +172,8 @@ class _RecentTile extends StatelessWidget {
       subtitle: subtitle,
       amount: t.amount,
       sign: sign,
-      onTap: () => context.push(AppRoute.add, extra: t),
+      onTap: () =>
+          context.push(AppRoute.add, extra: AddTransactionArgs(edit: t)),
     );
   }
 }

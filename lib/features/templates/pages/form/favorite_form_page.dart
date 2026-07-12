@@ -1,46 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:iconsax/iconsax.dart';
-import 'package:intl/intl.dart';
-import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
-import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
+import 'package:jaga_saku/features/templates/pages/form/favorite_form_cubit.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
-import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
 import 'package:jaga_saku/features/transactions/pages/widgets/account_picker_sheet.dart';
 import 'package:jaga_saku/features/transactions/pages/widgets/category_picker_sheet.dart';
 
-/// Navigation payload for the `/add` route (`extra`). Either [edit] an existing
-/// transaction (`isEditing: true`) or [prefill] a **new** transaction from a
-/// favorite's shape (amount-less apply path). Replaces the bare
-/// `extra as Transaction?` so a favorite never trips the edit branch.
-class AddTransactionArgs {
-  const AddTransactionArgs({this.edit, this.prefill});
-
-  final Transaction? edit;
-  final TxTemplate? prefill;
-}
-
-/// Create / edit transaction form (wireframe §3). The segmented type control
-/// drives which fields show; the page owns the amount + note controllers
-/// (rule 7) while all other state lives in [AddTransactionCubit]. Pops with
-/// `true` on a successful save so the origin (Calendar) reloads.
-class AddTransactionPage extends StatefulWidget {
-  const AddTransactionPage({super.key});
+/// Create / edit favorite form: the add-tx form minus the date, plus a required
+/// label and an **optional** amount. Owns the label / amount / note controllers
+/// (rule 7); all other state lives in [FavoriteFormCubit]. Pops with `true` on a
+/// successful save so the origin (Favorites list, or the add-tx "save as
+/// favorite") knows it landed.
+class FavoriteFormPage extends StatefulWidget {
+  const FavoriteFormPage({super.key});
 
   @override
-  State<AddTransactionPage> createState() => _AddTransactionPageState();
+  State<FavoriteFormPage> createState() => _FavoriteFormPageState();
 }
 
-class _AddTransactionPageState extends State<AddTransactionPage> {
+class _FavoriteFormPageState extends State<FavoriteFormPage> {
+  late final TextEditingController _labelController;
   late final TextEditingController _amountController;
   late final TextEditingController _noteController;
 
   @override
   void initState() {
     super.initState();
-    final state = context.read<AddTransactionCubit>().state;
+    final state = context.read<FavoriteFormCubit>().state;
+    _labelController = TextEditingController(text: state.label);
     _amountController = TextEditingController(
       text: state.amount == 0 ? '' : '${state.amount}',
     );
@@ -49,6 +37,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   @override
   void dispose() {
+    _labelController.dispose();
     _amountController.dispose();
     _noteController.dispose();
     super.dispose();
@@ -57,50 +46,22 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context)!;
-    return BlocConsumer<AddTransactionCubit, AddTransactionState>(
+    return BlocConsumer<FavoriteFormCubit, FavoriteFormState>(
       listenWhen: (previous, current) => previous.status != current.status,
-      listener: (context, state) async {
-        if (state.status == AddTxStatus.success) {
+      listener: (context, state) {
+        if (state.status == FavoriteFormStatus.success) {
           context.pop(true);
-        } else if (state.status == AddTxStatus.needsBudgetConfirm) {
-          final cubit = context.read<AddTransactionCubit>();
-          final keepSaving = await BudgetWarningSheet.show(
-            context,
-            categoryName: state.selectedCategory?.name ?? s.category,
-            safeDaily: state.safeDaily,
-            amount: state.amount,
-          );
-          if (keepSaving) {
-            cubit.confirmSave();
-          } else {
-            cubit.dismissBudgetConfirm();
-          }
-        } else if (state.status == AddTxStatus.failure) {
-          final message = switch (state.validation) {
-            AddTxValidation.amountRequired => s.amountRequiredError,
-            AddTxValidation.accountRequired => s.accountRequiredError,
-            AddTxValidation.categoryRequired => s.categoryRequiredError,
-            AddTxValidation.toAccountRequired => s.toAccountRequiredError,
-            AddTxValidation.transferSameAccount => s.transferSameAccountError,
-            AddTxValidation.none =>
-              state.error?.localize(context) ?? s.errorUnexpected,
-          };
-          message.toToastError(context);
+        } else if (state.status == FavoriteFormStatus.failure &&
+            state.error != null) {
+          state.error!.localize(context).toToastError(context);
         }
       },
       builder: (context, state) {
-        final cubit = context.read<AddTransactionCubit>();
+        final cubit = context.read<FavoriteFormCubit>();
         return AppScaffold(
           appBar: AppBar(
             leading: const CloseButton(),
-            title: Text(state.isEditing ? s.editTransaction : s.addTransaction),
-            actions: [
-              IconButton(
-                icon: const Icon(Iconsax.archive_add),
-                tooltip: s.favoriteSaveAs,
-                onPressed: () => _saveAsFavorite(context),
-              ),
-            ],
+            title: Text(state.isEditing ? s.favoriteEdit : s.favoriteAdd),
           ),
           body: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -121,10 +82,18 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
+              _FieldLabel(s.favoriteLabel),
+              TextField(
+                controller: _labelController,
+                onChanged: cubit.labelChanged,
+                textCapitalization: TextCapitalization.words,
+                decoration: _inputDecoration(context, hint: s.favoriteLabel),
+              ),
+              const SizedBox(height: AppSpacing.xl),
               _FieldLabel(s.amount),
               AmountInputField(
                 controller: _amountController,
-                autofocus: !state.isEditing,
+                hint: s.favoriteAmountOptional,
                 onChanged: (value) =>
                     cubit.amountChanged(int.tryParse(value) ?? 0),
               ),
@@ -193,13 +162,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 ),
               ],
               const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.date),
-              SelectorField(
-                label: _formatDate(context, state.date),
-                icon: Icons.calendar_today_rounded,
-                onTap: () => _pickDate(context),
-              ),
-              const SizedBox(height: AppSpacing.xl),
               _FieldLabel(s.note),
               TextField(
                 controller: _noteController,
@@ -213,7 +175,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: PrimaryButton(
-                label: state.isTransfer ? s.saveTransfer : s.saveTransaction,
+                label: s.save,
                 isLoading: state.isSaving,
                 onPressed: state.isValid ? cubit.submit : null,
               ),
@@ -225,7 +187,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Future<void> _pickAccount(BuildContext context) async {
-    final cubit = context.read<AddTransactionCubit>();
+    final cubit = context.read<FavoriteFormCubit>();
     final account = await AccountPickerSheet.show(
       context,
       title: Strings.of(context)!.selectAccount,
@@ -236,7 +198,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Future<void> _pickToAccount(BuildContext context) async {
-    final cubit = context.read<AddTransactionCubit>();
+    final cubit = context.read<FavoriteFormCubit>();
     final account = await AccountPickerSheet.show(
       context,
       title: Strings.of(context)!.toAccount,
@@ -248,7 +210,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Future<void> _pickCategory(BuildContext context) async {
-    final cubit = context.read<AddTransactionCubit>();
+    final cubit = context.read<FavoriteFormCubit>();
     final category = await CategoryPickerSheet.show(
       context,
       title: Strings.of(context)!.selectCategory,
@@ -257,55 +219,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     );
     if (category?.id != null) cubit.categoryChanged(category!.id!);
   }
-
-  Future<void> _pickDate(BuildContext context) async {
-    final cubit = context.read<AddTransactionCubit>();
-    final current = DateTime.fromMillisecondsSinceEpoch(cubit.state.date);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: current,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(DateTime.now().year + 5, 12, 31),
-    );
-    if (picked != null) cubit.dateChanged(picked);
-  }
-
-  /// Captures the current form shape as a favorite seed and opens the favorite
-  /// form (empty label) to name + save it. A favorite needs a source account, so
-  /// this blocks until one is chosen; a blank amount seeds an amount-less
-  /// favorite (the prefill path). Synchronous — no `await` before the push.
-  void _saveAsFavorite(BuildContext context) {
-    final s = Strings.of(context)!;
-    final state = context.read<AddTransactionCubit>().state;
-    if (state.accountId == null) {
-      s.accountRequiredError.toToastError(context);
-      return;
-    }
-    final seed = TxTemplate(
-      label: '',
-      type: state.type,
-      amount: state.amount == 0 ? null : state.amount,
-      accountId: state.accountId!,
-      toAccountId: state.isTransfer ? state.toAccountId : null,
-      categoryId: state.isTransfer ? null : state.categoryId,
-      plannedStatus: state.isExpense ? state.plannedStatus : null,
-      spendingType: state.isExpense ? state.spendingType : null,
-      note: state.note.trim().isEmpty ? null : state.note.trim(),
-    );
-    context.push(AppRoute.favoriteForm, extra: seed);
-  }
-}
-
-/// "Today, 8 Jul 2026" for today, otherwise "8 Jul 2026". Indonesian month
-/// names (id symbols loaded in main.dart).
-String _formatDate(BuildContext context, int millis) {
-  final s = Strings.of(context)!;
-  final date = DateTime.fromMillisecondsSinceEpoch(millis);
-  final now = DateTime.now();
-  final formatted = DateFormat('d MMM yyyy', 'id').format(date);
-  final isToday =
-      date.year == now.year && date.month == now.month && date.day == now.day;
-  return isToday ? '${s.today}, $formatted' : formatted;
 }
 
 InputDecoration _inputDecoration(BuildContext context, {required String hint}) {

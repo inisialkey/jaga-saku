@@ -7,6 +7,7 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
+import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -20,6 +21,9 @@ void main() {
   late MockGetRecentTransactions getRecent;
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
+  late MockGetFavorites getFavorites;
+  late MockSaveTransaction saveTransaction;
+  late MockDeleteTransaction deleteTransaction;
   late TxChangeNotifier txChanges;
 
   // Anchor everything to the local "today" the cubit computes against.
@@ -48,6 +52,9 @@ void main() {
     getRecent = MockGetRecentTransactions();
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
+    getFavorites = MockGetFavorites();
+    saveTransaction = MockSaveTransaction();
+    deleteTransaction = MockDeleteTransaction();
     txChanges = TxChangeNotifier();
   });
 
@@ -59,6 +66,9 @@ void main() {
     getRecentTransactions: getRecent,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
+    getFavorites: getFavorites,
+    saveTransaction: saveTransaction,
+    deleteTransaction: deleteTransaction,
     txChangeNotifier: txChanges,
   );
 
@@ -88,6 +98,9 @@ void main() {
     when(
       () => getBudgets(any()),
     ).thenAnswer((_) async => Right<Failure, List<Budget>>(budgets));
+    when(
+      () => getFavorites(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<TxTemplate>>([]));
   }
 
   test(
@@ -314,6 +327,102 @@ void main() {
     await cubit.load();
 
     expect((cubit.state as HomeLoaded).dashboard.budgetGuard, isNull);
+    await cubit.close();
+  });
+
+  // ── Favorites (V2-M2) ───────────────────────────────────────────────────────
+
+  const favorite = TxTemplate(
+    id: 1,
+    label: 'Coffee',
+    type: TransactionType.expense,
+    accountId: 1,
+    amount: 15000,
+    categoryId: 1,
+  );
+
+  test('load surfaces favorites into the dashboard', () async {
+    stubAll(accounts: const [], month: const [], recent: const []);
+    when(() => getFavorites(any())).thenAnswer(
+      (_) async => const Right<Failure, List<TxTemplate>>([favorite]),
+    );
+
+    final cubit = build();
+    await cubit.load();
+
+    expect((cubit.state as HomeLoaded).dashboard.favorites, [favorite]);
+    await cubit.close();
+  });
+
+  test(
+    'a favorites Left hides the strip but does not error the dashboard',
+    () async {
+      stubAll(accounts: const [], month: const [], recent: const []);
+      when(() => getFavorites(any())).thenAnswer(
+        (_) async => const Left<Failure, List<TxTemplate>>(CacheFailure()),
+      );
+
+      final cubit = build();
+      await cubit.load();
+
+      expect(cubit.state, isA<HomeLoaded>());
+      expect((cubit.state as HomeLoaded).dashboard.favorites, isEmpty);
+      await cubit.close();
+    },
+  );
+
+  test('applyFavorite commits a fixed-amount favorite and pings', () async {
+    stubAll(accounts: const [], month: const [], recent: const []);
+    when(
+      () => saveTransaction(any()),
+    ).thenAnswer((_) async => const Right<Failure, int>(42));
+
+    var pinged = false;
+    final sub = txChanges.changes.listen((_) => pinged = true);
+
+    final cubit = build();
+    final result = await cubit.applyFavorite(favorite);
+
+    expect(result, isA<FavoriteCommitted>());
+    expect((result as FavoriteCommitted).txId, 42);
+    verify(() => saveTransaction(any())).called(1);
+    await pumpEventQueue();
+    expect(pinged, isTrue);
+
+    await sub.cancel();
+    await cubit.close();
+  });
+
+  test(
+    'applyFavorite on an amount-less favorite needs a prefill, no save',
+    () async {
+      stubAll(accounts: const [], month: const [], recent: const []);
+      const amountLess = TxTemplate(
+        label: 'Ask each time',
+        type: TransactionType.expense,
+        accountId: 1,
+        categoryId: 1,
+      );
+
+      final cubit = build();
+      final result = await cubit.applyFavorite(amountLess);
+
+      expect(result, isA<FavoriteNeedsPrefill>());
+      expect((result as FavoriteNeedsPrefill).template, amountLess);
+      verifyNever(() => saveTransaction(any()));
+      await cubit.close();
+    },
+  );
+
+  test('undoApply deletes the transaction', () async {
+    when(
+      () => deleteTransaction(any()),
+    ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
+
+    final cubit = build();
+    await cubit.undoApply(42);
+
+    verify(() => deleteTransaction(42)).called(1);
     await cubit.close();
   });
 }

@@ -15,7 +15,7 @@ class Migrations {
   /// Current schema version. Bump when adding a new `_v<N>` step; wire that step
   /// into BOTH [onCreate] (append `await _vN(db);`) and [migrate]
   /// (append `if (oldVersion < N) await _vN(db);`).
-  static const int latestVersion = 2;
+  static const int latestVersion = 3;
 
   /// Runs on a brand-new database — replays every version step in order so a
   /// fresh install produces the exact schema an upgrade-from-v1 produces. Steps
@@ -24,6 +24,7 @@ class Migrations {
   static Future<void> onCreate(Database db) async {
     await _v1(db);
     await _v2(db);
+    await _v3(db);
   }
 
   /// Steps an existing database from [oldVersion] to [newVersion], applying only
@@ -34,6 +35,7 @@ class Migrations {
     int newVersion,
   ) async {
     if (oldVersion < 2) await _v2(db);
+    if (oldVersion < 3) await _v3(db);
   }
 
   /// Builds the v1 baseline only. Exposed for the schema-parity test, which
@@ -123,6 +125,35 @@ class Migrations {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_cat_type ON categories(type);',
+    );
+  }
+
+  /// v3 — `tx_templates` (V2-M2 favorites; the shared spine V2-M5 recurring
+  /// extends). A template is the add-tx shape minus `date`, plus `label` +
+  /// `sort_order`. `amount` is nullable (NULL = ask at use — the prefill path);
+  /// `is_favorite` is the int-1/0 flag (no bool columns) filtering the Home strip
+  /// from M5's schedule-only shapes. Append-only + `IF NOT EXISTS` so replaying
+  /// under [onCreate] on a fresh DB is a no-op-safe re-run.
+  static Future<void> _v3(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS tx_templates (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        label          TEXT    NOT NULL,
+        type           TEXT    NOT NULL,
+        amount         INTEGER,
+        account_id     INTEGER NOT NULL REFERENCES accounts(id),
+        to_account_id  INTEGER REFERENCES accounts(id),
+        category_id    INTEGER REFERENCES categories(id),
+        planned_status TEXT,
+        spending_type  TEXT,
+        note           TEXT,
+        is_favorite    INTEGER NOT NULL DEFAULT 1,
+        sort_order     INTEGER NOT NULL DEFAULT 0,
+        created_at     INTEGER NOT NULL
+      );
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_tpl_sort ON tx_templates(sort_order);',
     );
   }
 }

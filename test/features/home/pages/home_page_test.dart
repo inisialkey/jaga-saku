@@ -10,6 +10,7 @@ import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/home_page.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
+import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -27,6 +28,9 @@ void main() {
   late MockGetRecentTransactions getRecent;
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
+  late MockGetFavorites getFavorites;
+  late MockSaveTransaction saveTransaction;
+  late MockDeleteTransaction deleteTransaction;
   late MockSettingsService settings;
   late AppSettingsCubit appSettings;
   late TxChangeNotifier txChanges;
@@ -40,6 +44,9 @@ void main() {
     getRecent = MockGetRecentTransactions();
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
+    getFavorites = MockGetFavorites();
+    saveTransaction = MockSaveTransaction();
+    deleteTransaction = MockDeleteTransaction();
     // The greeting name now flows from the app-global AppSettingsCubit (M6),
     // backed by a mocked SettingsService.
     settings = MockSettingsService();
@@ -50,6 +57,9 @@ void main() {
     when(
       () => getBudgets(any()),
     ).thenAnswer((_) async => const Right<Failure, List<Budget>>([]));
+    when(
+      () => getFavorites(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<TxTemplate>>([]));
   });
 
   tearDown(() async {
@@ -63,6 +73,9 @@ void main() {
     getRecentTransactions: getRecent,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
+    getFavorites: getFavorites,
+    saveTransaction: saveTransaction,
+    deleteTransaction: deleteTransaction,
     txChangeNotifier: txChanges,
   );
 
@@ -139,6 +152,45 @@ void main() {
     expect(find.text('Rp 5.000.000'), findsWidgets);
     // Recent tile resolved its category name from the lookup map.
     expect(find.text('Makan'), findsWidgets);
+
+    await cubit.close();
+  });
+
+  testWidgets('renders the favorites strip when favorites are present', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    when(
+      () => getAccounts(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Account>>([]));
+    when(
+      () => getByMonth(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
+    when(
+      () => getRecent(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
+    when(
+      () => getCategories(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Category>>([]));
+    when(() => getFavorites(any())).thenAnswer(
+      (_) async => const Right<Failure, List<TxTemplate>>([
+        TxTemplate(
+          id: 1,
+          label: 'Coffee',
+          type: TransactionType.expense,
+          accountId: 1,
+          amount: 15000,
+          categoryId: 1,
+        ),
+      ]),
+    );
+    when(() => settings.getString(any())).thenAnswer((_) async => null);
+
+    final cubit = build();
+    await pumpLoaded(tester, cubit);
+
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.text('Coffee'), findsOneWidget);
 
     await cubit.close();
   });
