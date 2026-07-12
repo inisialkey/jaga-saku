@@ -67,7 +67,17 @@ void main() {
     },
   );
 
-  test('latestVersion is 5 so existing installs run the _v5 upgrade', () {
-    expect(Migrations.latestVersion, 5);
+  test('latestVersion is 6 so existing installs run the _v6 upgrade', () {
+    expect(Migrations.latestVersion, 6);
+  });
+
+  test('_v6 adds categories.system_key on the fresh (onCreate) path', () async {
+    final db = await openBlank();
+    addTearDown(db.close);
+    await Migrations.onCreate(db);
+    final cols = (await db.rawQuery(
+      'PRAGMA table_info(categories)',
+    )).map((c) => c['name']).toSet();
+    expect(cols, contains('system_key'));
   });
 }

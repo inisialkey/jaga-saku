@@ -39,5 +39,18 @@ abstract class Category with _$Category {
     @Default(0) int sortOrder,
     @Default(false) bool archived,
     @Default(0) int createdAt,
+
+    /// Reserved system-category marker (V2-M6). Non-null for an app-owned
+    /// built-in — the reconcile "Penyesuaian" pair (`adjustment_in` /
+    /// `adjustment_out`); null for every normal user category. Matched at
+    /// runtime so a rename / locale change can't break report exclusion.
+    String? systemKey,
   }) = _Category;
+
+  const Category._();
+
+  /// True for an app-owned reserved category: excluded from income/expense
+  /// reports (via the aggregator's exclude set) and hidden from every picker +
+  /// the manage list.
+  bool get isSystem => systemKey != null;
 }

@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CategoryModel {
 
- String get name; CategoryType get type; int? get id; int? get parentId; String? get icon; int? get color; int get sortOrder; bool get archived; int get createdAt;
+ String get name; CategoryType get type; int? get id; int? get parentId; String? get icon; int? get color; int get sortOrder; bool get archived; int get createdAt; String? get systemKey;
 /// Create a copy of CategoryModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $CategoryModelCopyWith<CategoryModel> get copyWith => _$CategoryModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryModel&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.id, id) || other.id == id)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.archived, archived) || other.archived == archived)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryModel&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.id, id) || other.id == id)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.archived, archived) || other.archived == archived)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.systemKey, systemKey) || other.systemKey == systemKey));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,name,type,id,parentId,icon,color,sortOrder,archived,createdAt);
+int get hashCode => Object.hash(runtimeType,name,type,id,parentId,icon,color,sortOrder,archived,createdAt,systemKey);
 
 @override
 String toString() {
-  return 'CategoryModel(name: $name, type: $type, id: $id, parentId: $parentId, icon: $icon, color: $color, sortOrder: $sortOrder, archived: $archived, createdAt: $createdAt)';
+  return 'CategoryModel(name: $name, type: $type, id: $id, parentId: $parentId, icon: $icon, color: $color, sortOrder: $sortOrder, archived: $archived, createdAt: $createdAt, systemKey: $systemKey)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $CategoryModelCopyWith<$Res>  {
   factory $CategoryModelCopyWith(CategoryModel value, $Res Function(CategoryModel) _then) = _$CategoryModelCopyWithImpl;
 @useResult
 $Res call({
- String name, CategoryType type, int? id, int? parentId, String? icon, int? color, int sortOrder, bool archived, int createdAt
+ String name, CategoryType type, int? id, int? parentId, String? icon, int? color, int sortOrder, bool archived, int createdAt, String? systemKey
 });
 
 
@@ -62,7 +62,7 @@ class _$CategoryModelCopyWithImpl<$Res>
 
 /// Create a copy of CategoryModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? type = null,Object? id = freezed,Object? parentId = freezed,Object? icon = freezed,Object? color = freezed,Object? sortOrder = null,Object? archived = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? type = null,Object? id = freezed,Object? parentId = freezed,Object? icon = freezed,Object? color = freezed,Object? sortOrder = null,Object? archived = null,Object? createdAt = null,Object? systemKey = freezed,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,8 @@ as String?,color: freezed == color ? _self.color : color // ignore: cast_nullabl
 as int?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
 as int,archived: null == archived ? _self.archived : archived // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as int,
+as int,systemKey: freezed == systemKey ? _self.systemKey : systemKey // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  CategoryType type,  int? id,  int? parentId,  String? icon,  int? color,  int sortOrder,  bool archived,  int createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  CategoryType type,  int? id,  int? parentId,  String? icon,  int? color,  int sortOrder,  bool archived,  int createdAt,  String? systemKey)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CategoryModel() when $default != null:
-return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.color,_that.sortOrder,_that.archived,_that.createdAt);case _:
+return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.color,_that.sortOrder,_that.archived,_that.createdAt,_that.systemKey);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.c
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  CategoryType type,  int? id,  int? parentId,  String? icon,  int? color,  int sortOrder,  bool archived,  int createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  CategoryType type,  int? id,  int? parentId,  String? icon,  int? color,  int sortOrder,  bool archived,  int createdAt,  String? systemKey)  $default,) {final _that = this;
 switch (_that) {
 case _CategoryModel():
-return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.color,_that.sortOrder,_that.archived,_that.createdAt);case _:
+return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.color,_that.sortOrder,_that.archived,_that.createdAt,_that.systemKey);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.c
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  CategoryType type,  int? id,  int? parentId,  String? icon,  int? color,  int sortOrder,  bool archived,  int createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  CategoryType type,  int? id,  int? parentId,  String? icon,  int? color,  int sortOrder,  bool archived,  int createdAt,  String? systemKey)?  $default,) {final _that = this;
 switch (_that) {
 case _CategoryModel() when $default != null:
-return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.color,_that.sortOrder,_that.archived,_that.createdAt);case _:
+return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.color,_that.sortOrder,_that.archived,_that.createdAt,_that.systemKey);case _:
   return null;
 
 }
@@ -214,7 +215,7 @@ return $default(_that.name,_that.type,_that.id,_that.parentId,_that.icon,_that.c
 
 
 class _CategoryModel extends CategoryModel {
-  const _CategoryModel({required this.name, required this.type, this.id, this.parentId, this.icon, this.color, this.sortOrder = 0, this.archived = false, this.createdAt = 0}): super._();
+  const _CategoryModel({required this.name, required this.type, this.id, this.parentId, this.icon, this.color, this.sortOrder = 0, this.archived = false, this.createdAt = 0, this.systemKey}): super._();
   
 
 @override final  String name;
@@ -226,6 +227,7 @@ class _CategoryModel extends CategoryModel {
 @override@JsonKey() final  int sortOrder;
 @override@JsonKey() final  bool archived;
 @override@JsonKey() final  int createdAt;
+@override final  String? systemKey;
 
 /// Create a copy of CategoryModel
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +239,16 @@ _$CategoryModelCopyWith<_CategoryModel> get copyWith => __$CategoryModelCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryModel&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.id, id) || other.id == id)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.archived, archived) || other.archived == archived)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryModel&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.id, id) || other.id == id)&&(identical(other.parentId, parentId) || other.parentId == parentId)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.archived, archived) || other.archived == archived)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.systemKey, systemKey) || other.systemKey == systemKey));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,name,type,id,parentId,icon,color,sortOrder,archived,createdAt);
+int get hashCode => Object.hash(runtimeType,name,type,id,parentId,icon,color,sortOrder,archived,createdAt,systemKey);
 
 @override
 String toString() {
-  return 'CategoryModel(name: $name, type: $type, id: $id, parentId: $parentId, icon: $icon, color: $color, sortOrder: $sortOrder, archived: $archived, createdAt: $createdAt)';
+  return 'CategoryModel(name: $name, type: $type, id: $id, parentId: $parentId, icon: $icon, color: $color, sortOrder: $sortOrder, archived: $archived, createdAt: $createdAt, systemKey: $systemKey)';
 }
 
 
@@ -257,7 +259,7 @@ abstract mixin class _$CategoryModelCopyWith<$Res> implements $CategoryModelCopy
   factory _$CategoryModelCopyWith(_CategoryModel value, $Res Function(_CategoryModel) _then) = __$CategoryModelCopyWithImpl;
 @override @useResult
 $Res call({
- String name, CategoryType type, int? id, int? parentId, String? icon, int? color, int sortOrder, bool archived, int createdAt
+ String name, CategoryType type, int? id, int? parentId, String? icon, int? color, int sortOrder, bool archived, int createdAt, String? systemKey
 });
 
 
@@ -274,7 +276,7 @@ class __$CategoryModelCopyWithImpl<$Res>
 
 /// Create a copy of CategoryModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? type = null,Object? id = freezed,Object? parentId = freezed,Object? icon = freezed,Object? color = freezed,Object? sortOrder = null,Object? archived = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? type = null,Object? id = freezed,Object? parentId = freezed,Object? icon = freezed,Object? color = freezed,Object? sortOrder = null,Object? archived = null,Object? createdAt = null,Object? systemKey = freezed,}) {
   return _then(_CategoryModel(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -285,7 +287,8 @@ as String?,color: freezed == color ? _self.color : color // ignore: cast_nullabl
 as int?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
 as int,archived: null == archived ? _self.archived : archived // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as int,
+as int,systemKey: freezed == systemKey ? _self.systemKey : systemKey // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

@@ -27,6 +27,21 @@ class CategoryLocalDatasource {
     return rows.map(CategoryModel.fromMap).toList();
   }
 
+  /// The single reserved category for [systemKey] (`adjustment_in` /
+  /// `adjustment_out`), or null when the pair is missing (a botched migration —
+  /// the caller guards). Matched by `system_key`, never by name, so a rename or
+  /// locale change can't break resolution.
+  Future<CategoryModel?> getBySystemKey(String systemKey) async {
+    final rows = await _database.db.query(
+      _table,
+      where: 'system_key = ?',
+      whereArgs: [systemKey],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return CategoryModel.fromMap(rows.first);
+  }
+
   /// Next `sort_order` within [type] (numbering is per-type): one past the max,
   /// so a new category appends to its list. Returns `0` for the first row of
   /// that type (`-1 + 1`).

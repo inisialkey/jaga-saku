@@ -18,6 +18,12 @@ void main() {
 
   const food = Category(id: 1, name: 'Food', type: CategoryType.expense);
   const salary = Category(id: 2, name: 'Salary', type: CategoryType.income);
+  const adjustment = Category(
+    id: 8,
+    name: 'Penyesuaian',
+    type: CategoryType.expense,
+    systemKey: 'adjustment_out',
+  );
 
   setUp(() {
     getCategories = MockGetCategories();
@@ -40,6 +46,21 @@ void main() {
     ).thenAnswer((_) async => const Right<Failure, List<Category>>([food])),
     build: build,
     act: (cubit) => cubit.load(),
+    expect: () => const [
+      CategoryListState.loading(),
+      CategoryListState.loaded(items: [food], type: CategoryType.expense),
+    ],
+  );
+
+  blocTest<CategoryListCubit, CategoryListState>(
+    'load hides reserved system categories (not editable/deletable)',
+    setUp: () => when(() => getCategories(any())).thenAnswer(
+      (_) async => const Right<Failure, List<Category>>([food, adjustment]),
+    ),
+    build: build,
+    act: (cubit) => cubit.load(),
+    // The reserved "Penyesuaian" cat is filtered out at the consumer, so it
+    // never renders in the manage list.
     expect: () => const [
       CategoryListState.loading(),
       CategoryListState.loaded(items: [food], type: CategoryType.expense),

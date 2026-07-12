@@ -165,6 +165,39 @@ void main() {
     await cubit.close();
   });
 
+  test(
+    'load keeps reserved system cats in state but hides them from the picker (C4)',
+    () async {
+      when(
+        () => getAccounts(any()),
+      ).thenAnswer((_) async => const Right<Failure, List<Account>>([]));
+      when(() => getCategories(CategoryType.expense)).thenAnswer(
+        (_) async => const Right<Failure, List<Category>>([
+          Category(id: 1, name: 'Makan', type: CategoryType.expense),
+          Category(
+            id: 8,
+            name: 'Penyesuaian',
+            type: CategoryType.expense,
+            systemKey: 'adjustment_out',
+          ),
+        ]),
+      );
+      when(
+        () => getCategories(CategoryType.income),
+      ).thenAnswer((_) async => const Right<Failure, List<Category>>([]));
+
+      final cubit = build();
+      await cubit.load();
+
+      // load() must NOT filter — state keeps the system cat so selectedCategory
+      // can still resolve an edited adjustment's label.
+      expect(cubit.state.categories.map((c) => c.id), [1, 8]);
+      // ...but the picker source hides it.
+      expect(cubit.state.categoriesForType.map((c) => c.id), [1]);
+      await cubit.close();
+    },
+  );
+
   blocTest<AddTransactionCubit, AddTransactionState>(
     'typeChanged to transfer clears category / planned / spending',
     build: build,

@@ -181,6 +181,7 @@ final GoRouter appRouter = GoRouter(
           deleteAccount: sl(),
           archiveAccount: sl(),
           reorderAccounts: sl(),
+          txChangeNotifier: sl(),
         )..load(),
         child: const AccountListPage(),
       ),

@@ -187,8 +187,21 @@ class HomeCubit extends Cubit<HomeState> {
         .where((a) => !a.archived)
         .fold<int>(0, (sum, a) => sum + a.balance);
 
-    final (income: monthIncome, expense: monthExpense) =
-        TransactionAggregator.incomeExpense(monthTx);
+    // V2-M6: reserved/adjustment category ids the reports must skip (a reconcile
+    // correction moves balance, not income/expense). Balance already includes
+    // it via the unchanged SQL; here we keep the reports clean.
+    final excludeCategoryIds = <int>{
+      for (final c in categories)
+        if (c.isSystem && c.id != null) c.id!,
+    };
+
+    final (
+      income: monthIncome,
+      expense: monthExpense,
+    ) = TransactionAggregator.incomeExpense(
+      monthTx,
+      excludeCategoryIds: excludeCategoryIds,
+    );
 
     final today = DateTime(now.year, now.month, now.day);
     final todayTx = monthTx.where((t) {
@@ -202,12 +215,18 @@ class HomeCubit extends Cubit<HomeState> {
     var todayUnplanned = 0;
     for (final t in todayTx) {
       if (t.type != TransactionType.expense) continue;
+      // C2: a reconcile adjustment dated today is not "spent today". This manual
+      // loop sums outside the aggregator, so it needs the same exclusion.
+      if (excludeCategoryIds.contains(t.categoryId)) continue;
       todaySpent += t.amount;
       if (t.plannedStatus == PlannedStatus.unplanned) {
         todayUnplanned += t.amount;
       }
     }
-    final expenseByCategory = TransactionAggregator.expenseByCategory(todayTx);
+    final expenseByCategory = TransactionAggregator.expenseByCategory(
+      todayTx,
+      excludeCategoryIds: excludeCategoryIds,
+    );
 
     final categoriesById = <int, Category>{
       for (final c in categories)

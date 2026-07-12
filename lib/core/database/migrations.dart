@@ -15,7 +15,7 @@ class Migrations {
   /// Current schema version. Bump when adding a new `_v<N>` step; wire that step
   /// into BOTH [onCreate] (append `await _vN(db);`) and [migrate]
   /// (append `if (oldVersion < N) await _vN(db);`).
-  static const int latestVersion = 5;
+  static const int latestVersion = 6;
 
   /// Runs on a brand-new database — replays every version step in order so a
   /// fresh install produces the exact schema an upgrade-from-v1 produces. Steps
@@ -27,6 +27,7 @@ class Migrations {
     await _v3(db);
     await _v4(db);
     await _v5(db);
+    await _v6(db);
   }
 
   /// Steps an existing database from [oldVersion] to [newVersion], applying only
@@ -40,6 +41,7 @@ class Migrations {
     if (oldVersion < 3) await _v3(db);
     if (oldVersion < 4) await _v4(db);
     if (oldVersion < 5) await _v5(db);
+    if (oldVersion < 6) await _v6(db);
   }
 
   /// Builds the v1 baseline only. Exposed for the schema-parity test, which
@@ -194,5 +196,58 @@ class Migrations {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_recurring_due ON recurring(next_due);',
     );
+  }
+
+  /// v6 — wallet reconciliation (V2-M6). Adds the reserved system-category marker
+  /// `system_key` and seeds the "Penyesuaian" income/expense pair
+  /// (`adjustment_in` / `adjustment_out`) the reconcile write tags.
+  ///
+  /// The seed lives HERE — NOT in `Seed.run`, which runs on `onCreate` only —
+  /// because `_v6` runs under BOTH `onCreate` (a fresh-install replay) AND
+  /// `migrate` (an existing-install upgrade), so every install gets the pair.
+  /// `ADD COLUMN` has no `IF NOT EXISTS`, but `_v6` runs exactly once per path
+  /// (onCreate replays it once on a fresh DB; migrate runs it once for
+  /// oldVersion < 6), so the ALTER never double-adds. The seed is factored into
+  /// [seedSystemCategories] so the migration test can prove its idempotency
+  /// without re-running the once-only ALTER (which would throw).
+  static Future<void> _v6(Database db) async {
+    await db.execute('ALTER TABLE categories ADD COLUMN system_key TEXT;');
+    await seedSystemCategories(db);
+  }
+
+  /// Idempotent reserved-pair seed. Each INSERT ... SELECT ... WHERE NOT EXISTS
+  /// no-ops when a row with that `system_key` already exists, so a defensive
+  /// replay never double-inserts. Supplies every NOT-NULL column (`name`,
+  /// `type`, `created_at`); `sort_order` / `archived` fall to their column
+  /// defaults (0). `name` is the literal 'Penyesuaian' (a migration can't
+  /// localize — the `categoryAdjustment` l10n key mirrors it for any localized
+  /// display); `icon` / `color` give the honest ledger tile a slate glyph.
+  /// [visibleForTesting] so the idempotency test can call it twice directly.
+  @visibleForTesting
+  static Future<void> seedSystemCategories(Database db) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    const insert = '''
+      INSERT INTO categories (name, type, system_key, icon, color, created_at)
+      SELECT ?, ?, ?, ?, ?, ?
+      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE system_key = ?)
+    ''';
+    await db.rawInsert(insert, [
+      'Penyesuaian',
+      'income',
+      'adjustment_in',
+      'category',
+      0xFF64748B,
+      now,
+      'adjustment_in',
+    ]);
+    await db.rawInsert(insert, [
+      'Penyesuaian',
+      'expense',
+      'adjustment_out',
+      'category',
+      0xFF64748B,
+      now,
+      'adjustment_out',
+    ]);
   }
 }
