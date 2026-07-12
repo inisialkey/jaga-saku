@@ -27,7 +27,11 @@ import 'package:jaga_saku/features/settings/pages/about_page.dart';
 import 'package:jaga_saku/features/settings/pages/appearance_page.dart';
 import 'package:jaga_saku/features/settings/pages/settings_page.dart';
 import 'package:jaga_saku/features/shell/app_shell.dart';
-import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
+import 'package:jaga_saku/features/templates/pages/form/favorite_form_cubit.dart';
+import 'package:jaga_saku/features/templates/pages/form/favorite_form_page.dart';
+import 'package:jaga_saku/features/templates/pages/list/favorites_list_cubit.dart';
+import 'package:jaga_saku/features/templates/pages/list/favorites_list_page.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_page.dart';
 
@@ -49,6 +53,8 @@ class AppRoute {
   static const String categoryForm = '/categories/form';
   static const String budget = '/budget';
   static const String budgetForm = '/budget/form';
+  static const String favorites = '/favorites';
+  static const String favoriteForm = '/favorites/form';
 
   // Settings screens (M6) — full-screen, pushed on the root navigator. They read
   // the app-global AppSettingsCubit provided in `app.dart` (no per-route cubit).
@@ -83,6 +89,9 @@ final GoRouter appRouter = GoRouter(
                   getRecentTransactions: sl(),
                   getCategories: sl(),
                   getBudgetsForPeriod: sl(),
+                  getFavorites: sl(),
+                  saveTransaction: sl(),
+                  deleteTransaction: sl(),
                   txChangeNotifier: sl(),
                 )..load(),
                 child: const HomePage(),
@@ -134,17 +143,21 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoute.add,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, state) => BlocProvider(
-        create: (_) => AddTransactionCubit(
-          saveTransaction: sl(),
-          getAccounts: sl(),
-          getCategories: sl(),
-          getBudgetsForPeriod: sl(),
-          txChangeNotifier: sl(),
-          initial: state.extra as Transaction?,
-        )..load(),
-        child: const AddTransactionPage(),
-      ),
+      builder: (_, state) {
+        final args = state.extra as AddTransactionArgs?;
+        return BlocProvider(
+          create: (_) => AddTransactionCubit(
+            saveTransaction: sl(),
+            getAccounts: sl(),
+            getCategories: sl(),
+            getBudgetsForPeriod: sl(),
+            txChangeNotifier: sl(),
+            initial: args?.edit,
+            prefill: args?.prefill,
+          )..load(),
+          child: const AddTransactionPage(),
+        );
+      },
     ),
     // ── Accounts (M1) ────────────────────────────────────────────────────
     GoRoute(
@@ -233,6 +246,32 @@ final GoRouter appRouter = GoRouter(
           child: const BudgetFormPage(),
         );
       },
+    ),
+    // ── Favorites (V2-M2) ────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.favorites,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => FavoritesListCubit(
+          getFavorites: sl(),
+          deleteTemplate: sl(),
+          reorderTemplates: sl(),
+        )..load(),
+        child: const FavoritesListPage(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.favoriteForm,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) => BlocProvider(
+        create: (_) => FavoriteFormCubit(
+          saveTemplate: sl(),
+          getAccounts: sl(),
+          getCategories: sl(),
+          initial: state.extra as TxTemplate?,
+        )..load(),
+        child: const FavoriteFormPage(),
+      ),
     ),
     // ── Settings (M6) ────────────────────────────────────────────────────
     // No per-route BlocProvider: these read the app-global AppSettingsCubit

@@ -6,6 +6,7 @@ import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/features/calendar/pages/calendar_cubit.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/pages/form/add_transaction_page.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 /// Calendar ledger (wireframe §2): a green-themed month grid with per-day event
@@ -284,7 +285,7 @@ class _TransactionRow extends StatelessWidget {
   /// [TxChangeNotifier], which refreshes this calendar via its subscription — so
   /// no manual `refresh()` is needed here (the W2 fix).
   void _edit(BuildContext context) =>
-      context.push(AppRoute.add, extra: transaction);
+      context.push(AppRoute.add, extra: AddTransactionArgs(edit: transaction));
 
   Future<void> _confirmDelete(BuildContext context) async {
     final cubit = context.read<CalendarCubit>();

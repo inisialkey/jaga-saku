@@ -48,6 +48,12 @@ class MorePage extends StatelessWidget {
                 onTap: () => context.push(AppRoute.budget),
               ),
               MenuTile(
+                icon: Iconsax.star,
+                iconColor: colors.income,
+                title: s.favorites,
+                onTap: () => context.push(AppRoute.favorites),
+              ),
+              MenuTile(
                 icon: Iconsax.repeat,
                 iconColor: colors.info,
                 title: s.recurring,

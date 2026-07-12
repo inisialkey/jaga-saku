@@ -22,6 +22,13 @@ import 'package:jaga_saku/features/categories/domain/usecases/delete_category.da
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/reorder_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/save_category.dart';
+import 'package:jaga_saku/features/templates/data/datasources/tx_template_local_datasource.dart';
+import 'package:jaga_saku/features/templates/data/repositories/tx_template_repository_impl.dart';
+import 'package:jaga_saku/features/templates/domain/repositories/tx_template_repository.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/delete_tx_template.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/get_favorites.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/reorder_templates.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/save_tx_template.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/data/repositories/transaction_repository_impl.dart';
@@ -58,6 +65,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   _registerAccounts();
   _registerCategories();
   _registerBudgets();
+  _registerTemplates();
   _registerTransactions();
 }
 
@@ -94,6 +102,18 @@ void _registerBudgets() {
     ..registerLazySingleton(() => GetBudgetsForPeriod(sl()))
     ..registerLazySingleton(() => SaveBudget(sl()))
     ..registerLazySingleton(() => DeleteBudget(sl()));
+}
+
+void _registerTemplates() {
+  sl
+    ..registerLazySingleton(() => TxTemplateLocalDatasource(sl<AppDatabase>()))
+    ..registerLazySingleton<TxTemplateRepository>(
+      () => TxTemplateRepositoryImpl(sl()),
+    )
+    ..registerLazySingleton(() => GetFavorites(sl()))
+    ..registerLazySingleton(() => SaveTxTemplate(sl()))
+    ..registerLazySingleton(() => DeleteTxTemplate(sl()))
+    ..registerLazySingleton(() => ReorderTemplates(sl()));
 }
 
 void _registerTransactions() {

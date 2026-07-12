@@ -33,6 +33,10 @@ abstract class HomeDashboard with _$HomeDashboard {
     /// The most at-risk budget for the current month, or null when there are no
     /// budgets (the guard card then shows its empty state + a live CTA).
     BudgetGuardView? budgetGuard,
+
+    /// Favorite templates (`is_favorite = 1`) for the Home quick-tap strip;
+    /// empty hides the section.
+    @Default(<TxTemplate>[]) List<TxTemplate> favorites,
   }) = _HomeDashboard;
 
   const HomeDashboard._();

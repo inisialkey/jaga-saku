@@ -28,6 +28,14 @@ import 'package:jaga_saku/features/categories/domain/usecases/delete_category.da
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/reorder_categories.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/save_category.dart';
+import 'package:jaga_saku/features/templates/data/datasources/tx_template_local_datasource.dart';
+import 'package:jaga_saku/features/templates/data/models/tx_template_model.dart';
+import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
+import 'package:jaga_saku/features/templates/domain/repositories/tx_template_repository.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/delete_tx_template.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/get_favorites.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/reorder_templates.dart';
+import 'package:jaga_saku/features/templates/domain/usecases/save_tx_template.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
@@ -94,6 +102,20 @@ class MockArchiveCategory extends Mock implements ArchiveCategory {}
 
 class MockReorderCategories extends Mock implements ReorderCategories {}
 
+// ── Templates (favorites) ─────────────────────────────────────────────────────
+class MockTxTemplateLocalDatasource extends Mock
+    implements TxTemplateLocalDatasource {}
+
+class MockTxTemplateRepository extends Mock implements TxTemplateRepository {}
+
+class MockGetFavorites extends Mock implements GetFavorites {}
+
+class MockSaveTxTemplate extends Mock implements SaveTxTemplate {}
+
+class MockDeleteTxTemplate extends Mock implements DeleteTxTemplate {}
+
+class MockReorderTemplates extends Mock implements ReorderTemplates {}
+
 // ── Transactions ──────────────────────────────────────────────────────────────
 class MockTransactionLocalDatasource extends Mock
     implements TransactionLocalDatasource {}
@@ -138,6 +160,16 @@ void registerFallbackValues() {
     const TransactionModel(
       type: TransactionType.expense,
       amount: 0,
+      accountId: 0,
+    ),
+  );
+  registerFallbackValue(
+    const TxTemplate(label: '', type: TransactionType.expense, accountId: 0),
+  );
+  registerFallbackValue(
+    const TxTemplateModel(
+      label: '',
+      type: TransactionType.expense,
       accountId: 0,
     ),
   );
