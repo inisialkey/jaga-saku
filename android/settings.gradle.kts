@@ -26,11 +26,13 @@ dependencyResolutionManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    // image_picker (V2-M4) pulls AndroidX libs (androidx.core 1.18, activity
-    // 1.12) whose AAR metadata requires AGP >= 8.9.1; 8.9.1 is compatible with
-    // the committed Gradle 8.12 wrapper (no wrapper bump needed).
-    id("com.android.application") version "8.9.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+    // Toolchain floors required by Flutter 3.44.x (below these, `flutter run`
+    // warns the versions "will soon be dropped"): AGP >= 8.11.1, Kotlin >=
+    // 2.2.20, Gradle >= 8.14 (wrapper). AGP 8.11.1 needs Gradle >= 8.13, so the
+    // wrapper was bumped 8.12 -> 8.14 in lockstep. image_picker (V2-M4) still
+    // pins the compileSdk 36 / AAR-metadata floor these clear.
+    id("com.android.application") version "8.11.1" apply false
+    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
 }
 
 include(":app")

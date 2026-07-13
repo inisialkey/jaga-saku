@@ -22,7 +22,10 @@ android {
     // hard-fails against 35. targetSdk stays 35 — this is a compile bump only,
     // no runtime-behavior opt-in.
     compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    // jni / jni_flutter (transitive) require NDK 28.2.13676358; NDKs are
+    // backward-compatible, so use the highest a plugin asks for (`flutter run`
+    // warns on the mismatch otherwise).
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         // Backports Java 8+ APIs (e.g. java.time) to minSdk < 26 via desugaring.
