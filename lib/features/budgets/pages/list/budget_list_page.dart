@@ -9,6 +9,7 @@ import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/pages/form/budget_form_page.dart';
 import 'package:jaga_saku/features/budgets/pages/list/budget_list_cubit.dart';
 import 'package:jaga_saku/features/budgets/pages/widgets/budget_item_card.dart';
+import 'package:jaga_saku/features/budgets/pages/widgets/cycle_selector.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 
 /// Budget screen (wireframe): a month selector over a list of per-category
@@ -41,12 +42,14 @@ class BudgetListPage extends StatelessWidget {
             onRetry: () => context.read<BudgetListCubit>().load(),
           ),
           BudgetListLoaded(
-            :final month,
+            :final cycleStart,
+            :final cycleEnd,
             :final budgets,
             :final categoriesById,
           ) =>
             _BudgetListBody(
-              month: month,
+              cycleStart: cycleStart,
+              cycleEnd: cycleEnd,
               budgets: budgets,
               categoriesById: categoriesById,
             ),
@@ -58,12 +61,14 @@ class BudgetListPage extends StatelessWidget {
 
 class _BudgetListBody extends StatelessWidget {
   const _BudgetListBody({
-    required this.month,
+    required this.cycleStart,
+    required this.cycleEnd,
     required this.budgets,
     required this.categoriesById,
   });
 
-  final DateTime month;
+  final int cycleStart;
+  final int cycleEnd;
   final List<Budget> budgets;
   final Map<int, Category> categoriesById;
 
@@ -76,10 +81,11 @@ class _BudgetListBody extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-          child: MonthSelector(
-            month: month,
-            onPrevious: cubit.previousMonth,
-            onNext: cubit.nextMonth,
+          child: CycleSelector(
+            start: cycleStart,
+            end: cycleEnd,
+            onPrevious: cubit.previousCycle,
+            onNext: cubit.nextCycle,
           ),
         ),
         Expanded(
@@ -89,7 +95,10 @@ class _BudgetListBody extends StatelessWidget {
                   title: s.budgetEmptyTitle,
                   message: s.budgetEmptyMessage,
                   actionLabel: s.createBudget,
-                  onAction: () => _openBudgetForm(context, month: month),
+                  onAction: () => _openBudgetForm(
+                    context,
+                    month: DateTime.fromMillisecondsSinceEpoch(cycleStart),
+                  ),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(
@@ -107,7 +116,8 @@ class _BudgetListBody extends StatelessWidget {
                       limitAmount: budget.limitAmount,
                       spent: budget.spent,
                       now: now,
-                      period: budget.period,
+                      periodStart: budget.periodStart,
+                      periodEnd: budget.periodEnd,
                     );
                     return BudgetItemCard(
                       budget: budget,

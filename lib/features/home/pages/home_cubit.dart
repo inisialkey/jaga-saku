@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_cycle.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -73,6 +75,7 @@ class HomeCubit extends Cubit<HomeState> {
     required SaveTransaction saveTransaction,
     required DeleteTransaction deleteTransaction,
     required TxChangeNotifier txChangeNotifier,
+    required AppSettingsCubit appSettings,
   }) : _getAccounts = getAccounts,
        _getTransactionsByMonth = getTransactionsByMonth,
        _getRecentTransactions = getRecentTransactions,
@@ -83,6 +86,7 @@ class HomeCubit extends Cubit<HomeState> {
        _saveTransaction = saveTransaction,
        _deleteTransaction = deleteTransaction,
        _txChanges = txChangeNotifier,
+       _appSettings = appSettings,
        super(const HomeState.initial()) {
     _txSub = _txChanges.changes.listen((_) => load());
   }
@@ -97,6 +101,7 @@ class HomeCubit extends Cubit<HomeState> {
   final SaveTransaction _saveTransaction;
   final DeleteTransaction _deleteTransaction;
   final TxChangeNotifier _txChanges;
+  final AppSettingsCubit _appSettings;
   late final StreamSubscription<void> _txSub;
 
   static const int _recentLimit = 5;
@@ -118,7 +123,15 @@ class HomeCubit extends Cubit<HomeState> {
     final recentResult = await _getRecentTransactions(_recentLimit);
     final expenseCatsResult = await _getCategories(CategoryType.expense);
     final incomeCatsResult = await _getCategories(CategoryType.income);
-    final budgetsResult = await _getBudgetsForPeriod(periodKey(now));
+    // The Home guard is for the budget cycle CONTAINING now — its label is the
+    // cycle-start month (== the calendar month at start-day 1).
+    final cycle = BudgetCycle.range(
+      startDay: _appSettings.state.budgetCycleStartDay,
+      reference: now,
+    );
+    final budgetsResult = await _getBudgetsForPeriod(
+      periodKey(DateTime.fromMillisecondsSinceEpoch(cycle.start)),
+    );
     final favoritesResult = await _getFavorites(NoParams());
     final dueResult = await _getDueOccurrences(NoParams());
     if (isClosed) return;
@@ -269,7 +282,8 @@ class HomeCubit extends Cubit<HomeState> {
         limitAmount: budget.limitAmount,
         spent: budget.spent,
         now: now,
-        period: budget.period,
+        periodStart: budget.periodStart,
+        periodEnd: budget.periodEnd,
       );
       final wins =
           topStatus == null ||

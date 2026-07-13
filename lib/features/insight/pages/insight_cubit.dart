@@ -250,7 +250,8 @@ class InsightCubit extends Cubit<InsightState> {
         limitAmount: b.limitAmount,
         spent: b.spent,
         now: now,
-        period: b.period,
+        periodStart: b.periodStart,
+        periodEnd: b.periodEnd,
       );
       gauges.add(BudgetGauge(categoryName: name, percent: status.percent));
     }

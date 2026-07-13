@@ -4,13 +4,12 @@ import 'package:jaga_saku/features/budgets/data/models/budget_model.dart';
 /// sqflite DAO for the `budgets` table. Reads/writes through the shared
 /// [AppDatabase] connection (resolved per call via `.db`); never opens its own.
 ///
-/// The derived `spent` per budget is computed in SQL by summing the matching
-/// category's expenses whose period bucket equals the budget's `period`. The
-/// bucket is derived with `strftime('%Y-%m', datetime(date/1000,'unixepoch',
-/// 'localtime'))` — the `localtime` conversion mirrors how Dart derives a tx's
-/// period from its midnight-local `date` (see `periodKey`), so a tx counts under
-/// exactly the month it displays in (proven by the month-boundary datasource
-/// test).
+/// V2-M1: the derived `spent` per budget is the sum of the matching category's
+/// expenses whose `date` falls in the budget's stored half-open cycle window
+/// `[period_start, period_end)`. This replaces the old `strftime('%Y-%m', …)`
+/// month bucket; at start-day 1 the window is the calendar month, so a tx counts
+/// under exactly the cycle it belongs to (proven by the boundary datasource
+/// test — a tx one ms before `start` and one at `end` are excluded).
 class BudgetLocalDatasource {
   BudgetLocalDatasource(this._database);
 
@@ -18,9 +17,9 @@ class BudgetLocalDatasource {
 
   static const String _table = 'budgets';
 
-  /// Budgets for [period] ('YYYY-MM'), each left-joined to the sum of its
-  /// category's expenses in the same period (`spent`, 0 when none), ordered by
-  /// insertion.
+  /// Budgets whose label is [period] ('YYYY-MM'), each left-joined to the sum of
+  /// its category's expenses inside that budget's stored `[period_start,
+  /// period_end)` cycle window (`spent`, 0 when none), ordered by insertion.
   Future<List<BudgetModel>> getBudgetsForPeriod(String period) async {
     final rows = await _database.db.rawQuery(
       '''
@@ -29,7 +28,7 @@ class BudgetLocalDatasource {
           SELECT SUM(t.amount) FROM transactions t
           WHERE t.category_id = b.category_id
             AND t.type = 'expense'
-            AND strftime('%Y-%m', datetime(t.date / 1000, 'unixepoch', 'localtime')) = b.period
+            AND t.date >= b.period_start AND t.date < b.period_end
         ), 0) AS spent
       FROM $_table b
       WHERE b.period = ?

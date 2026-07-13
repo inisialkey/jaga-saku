@@ -12,14 +12,16 @@ import '../../../helpers/pump_app.dart';
 /// selector and the name editor both read + write the cubit.
 void main() {
   late MockSettingsService settings;
+  late MockTxChangeNotifier txChanges;
   late AppSettingsCubit cubit;
 
   setUp(() {
     settings = MockSettingsService();
+    txChanges = MockTxChangeNotifier();
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
-    // Default (unloaded) state → System locale, no name.
-    cubit = AppSettingsCubit(settings);
+    // Default (unloaded) state → System locale, no name, start-day 1.
+    cubit = AppSettingsCubit(settings, txChanges);
   });
 
   tearDown(() => cubit.close());
@@ -84,5 +86,34 @@ void main() {
 
     expect(cubit.state.userName, 'Budi');
     verify(() => settings.setString('user_name', 'Budi')).called(1);
+  });
+
+  // ── Budget cycle start-day (V2-M1) ──────────────────────────────────────────
+
+  testWidgets('shows the budget cycle row labelled "Monthly calendar" at 1', (
+    tester,
+  ) async {
+    await pump(tester);
+
+    expect(find.text('Budget Cycle'), findsOneWidget);
+    // Default start-day 1 → the row reads the monthly-calendar label.
+    expect(find.text('Monthly calendar'), findsOneWidget);
+  });
+
+  testWidgets('picking a start day persists it and pings the tx bus', (
+    tester,
+  ) async {
+    await pump(tester);
+
+    // Tapping the row opens the picker; choose a day near the top of the sheet.
+    await tester.tap(find.text('Monthly calendar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Day 3'));
+    await tester.pumpAndSettle();
+
+    expect(cubit.state.budgetCycleStartDay, 3);
+    verify(() => settings.setString('budget_cycle_start_day', '3')).called(1);
+    // A cycle-window change is a derived-money-view change (plan §5).
+    verify(() => txChanges.ping()).called(1);
   });
 }

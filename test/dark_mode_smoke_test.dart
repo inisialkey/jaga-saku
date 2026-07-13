@@ -29,11 +29,15 @@ void main() {
   // exercises the `remaining < 0` / critical-color branches.
   const period = '2026-07';
   final now = DateTime(2026, 7, 15);
+  // The July cycle bounds (== BudgetCycle.range(1, …) at start-day 1).
+  final periodStart = DateTime(2026, 7).millisecondsSinceEpoch;
+  final periodEnd = DateTime(2026, 8).millisecondsSinceEpoch;
   BudgetStatus statusOf(int spent) => BudgetStatus.compute(
     limitAmount: 1000000,
     spent: spent,
     now: now,
-    period: period,
+    periodStart: periodStart,
+    periodEnd: periodEnd,
   );
   const category = Category(id: 1, name: 'Makan', type: CategoryType.expense);
 

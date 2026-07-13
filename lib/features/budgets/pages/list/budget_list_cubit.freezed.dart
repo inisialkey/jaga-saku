@@ -125,12 +125,12 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( DateTime month,  List<Budget> budgets,  Map<int, Category> categoriesById)?  loaded,TResult Function( Failure failure)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initial,TResult Function()?  loading,TResult Function( int cycleStart,  int cycleEnd,  List<Budget> budgets,  Map<int, Category> categoriesById)?  loaded,TResult Function( Failure failure)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case BudgetListInitial() when initial != null:
 return initial();case BudgetListLoading() when loading != null:
 return loading();case BudgetListLoaded() when loaded != null:
-return loaded(_that.month,_that.budgets,_that.categoriesById);case BudgetListError() when error != null:
+return loaded(_that.cycleStart,_that.cycleEnd,_that.budgets,_that.categoriesById);case BudgetListError() when error != null:
 return error(_that.failure);case _:
   return orElse();
 
@@ -149,12 +149,12 @@ return error(_that.failure);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( DateTime month,  List<Budget> budgets,  Map<int, Category> categoriesById)  loaded,required TResult Function( Failure failure)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initial,required TResult Function()  loading,required TResult Function( int cycleStart,  int cycleEnd,  List<Budget> budgets,  Map<int, Category> categoriesById)  loaded,required TResult Function( Failure failure)  error,}) {final _that = this;
 switch (_that) {
 case BudgetListInitial():
 return initial();case BudgetListLoading():
 return loading();case BudgetListLoaded():
-return loaded(_that.month,_that.budgets,_that.categoriesById);case BudgetListError():
+return loaded(_that.cycleStart,_that.cycleEnd,_that.budgets,_that.categoriesById);case BudgetListError():
 return error(_that.failure);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -169,12 +169,12 @@ return error(_that.failure);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( DateTime month,  List<Budget> budgets,  Map<int, Category> categoriesById)?  loaded,TResult? Function( Failure failure)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initial,TResult? Function()?  loading,TResult? Function( int cycleStart,  int cycleEnd,  List<Budget> budgets,  Map<int, Category> categoriesById)?  loaded,TResult? Function( Failure failure)?  error,}) {final _that = this;
 switch (_that) {
 case BudgetListInitial() when initial != null:
 return initial();case BudgetListLoading() when loading != null:
 return loading();case BudgetListLoaded() when loaded != null:
-return loaded(_that.month,_that.budgets,_that.categoriesById);case BudgetListError() when error != null:
+return loaded(_that.cycleStart,_that.cycleEnd,_that.budgets,_that.categoriesById);case BudgetListError() when error != null:
 return error(_that.failure);case _:
   return null;
 
@@ -251,10 +251,11 @@ String toString() {
 
 
 class BudgetListLoaded implements BudgetListState {
-  const BudgetListLoaded({required this.month, required final  List<Budget> budgets, final  Map<int, Category> categoriesById = const <int, Category>{}}): _budgets = budgets,_categoriesById = categoriesById;
+  const BudgetListLoaded({required this.cycleStart, required this.cycleEnd, required final  List<Budget> budgets, final  Map<int, Category> categoriesById = const <int, Category>{}}): _budgets = budgets,_categoriesById = categoriesById;
   
 
- final  DateTime month;
+ final  int cycleStart;
+ final  int cycleEnd;
  final  List<Budget> _budgets;
  List<Budget> get budgets {
   if (_budgets is EqualUnmodifiableListView) return _budgets;
@@ -280,16 +281,16 @@ $BudgetListLoadedCopyWith<BudgetListLoaded> get copyWith => _$BudgetListLoadedCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BudgetListLoaded&&(identical(other.month, month) || other.month == month)&&const DeepCollectionEquality().equals(other._budgets, _budgets)&&const DeepCollectionEquality().equals(other._categoriesById, _categoriesById));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BudgetListLoaded&&(identical(other.cycleStart, cycleStart) || other.cycleStart == cycleStart)&&(identical(other.cycleEnd, cycleEnd) || other.cycleEnd == cycleEnd)&&const DeepCollectionEquality().equals(other._budgets, _budgets)&&const DeepCollectionEquality().equals(other._categoriesById, _categoriesById));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,month,const DeepCollectionEquality().hash(_budgets),const DeepCollectionEquality().hash(_categoriesById));
+int get hashCode => Object.hash(runtimeType,cycleStart,cycleEnd,const DeepCollectionEquality().hash(_budgets),const DeepCollectionEquality().hash(_categoriesById));
 
 @override
 String toString() {
-  return 'BudgetListState.loaded(month: $month, budgets: $budgets, categoriesById: $categoriesById)';
+  return 'BudgetListState.loaded(cycleStart: $cycleStart, cycleEnd: $cycleEnd, budgets: $budgets, categoriesById: $categoriesById)';
 }
 
 
@@ -300,7 +301,7 @@ abstract mixin class $BudgetListLoadedCopyWith<$Res> implements $BudgetListState
   factory $BudgetListLoadedCopyWith(BudgetListLoaded value, $Res Function(BudgetListLoaded) _then) = _$BudgetListLoadedCopyWithImpl;
 @useResult
 $Res call({
- DateTime month, List<Budget> budgets, Map<int, Category> categoriesById
+ int cycleStart, int cycleEnd, List<Budget> budgets, Map<int, Category> categoriesById
 });
 
 
@@ -317,10 +318,11 @@ class _$BudgetListLoadedCopyWithImpl<$Res>
 
 /// Create a copy of BudgetListState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? month = null,Object? budgets = null,Object? categoriesById = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? cycleStart = null,Object? cycleEnd = null,Object? budgets = null,Object? categoriesById = null,}) {
   return _then(BudgetListLoaded(
-month: null == month ? _self.month : month // ignore: cast_nullable_to_non_nullable
-as DateTime,budgets: null == budgets ? _self._budgets : budgets // ignore: cast_nullable_to_non_nullable
+cycleStart: null == cycleStart ? _self.cycleStart : cycleStart // ignore: cast_nullable_to_non_nullable
+as int,cycleEnd: null == cycleEnd ? _self.cycleEnd : cycleEnd // ignore: cast_nullable_to_non_nullable
+as int,budgets: null == budgets ? _self._budgets : budgets // ignore: cast_nullable_to_non_nullable
 as List<Budget>,categoriesById: null == categoriesById ? _self._categoriesById : categoriesById // ignore: cast_nullable_to_non_nullable
 as Map<int, Category>,
   ));

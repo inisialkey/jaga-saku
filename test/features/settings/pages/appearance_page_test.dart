@@ -20,7 +20,7 @@ void main() {
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
     // Default (unloaded) state → light.
-    cubit = AppSettingsCubit(settings);
+    cubit = AppSettingsCubit(settings, MockTxChangeNotifier());
   });
 
   tearDown(() => cubit.close());

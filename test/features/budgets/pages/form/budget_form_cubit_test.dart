@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/pages/form/budget_form_cubit.dart';
@@ -16,6 +17,7 @@ void main() {
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
   late MockTxChangeNotifier txChanges;
+  late AppSettingsCubit appSettings;
 
   const cat = Category(id: 1, name: 'Makan', type: CategoryType.expense);
 
@@ -24,6 +26,12 @@ void main() {
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
     txChanges = MockTxChangeNotifier();
+    // Real cubit at the default start-day 1 → the resolved cycle is the exact
+    // calendar month, so the pre-M1 period assertions reproduce.
+    appSettings = AppSettingsCubit(
+      MockSettingsService(),
+      MockTxChangeNotifier(),
+    );
     when(
       () => getCategories(CategoryType.expense),
     ).thenAnswer((_) async => const Right<Failure, List<Category>>([cat]));
@@ -32,11 +40,14 @@ void main() {
     ).thenAnswer((_) async => const Right<Failure, List<Budget>>([]));
   });
 
+  tearDown(() => appSettings.close());
+
   BudgetFormCubit build({Budget? initial, DateTime? month}) => BudgetFormCubit(
     saveBudget: saveBudget,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
     txChangeNotifier: txChanges,
+    appSettings: appSettings,
     initial: initial,
     month: month,
   );
@@ -128,6 +139,10 @@ void main() {
       expect(budget.id, isNull); // insert
       expect(budget.categoryId, 1);
       expect(budget.period, '2026-05');
+      // V2-M1: the row is stamped with the resolved cycle range. At start-day 1
+      // that is exactly the May calendar month.
+      expect(budget.periodStart, DateTime(2026, 5).millisecondsSinceEpoch);
+      expect(budget.periodEnd, DateTime(2026, 6).millisecondsSinceEpoch);
       expect(budget.limitAmount, 200000);
       verify(() => txChanges.ping()).called(1);
     },
