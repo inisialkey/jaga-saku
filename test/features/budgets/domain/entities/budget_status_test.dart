@@ -2,9 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 
 /// The money core (plan §2.2 / §8): pure, no Flutter, no DB. Covers the status
-/// thresholds (0 / 79 / 80 / 99 / 100 / 120%), the month-boundary safe-daily,
-/// the divide-by-zero limit, and the past / future period edges.
+/// thresholds (0 / 79 / 80 / 99 / 100 / 120%), the cycle-boundary safe-daily,
+/// the divide-by-zero limit, and the past / future cycle edges.
+///
+/// V2-M1: `BudgetStatus.compute` takes the explicit `[periodStart, periodEnd)`
+/// millis range. Every case here feeds the calendar-month bounds for a 'YYYY-MM'
+/// label (exactly what `BudgetCycle.range(1, …)` and the `_v7` backfill produce),
+/// so every pre-M1 assertion reproduces unchanged — the backward-compat proof.
 void main() {
+  // A 'YYYY-MM' label → its calendar-month [start, end) local-midnight millis.
+  ({int start, int end}) monthRange(String period) {
+    final parts = period.split('-');
+    final y = int.parse(parts[0]);
+    final m = int.parse(parts[1]);
+    return (
+      start: DateTime(y, m).millisecondsSinceEpoch,
+      end: DateTime(y, m + 1).millisecondsSinceEpoch,
+    );
+  }
+
   // A fixed mid-month clock; the threshold cases don't depend on it.
   BudgetStatus statusFor({
     required int limit,
@@ -13,11 +29,13 @@ void main() {
     String? period,
   }) {
     final clock = now ?? DateTime(2026, 1, 15, 12);
+    final range = monthRange(period ?? periodKey(clock));
     return BudgetStatus.compute(
       limitAmount: limit,
       spent: spent,
       now: clock,
-      period: period ?? periodKey(clock),
+      periodStart: range.start,
+      periodEnd: range.end,
     );
   }
 
@@ -74,8 +92,8 @@ void main() {
 
   group('safe-daily', () {
     test('on the last day of the month divides the remaining by 1', () {
-      final s = BudgetStatus.compute(
-        limitAmount: 100000,
+      final s = statusFor(
+        limit: 100000,
         spent: 40000,
         now: DateTime(2026, 1, 31, 12),
         period: '2026-01',
@@ -85,8 +103,8 @@ void main() {
     });
 
     test('mid-month divides the remaining by the days left (today counts)', () {
-      final s = BudgetStatus.compute(
-        limitAmount: 210000,
+      final s = statusFor(
+        limit: 210000,
         spent: 0,
         now: DateTime(2026, 1, 11, 8),
         period: '2026-01',
@@ -96,8 +114,8 @@ void main() {
     });
 
     test('leap February counts 29 days', () {
-      final s = BudgetStatus.compute(
-        limitAmount: 290000,
+      final s = statusFor(
+        limit: 290000,
         spent: 0,
         now: DateTime(2024, 2),
         period: '2024-02',
@@ -107,8 +125,8 @@ void main() {
     });
 
     test('over budget floors the safe-daily to 0', () {
-      final s = BudgetStatus.compute(
-        limitAmount: 100000,
+      final s = statusFor(
+        limit: 100000,
         spent: 150000,
         now: DateTime(2026, 1, 10),
         period: '2026-01',
@@ -120,8 +138,8 @@ void main() {
 
   group('edges', () {
     test('a zero limit does not crash: ratio 0, safe, safe-daily 0', () {
-      final s = BudgetStatus.compute(
-        limitAmount: 0,
+      final s = statusFor(
+        limit: 0,
         spent: 5000,
         now: DateTime(2026, 1, 15),
         period: '2026-01',
@@ -133,8 +151,8 @@ void main() {
     });
 
     test('a past period has no days left and no safe-daily', () {
-      final s = BudgetStatus.compute(
-        limitAmount: 100000,
+      final s = statusFor(
+        limit: 100000,
         spent: 0,
         now: DateTime(2026, 7, 10),
         period: '2020-01',
@@ -144,8 +162,8 @@ void main() {
     });
 
     test('a future period counts the whole month', () {
-      final s = BudgetStatus.compute(
-        limitAmount: 300000,
+      final s = statusFor(
+        limit: 300000,
         spent: 0,
         now: DateTime(2026, 1, 15),
         period: '2026-03',

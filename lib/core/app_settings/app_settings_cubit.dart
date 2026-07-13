@@ -2,27 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 
 part 'app_settings_state.dart';
 part 'app_settings_cubit.freezed.dart';
 
-/// The single app-global preferences owner (M6): theme mode + locale + greeting
-/// name, each persisted to [SettingsService] and emitted so the whole app
-/// reacts live — `app.dart` feeds `themeMode`/`locale` into `MaterialApp`, and
-/// the Home greeting reads [AppSettingsState.userName].
+/// The single app-global preferences owner (M6 + V2-M1): theme mode + locale +
+/// greeting name + budget cycle start-day, each persisted to [SettingsService]
+/// and emitted so the whole app reacts live — `app.dart` feeds
+/// `themeMode`/`locale` into `MaterialApp`, the Home greeting reads
+/// [AppSettingsState.userName], and the budget screens read
+/// [AppSettingsState.budgetCycleStartDay].
 ///
 /// Registered as a DI singleton and [load]ed once before `runApp`, so the first
 /// frame already uses the persisted theme/locale (no cold-start flash). Every
 /// emit is guarded by [isClosed] (rule 5). App-lifetime singleton — never
 /// closed (like `TxChangeNotifier`).
 class AppSettingsCubit extends Cubit<AppSettingsState> {
-  AppSettingsCubit(this._settings) : super(const AppSettingsState());
+  AppSettingsCubit(this._settings, this._txChanges)
+    : super(const AppSettingsState());
 
   final SettingsService _settings;
+
+  /// A budget cycle-window change is a derived-money-view change: pinging this
+  /// makes Home / Insight / BudgetList (already subscribed) reload and re-read
+  /// the new start-day live (plan §5).
+  final TxChangeNotifier _txChanges;
 
   static const String _themeKey = 'theme_mode';
   static const String _localeKey = 'locale';
   static const String _nameKey = 'user_name';
+  static const String _cycleStartDayKey = 'budget_cycle_start_day';
 
   /// Stored value + user choice for "follow the device" (locale System).
   static const String _system = 'system';
@@ -34,8 +44,19 @@ class AppSettingsCubit extends Cubit<AppSettingsState> {
     final theme = _themeModeFrom(await _settings.getString(_themeKey));
     final locale = _localeFrom(await _settings.getString(_localeKey));
     final name = _clean(await _settings.getString(_nameKey));
+    // No getInt on SettingsService — the int is encoded as a string (like the
+    // other keys). Unset / unparseable → 1 (the calendar-month default).
+    final startDay =
+        int.tryParse(await _settings.getString(_cycleStartDayKey) ?? '') ?? 1;
     if (isClosed) return;
-    emit(state.copyWith(themeMode: theme, locale: locale, userName: name));
+    emit(
+      state.copyWith(
+        themeMode: theme,
+        locale: locale,
+        userName: name,
+        budgetCycleStartDay: startDay.clamp(1, 31),
+      ),
+    );
   }
 
   /// Persists + applies the theme mode (instant, app-wide via `app.dart`).
@@ -58,6 +79,17 @@ class AppSettingsCubit extends Cubit<AppSettingsState> {
     await _settings.setString(_nameKey, clean ?? '');
     if (isClosed) return;
     emit(state.copyWith(userName: clean));
+  }
+
+  /// Persists + applies the budget cycle start-day (clamped 1..31), then pings
+  /// [TxChangeNotifier] so every budget view recomputes its window live — no
+  /// restart, no new subscriptions (plan §5). Stored as a string (no getInt).
+  Future<void> setBudgetCycleStartDay(int day) async {
+    final clamped = day.clamp(1, 31);
+    await _settings.setString(_cycleStartDayKey, '$clamped');
+    if (isClosed) return;
+    emit(state.copyWith(budgetCycleStartDay: clamped));
+    _txChanges.ping();
   }
 
   ThemeMode _themeModeFrom(String? value) => switch (value) {

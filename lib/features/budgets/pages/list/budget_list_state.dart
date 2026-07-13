@@ -1,8 +1,9 @@
 part of 'budget_list_cubit.dart';
 
-/// State machine for the Budget screen. `loaded` carries the viewed [month], its
-/// [budgets] (each with a derived spent) and a category lookup the cards use to
-/// resolve names / icons.
+/// State machine for the Budget screen. `loaded` carries the viewed cycle window
+/// (`[cycleStart, cycleEnd)` local-midnight millis — V2-M1), its [budgets] (each
+/// with a derived spent) and a category lookup the cards use to resolve names /
+/// icons.
 @freezed
 sealed class BudgetListState with _$BudgetListState {
   const factory BudgetListState.initial() = BudgetListInitial;
@@ -10,7 +11,8 @@ sealed class BudgetListState with _$BudgetListState {
   const factory BudgetListState.loading() = BudgetListLoading;
 
   const factory BudgetListState.loaded({
-    required DateTime month,
+    required int cycleStart,
+    required int cycleEnd,
     required List<Budget> budgets,
     @Default(<int, Category>{}) Map<int, Category> categoriesById,
   }) = BudgetListLoaded;

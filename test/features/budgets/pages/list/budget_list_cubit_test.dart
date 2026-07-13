@@ -1,9 +1,11 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_cycle.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/pages/list/budget_list_cubit.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -18,6 +20,8 @@ void main() {
   late MockDeleteBudget deleteBudget;
   late MockGetCategories getCategories;
   late TxChangeNotifier txChanges;
+  late MockSettingsService settings;
+  late AppSettingsCubit appSettings;
 
   const cat = Category(id: 1, name: 'Makan', type: CategoryType.expense);
   final budget = Budget(
@@ -33,18 +37,28 @@ void main() {
     deleteBudget = MockDeleteBudget();
     getCategories = MockGetCategories();
     txChanges = TxChangeNotifier();
+    settings = MockSettingsService();
+    when(() => settings.getString(any())).thenAnswer((_) async => null);
+    when(() => settings.setString(any(), any())).thenAnswer((_) async {});
+    // A real AppSettingsCubit (default start-day 1) sharing the SAME notifier,
+    // so a start-day change pings the list cubit's subscription (plan §5).
+    appSettings = AppSettingsCubit(settings, txChanges);
     when(
       () => getCategories(CategoryType.expense),
     ).thenAnswer((_) async => const Right<Failure, List<Category>>([cat]));
   });
 
-  tearDown(() => txChanges.dispose());
+  tearDown(() async {
+    await appSettings.close();
+    txChanges.dispose();
+  });
 
   BudgetListCubit build() => BudgetListCubit(
     getBudgetsForPeriod: getBudgets,
     deleteBudget: deleteBudget,
     getCategories: getCategories,
     txChangeNotifier: txChanges,
+    appSettings: appSettings,
   );
 
   void stubBudgets(List<Budget> budgets) => when(
@@ -52,7 +66,7 @@ void main() {
   ).thenAnswer((_) async => Right<Failure, List<Budget>>(budgets));
 
   blocTest<BudgetListCubit, BudgetListState>(
-    'load emits [loading, loaded] with the period budgets + category lookup',
+    'load emits [loading, loaded] with the cycle budgets + category lookup',
     setUp: () => stubBudgets([budget]),
     build: build,
     act: (cubit) => cubit.load(),
@@ -110,22 +124,56 @@ void main() {
     await cubit.close();
   });
 
-  test('nextMonth then previousMonth round-trips the viewed month', () async {
+  test('nextCycle then previousCycle round-trips the viewed cycle', () async {
     stubBudgets(const []);
     final cubit = build();
     await cubit.load();
-    final initial = (cubit.state as BudgetListLoaded).month;
+    final initialStart = (cubit.state as BudgetListLoaded).cycleStart;
+    final initialEnd = (cubit.state as BudgetListLoaded).cycleEnd;
 
-    cubit.nextMonth();
+    cubit.nextCycle();
     await pumpEventQueue();
-    expect(
-      (cubit.state as BudgetListLoaded).month,
-      DateTime(initial.year, initial.month + 1),
-    );
+    // At start-day 1 cycles are contiguous months: next.start == this.end.
+    expect((cubit.state as BudgetListLoaded).cycleStart, initialEnd);
 
-    cubit.previousMonth();
+    cubit.previousCycle();
     await pumpEventQueue();
-    expect((cubit.state as BudgetListLoaded).month, initial);
+    expect((cubit.state as BudgetListLoaded).cycleStart, initialStart);
+    expect((cubit.state as BudgetListLoaded).cycleEnd, initialEnd);
+    await cubit.close();
+  });
+
+  test('a custom start-day loads the payday cycle window + label', () async {
+    await appSettings.setBudgetCycleStartDay(25);
+    stubBudgets(const []);
+    final cubit = build();
+    await cubit.load();
+
+    final expected = BudgetCycle.range(startDay: 25, reference: DateTime.now());
+    final state = cubit.state as BudgetListLoaded;
+    expect(state.cycleStart, expected.start);
+    expect(state.cycleEnd, expected.end);
+    // The lookup label is the cycle-START month (not necessarily today's month).
+    verify(
+      () => getBudgets(
+        periodKey(DateTime.fromMillisecondsSinceEpoch(expected.start)),
+      ),
+    ).called(1);
+    await cubit.close();
+  });
+
+  test('changing the start-day pings and reloads with the new cycle', () async {
+    stubBudgets(const []);
+    final cubit = build();
+    await cubit.load();
+    clearInteractions(getBudgets);
+
+    await appSettings.setBudgetCycleStartDay(25); // pings the shared notifier
+    await pumpEventQueue();
+
+    verify(() => getBudgets(any())).called(1); // the reload re-read the new day
+    final expected = BudgetCycle.range(startDay: 25, reference: DateTime.now());
+    expect((cubit.state as BudgetListLoaded).cycleStart, expected.start);
     await cubit.close();
   });
 }

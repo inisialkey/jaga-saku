@@ -1,8 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_cycle.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/budgets/domain/usecases/save_budget.dart';
@@ -14,29 +16,38 @@ part 'budget_form_cubit.freezed.dart';
 
 /// Backs the create/edit budget form. Loads expense categories for the picker,
 /// seeds fields from [initial] when editing (else defaults to the list's
-/// [month]), and on [submit] resolves a duplicate `(category, period)` to an
-/// update — so creating a budget for a category that already has one that month
-/// edits it instead of hitting the UNIQUE constraint (plan §3). A successful
-/// save pings [TxChangeNotifier] so derived-money views refresh (plan §6). Every
-/// emit is guarded by [isClosed] (rule 5).
+/// [month]), and on [submit] resolves the viewed month to its budget cycle
+/// (`[periodStart, periodEnd)` via [BudgetCycle] + the global start-day) and
+/// resolves a duplicate `(category, period)` to an update — so creating a budget
+/// for a category that already has one that cycle edits it instead of hitting
+/// the UNIQUE constraint (plan §3). A successful save pings [TxChangeNotifier]
+/// so derived-money views refresh (plan §6). Every emit is guarded by [isClosed]
+/// (rule 5).
+///
+/// The month-granularity selector (`MonthSelector`) is kept: at start-day 1 the
+/// month IS the cycle, and for a custom start-day the resolved cycle is stamped
+/// on the row at save time. The cycle-range display lives on the Budget LIST
+/// (its `CycleSelector`).
 class BudgetFormCubit extends Cubit<BudgetFormState> {
   BudgetFormCubit({
     required SaveBudget saveBudget,
     required GetCategories getCategories,
     required GetBudgetsForPeriod getBudgetsForPeriod,
     required TxChangeNotifier txChangeNotifier,
+    required AppSettingsCubit appSettings,
     Budget? initial,
     DateTime? month,
   }) : _saveBudget = saveBudget,
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
        _txChanges = txChangeNotifier,
+       _appSettings = appSettings,
        _initial = initial,
        super(
          initial == null
              ? BudgetFormState(month: month ?? _firstOfCurrentMonth())
              : BudgetFormState(
-                 month: _monthOfPeriod(initial.period),
+                 month: _referenceOf(initial),
                  categoryId: initial.categoryId,
                  limitAmount: initial.limitAmount,
                  isEditing: true,
@@ -47,6 +58,7 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
   final GetCategories _getCategories;
   final GetBudgetsForPeriod _getBudgetsForPeriod;
   final TxChangeNotifier _txChanges;
+  final AppSettingsCubit _appSettings;
   final Budget? _initial;
 
   /// Loads active expense categories for the picker. A read failure leaves the
@@ -83,7 +95,14 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
     if (!state.isValid || state.isSaving) return;
     emit(state.copyWith(status: BudgetFormStatus.saving));
 
-    final period = periodKey(state.month);
+    // Resolve the viewed month to its cycle via the global start-day. At
+    // start-day 1 this is exactly the calendar month; `period` stays the
+    // cycle-start month label the lookup + old UNIQUE(category, period) key on.
+    final cycle = BudgetCycle.range(
+      startDay: _appSettings.state.budgetCycleStartDay,
+      reference: state.month,
+    );
+    final period = periodKey(DateTime.fromMillisecondsSinceEpoch(cycle.start));
     var id = _initial?.id;
     var createdAt = _initial?.createdAt;
     // Creating for a (category, period) that already has a budget → update it
@@ -106,6 +125,8 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
       id: id,
       categoryId: state.categoryId!,
       period: period,
+      periodStart: cycle.start,
+      periodEnd: cycle.end,
       limitAmount: state.limitAmount,
       createdAt: createdAt ?? DateTime.now().millisecondsSinceEpoch,
     );
@@ -137,6 +158,13 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
     final now = DateTime.now();
     return DateTime(now.year, now.month);
   }
+
+  /// Seeds the selector from an edited budget's stored cycle start (so a
+  /// custom-start-day edit re-resolves to the SAME cycle at save). Falls back to
+  /// the `period` label's month for a legacy row whose `periodStart` is 0.
+  static DateTime _referenceOf(Budget initial) => initial.periodStart != 0
+      ? DateTime.fromMillisecondsSinceEpoch(initial.periodStart)
+      : _monthOfPeriod(initial.period);
 
   static DateTime _monthOfPeriod(String period) {
     final parts = period.split('-');

@@ -11,14 +11,16 @@ import '../../helpers/mocks.dart';
 /// persists it under the right key/value.
 void main() {
   late MockSettingsService settings;
+  late MockTxChangeNotifier txChanges;
 
   setUp(() {
     settings = MockSettingsService();
+    txChanges = MockTxChangeNotifier();
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
   });
 
-  AppSettingsCubit build() => AppSettingsCubit(settings);
+  AppSettingsCubit build() => AppSettingsCubit(settings, txChanges);
 
   group('load', () {
     test(
@@ -75,6 +77,64 @@ void main() {
       expect(cubit.state.userName, isNull);
       await cubit.close();
     });
+
+    test('defaults the budget cycle start-day to 1 (calendar month)', () async {
+      final cubit = build();
+      await cubit.load();
+
+      expect(cubit.state.budgetCycleStartDay, 1);
+      await cubit.close();
+    });
+
+    test('reads the persisted budget cycle start-day (V2-M1)', () async {
+      when(
+        () => settings.getString('budget_cycle_start_day'),
+      ).thenAnswer((_) async => '25');
+
+      final cubit = build();
+      await cubit.load();
+
+      expect(cubit.state.budgetCycleStartDay, 25);
+      await cubit.close();
+    });
+
+    test('an unparseable stored start-day falls back to 1', () async {
+      when(
+        () => settings.getString('budget_cycle_start_day'),
+      ).thenAnswer((_) async => 'oops');
+
+      final cubit = build();
+      await cubit.load();
+
+      expect(cubit.state.budgetCycleStartDay, 1);
+      await cubit.close();
+    });
+  });
+
+  group('setBudgetCycleStartDay', () {
+    blocTest<AppSettingsCubit, AppSettingsState>(
+      'emits the day, persists it as a string, and pings the tx bus',
+      build: build,
+      act: (c) => c.setBudgetCycleStartDay(25),
+      expect: () => [const AppSettingsState(budgetCycleStartDay: 25)],
+      verify: (_) {
+        verify(
+          () => settings.setString('budget_cycle_start_day', '25'),
+        ).called(1);
+        // A cycle-window change is a derived-money-view change (plan §5).
+        verify(() => txChanges.ping()).called(1);
+      },
+    );
+
+    blocTest<AppSettingsCubit, AppSettingsState>(
+      'clamps an out-of-range day to 1..31',
+      build: build,
+      act: (c) => c.setBudgetCycleStartDay(40),
+      expect: () => [const AppSettingsState(budgetCycleStartDay: 31)],
+      verify: (_) => verify(
+        () => settings.setString('budget_cycle_start_day', '31'),
+      ).called(1),
+    );
   });
 
   group('setThemeMode', () {

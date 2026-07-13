@@ -124,7 +124,61 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.xl),
+          // Budget cycle start-day (V2-M1). Day 1 == the calendar month (the
+          // default, zero behavior change); a custom day makes every budget run
+          // day-N → day-(N-1). The picker writes through the app-global cubit,
+          // which pings the tx bus so open budget views recompute live.
+          BlocBuilder<AppSettingsCubit, AppSettingsState>(
+            buildWhen: (a, b) => a.budgetCycleStartDay != b.budgetCycleStartDay,
+            builder: (context, state) {
+              final day = state.budgetCycleStartDay;
+              return MenuSection(
+                title: s.budgetCycle,
+                tiles: [
+                  MenuTile(
+                    icon: Iconsax.calendar_1,
+                    title: day == 1
+                        ? s.budgetCycleMonthly
+                        : s.budgetCycleStartDay(day),
+                    onTap: () => _showCycleStartDayPicker(context, day),
+                  ),
+                ],
+              );
+            },
+          ),
         ],
+      ),
+    );
+  }
+
+  /// Day-of-month picker (1..31): day 1 is labelled "monthly calendar", the rest
+  /// "Day N". Choosing one persists it via the app-global cubit (which pings the
+  /// tx bus so budget views recompute live) and closes the sheet.
+  Future<void> _showCycleStartDayPicker(BuildContext context, int current) {
+    final s = Strings.of(context)!;
+    return showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => AppBottomSheet(
+        title: s.budgetCycle,
+        child: ListView.builder(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          itemCount: 31,
+          itemBuilder: (_, index) {
+            final day = index + 1;
+            return SettingOptionTile(
+              label: day == 1
+                  ? s.budgetCycleMonthly
+                  : s.budgetCycleStartDay(day),
+              selected: day == current,
+              onTap: () {
+                _settings.setBudgetCycleStartDay(day);
+                Navigator.of(sheetContext).pop();
+              },
+            );
+          },
+        ),
       ),
     );
   }

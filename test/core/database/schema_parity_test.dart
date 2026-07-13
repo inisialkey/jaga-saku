@@ -67,8 +67,8 @@ void main() {
     },
   );
 
-  test('latestVersion is 6 so existing installs run the _v6 upgrade', () {
-    expect(Migrations.latestVersion, 6);
+  test('latestVersion is 7 so existing installs run the _v7 upgrade', () {
+    expect(Migrations.latestVersion, 7);
   });
 
   test('_v6 adds categories.system_key on the fresh (onCreate) path', () async {
@@ -80,4 +80,23 @@ void main() {
     )).map((c) => c['name']).toSet();
     expect(cols, contains('system_key'));
   });
+
+  test(
+    '_v7 adds budgets.period_start/period_end + the unique index (fresh path)',
+    () async {
+      final db = await openBlank();
+      addTearDown(db.close);
+      await Migrations.onCreate(db);
+
+      final cols = (await db.rawQuery(
+        'PRAGMA table_info(budgets)',
+      )).map((c) => c['name']).toSet();
+      expect(cols, containsAll(<String>['period_start', 'period_end']));
+
+      final indexes = (await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%'",
+      )).map((r) => r['name']! as String).toSet();
+      expect(indexes, contains('idx_budget_cat_start'));
+    },
+  );
 }

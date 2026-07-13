@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
@@ -23,8 +24,9 @@ void main() {
   late MockGetBudgetsForPeriod getBudgets;
   late MockTxChangeNotifier txChangeNotifier;
   late MockReceiptStorageService receiptStorage;
+  late AppSettingsCubit appSettings;
 
-  // A current-month date so the budget guard runs (period matches "now").
+  // A current-cycle date so the budget guard runs (the cycle contains "now").
   final now = DateTime.now();
   final todayMillis = DateTime(
     now.year,
@@ -32,6 +34,10 @@ void main() {
     now.day,
   ).millisecondsSinceEpoch;
   final currentPeriod = periodKey(now);
+  // The current calendar-month cycle bounds (== BudgetCycle.range(1, now)) that
+  // a seeded budget carries so its safe-daily computes off a real window.
+  final cycleStart = DateTime(now.year, now.month).millisecondsSinceEpoch;
+  final cycleEnd = DateTime(now.year, now.month + 1).millisecondsSinceEpoch;
 
   setUp(() {
     saveTransaction = MockSaveTransaction();
@@ -40,6 +46,12 @@ void main() {
     getBudgets = MockGetBudgetsForPeriod();
     txChangeNotifier = MockTxChangeNotifier();
     receiptStorage = MockReceiptStorageService();
+    // Default start-day 1 → the guard's cycle is the calendar month, matching
+    // the pre-M1 behavior these tests assert.
+    appSettings = AppSettingsCubit(
+      MockSettingsService(),
+      MockTxChangeNotifier(),
+    );
     // No budget by default → expenses save straight through.
     when(
       () => getBudgets(any()),
@@ -51,6 +63,8 @@ void main() {
     when(() => receiptStorage.delete(any())).thenAnswer((_) async {});
   });
 
+  tearDown(() => appSettings.close());
+
   AddTransactionCubit build() => AddTransactionCubit(
     saveTransaction: saveTransaction,
     getAccounts: getAccounts,
@@ -58,6 +72,7 @@ void main() {
     getBudgetsForPeriod: getBudgets,
     txChangeNotifier: txChangeNotifier,
     receiptStorage: receiptStorage,
+    appSettings: appSettings,
   );
 
   test('seeds fields from the initial transaction when editing', () {
@@ -68,6 +83,7 @@ void main() {
       getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChangeNotifier,
       receiptStorage: receiptStorage,
+      appSettings: appSettings,
       initial: const Transaction(
         id: 9,
         type: TransactionType.income,
@@ -94,6 +110,7 @@ void main() {
       getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChangeNotifier,
       receiptStorage: receiptStorage,
+      appSettings: appSettings,
       prefill: const TxTemplate(
         label: 'Coffee',
         type: TransactionType.expense,
@@ -126,6 +143,7 @@ void main() {
       getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChangeNotifier,
       receiptStorage: receiptStorage,
+      appSettings: appSettings,
       prefill: const TxTemplate(
         label: 'Ask each time',
         type: TransactionType.expense,
@@ -306,10 +324,16 @@ void main() {
   blocTest<AddTransactionCubit, AddTransactionState>(
     'expense over the category safe-daily pauses with needsBudgetConfirm (no save)',
     setUp: () => when(() => getBudgets(any())).thenAnswer(
-      // Current-month budget, full 100k limit unspent → any daily allowance is
+      // Current-cycle budget, full 100k limit unspent → any daily allowance is
       // <= 100k, so a 200k expense always breaches it.
       (_) async => Right<Failure, List<Budget>>([
-        Budget(categoryId: 1, period: currentPeriod, limitAmount: 100000),
+        Budget(
+          categoryId: 1,
+          period: currentPeriod,
+          limitAmount: 100000,
+          periodStart: cycleStart,
+          periodEnd: cycleEnd,
+        ),
       ]),
     ),
     build: build,
@@ -559,6 +583,7 @@ void main() {
       getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChangeNotifier,
       receiptStorage: receiptStorage,
+      appSettings: appSettings,
       initial: const Transaction(
         id: 5,
         type: TransactionType.expense,

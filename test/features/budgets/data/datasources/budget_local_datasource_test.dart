@@ -9,9 +9,10 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../../../../helpers/mocks.dart';
 
 /// Exercises [BudgetLocalDatasource] against a real in-memory sqflite (ffi)
-/// database. The headline check: the SQL `spent` join buckets a transaction into
-/// exactly the period `periodKey` derives for the same date — proven at a month
-/// boundary so a tz-off-by-one would fail loudly.
+/// database. The headline check (V2-M1): the SQL `spent` join buckets a
+/// transaction into exactly the budget's stored `[period_start, period_end)`
+/// cycle window — proven at the half-open boundary so a tz-off-by-one or an
+/// inclusive-end bug would fail loudly.
 void main() {
   setUpAll(() {
     sqfliteFfiInit();
@@ -21,16 +22,25 @@ void main() {
   late Database db;
   late BudgetLocalDatasource datasource;
 
+  // Stamps the cycle range from the 'YYYY-MM' label (calendar-month bounds, ==
+  // BudgetCycle.range(1, …) at start-day 1), mirroring how the form/backfill do.
   BudgetModel budgetModel({
     required int categoryId,
     required String period,
     int limit = 500000,
-  }) => BudgetModel(
-    categoryId: categoryId,
-    period: period,
-    limitAmount: limit,
-    createdAt: 1,
-  );
+  }) {
+    final parts = period.split('-');
+    final y = int.parse(parts[0]);
+    final m = int.parse(parts[1]);
+    return BudgetModel(
+      categoryId: categoryId,
+      period: period,
+      limitAmount: limit,
+      createdAt: 1,
+      periodStart: DateTime(y, m).millisecondsSinceEpoch,
+      periodEnd: DateTime(y, m + 1).millisecondsSinceEpoch,
+    );
+  }
 
   Future<void> insertTx({
     required String type,
@@ -136,37 +146,76 @@ void main() {
     expect(rows.first.spent, 50000); // 30000 + 20000 only
   });
 
+  test('month boundary: each tx lands in its own cycle window', () async {
+    // Two budgets straddling the Jan/Feb boundary.
+    await datasource.insert(budgetModel(categoryId: 1, period: '2026-01'));
+    await datasource.insert(budgetModel(categoryId: 1, period: '2026-02'));
+
+    final lastDayJan = DateTime(2026, 1, 31);
+    final firstDayFeb = DateTime(2026, 2);
+    // Sanity: Dart buckets these exactly on either side of the boundary.
+    expect(periodKey(lastDayJan), '2026-01');
+    expect(periodKey(firstDayFeb), '2026-02');
+
+    await insertTx(
+      type: 'expense',
+      amount: 11000,
+      categoryId: 1,
+      date: lastDayJan,
+    );
+    await insertTx(
+      type: 'expense',
+      amount: 22000,
+      categoryId: 1,
+      date: firstDayFeb,
+    );
+
+    final jan = await datasource.getBudgetsForPeriod('2026-01');
+    final feb = await datasource.getBudgetsForPeriod('2026-02');
+    // The `[period_start, period_end)` join lands each tx in exactly one cycle.
+    expect(jan.single.spent, 11000);
+    expect(feb.single.spent, 22000);
+  });
+
   test(
-    'month boundary: the SQL period bucket matches the Dart periodKey',
+    'half-open window: a tx one ms before start and one at end are excluded',
     () async {
-      // Two budgets straddling the Jan/Feb boundary.
       await datasource.insert(budgetModel(categoryId: 1, period: '2026-01'));
-      await datasource.insert(budgetModel(categoryId: 1, period: '2026-02'));
+      // Boundaries of the Jan cycle: [1 Jan 00:00, 1 Feb 00:00).
+      final start = DateTime(2026).millisecondsSinceEpoch;
+      final end = DateTime(2026, 2).millisecondsSinceEpoch;
 
-      final lastDayJan = DateTime(2026, 1, 31);
-      final firstDayFeb = DateTime(2026, 2);
-      // Sanity: Dart buckets these exactly on either side of the boundary.
-      expect(periodKey(lastDayJan), '2026-01');
-      expect(periodKey(firstDayFeb), '2026-02');
-
+      // Inside (>= start, < end): the two counted transactions.
       await insertTx(
         type: 'expense',
-        amount: 11000,
+        amount: 5000,
         categoryId: 1,
-        date: lastDayJan,
+        date: DateTime.fromMillisecondsSinceEpoch(start), // exactly start
       );
       await insertTx(
         type: 'expense',
-        amount: 22000,
+        amount: 7000,
         categoryId: 1,
-        date: firstDayFeb,
+        date: DateTime.fromMillisecondsSinceEpoch(
+          end - 1,
+        ), // last ms before end
+      );
+      // Excluded: one ms before start, and exactly at end (next cycle's start).
+      await insertTx(
+        type: 'expense',
+        amount: 99000,
+        categoryId: 1,
+        date: DateTime.fromMillisecondsSinceEpoch(start - 1),
+      );
+      await insertTx(
+        type: 'expense',
+        amount: 88000,
+        categoryId: 1,
+        date: DateTime.fromMillisecondsSinceEpoch(end),
       );
 
-      final jan = await datasource.getBudgetsForPeriod('2026-01');
-      final feb = await datasource.getBudgetsForPeriod('2026-02');
-      // The SQL strftime bucket lands each tx in the same period Dart would.
-      expect(jan.single.spent, 11000);
-      expect(feb.single.spent, 22000);
+      final rows = await datasource.getBudgetsForPeriod('2026-01');
+      expect(rows.single.spent, 12000); // 5000 + 7000 only
     },
   );
 

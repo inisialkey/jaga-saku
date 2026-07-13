@@ -15,7 +15,7 @@ class Migrations {
   /// Current schema version. Bump when adding a new `_v<N>` step; wire that step
   /// into BOTH [onCreate] (append `await _vN(db);`) and [migrate]
   /// (append `if (oldVersion < N) await _vN(db);`).
-  static const int latestVersion = 6;
+  static const int latestVersion = 7;
 
   /// Runs on a brand-new database — replays every version step in order so a
   /// fresh install produces the exact schema an upgrade-from-v1 produces. Steps
@@ -28,6 +28,7 @@ class Migrations {
     await _v4(db);
     await _v5(db);
     await _v6(db);
+    await _v7(db);
   }
 
   /// Steps an existing database from [oldVersion] to [newVersion], applying only
@@ -42,6 +43,7 @@ class Migrations {
     if (oldVersion < 4) await _v4(db);
     if (oldVersion < 5) await _v5(db);
     if (oldVersion < 6) await _v6(db);
+    if (oldVersion < 7) await _v7(db);
   }
 
   /// Builds the v1 baseline only. Exposed for the schema-parity test, which
@@ -249,5 +251,65 @@ class Migrations {
       now,
       'adjustment_out',
     ]);
+  }
+
+  /// v7 — custom budget period (V2-M1). Adds the explicit `[period_start,
+  /// period_end)` millis range and backfills every existing 'YYYY-MM' row to its
+  /// calendar-month bounds, so no live budget is lost. Uniqueness moves to a
+  /// non-destructive UNIQUE INDEX on (category_id, period_start) — a table-level
+  /// UNIQUE change would need SQLite's 12-step table rebuild (data-loss risk on
+  /// live budgets). `period` is KEPT as a display + lookup label.
+  ///
+  /// The OLD `UNIQUE(category_id, period)` STAYS: removing it needs the rebuild,
+  /// and both constraints coexist safely because `period ↔ period_start` is a
+  /// bijection per category (each monthly cycle has a distinct start AND a
+  /// distinct start-month label), so after backfill the index builds without
+  /// conflict on existing data.
+  ///
+  /// `ADD COLUMN` has no `IF NOT EXISTS`, but `_v7` runs exactly once per path
+  /// (onCreate replays it once on a fresh DB; migrate runs it once for
+  /// oldVersion < 7), so the two ALTERs never double-add — the _v4/_v6
+  /// precedent. The backfill is factored into [backfillBudgetRanges] (idempotent,
+  /// guarded by `period_start IS NULL`) so the migration test can prove
+  /// idempotency without re-running the once-only ALTER.
+  static Future<void> _v7(Database db) async {
+    await db.execute('ALTER TABLE budgets ADD COLUMN period_start INTEGER;');
+    await db.execute('ALTER TABLE budgets ADD COLUMN period_end INTEGER;');
+    await backfillBudgetRanges(db);
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_cat_start '
+      'ON budgets(category_id, period_start);',
+    );
+  }
+
+  /// Idempotent backfill: derives `[period_start, period_end)` from each row's
+  /// 'YYYY-MM' `period` (its calendar-month bounds, local millis — matching the
+  /// old strftime bucket AND `BudgetCycle.range(1, …)`). `WHERE period_start IS
+  /// NULL` makes a replay a no-op; on a fresh DB the budgets table is empty so
+  /// this is a no-op there too. [visibleForTesting] so the migration test can
+  /// call it twice to prove idempotency.
+  @visibleForTesting
+  static Future<void> backfillBudgetRanges(Database db) async {
+    final rows = await db.query(
+      'budgets',
+      columns: ['id', 'period'],
+      where: 'period_start IS NULL OR period_end IS NULL',
+    );
+    final batch = db.batch();
+    for (final row in rows) {
+      final parts = (row['period']! as String).split('-');
+      final y = int.parse(parts[0]);
+      final m = int.parse(parts[1]);
+      batch.update(
+        'budgets',
+        {
+          'period_start': DateTime(y, m).millisecondsSinceEpoch,
+          'period_end': DateTime(y, m + 1).millisecondsSinceEpoch,
+        },
+        where: 'id = ?',
+        whereArgs: [row['id']],
+      );
+    }
+    await batch.commit(noResult: true);
   }
 }

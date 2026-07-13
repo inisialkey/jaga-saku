@@ -392,6 +392,27 @@
   "budgetLimit": "Batas Budget",
   "selectMonth": "Pilih Bulan",
   "deleteBudgetConfirm": "Yakin ingin menghapus budget ini?",
+  "budgetCycle": "Siklus Anggaran",
+  "budgetCycleStartDay": "Hari {day}",
+  "@budgetCycleStartDay": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "budgetCycleMonthly": "Kalender bulanan",
+  "budgetCycleRange": "{start} – {end}",
+  "@budgetCycleRange": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
   "spentOfLimit": "{spent} dari {limit}",
   "@spentOfLimit": {
     "placeholders": {

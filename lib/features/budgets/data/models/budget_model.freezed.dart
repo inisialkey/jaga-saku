@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BudgetModel {
 
- int get categoryId; String get period; int get limitAmount; int? get id; int get createdAt; int get spent;
+ int get categoryId; String get period; int get limitAmount; int? get id; int get createdAt;/// The cycle window (local-midnight millis, half-open `[start, end)`). V2-M1.
+ int get periodStart; int get periodEnd; int get spent;
 /// Create a copy of BudgetModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +26,16 @@ $BudgetModelCopyWith<BudgetModel> get copyWith => _$BudgetModelCopyWithImpl<Budg
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BudgetModel&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.period, period) || other.period == period)&&(identical(other.limitAmount, limitAmount) || other.limitAmount == limitAmount)&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.spent, spent) || other.spent == spent));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BudgetModel&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.period, period) || other.period == period)&&(identical(other.limitAmount, limitAmount) || other.limitAmount == limitAmount)&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.periodStart, periodStart) || other.periodStart == periodStart)&&(identical(other.periodEnd, periodEnd) || other.periodEnd == periodEnd)&&(identical(other.spent, spent) || other.spent == spent));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,categoryId,period,limitAmount,id,createdAt,spent);
+int get hashCode => Object.hash(runtimeType,categoryId,period,limitAmount,id,createdAt,periodStart,periodEnd,spent);
 
 @override
 String toString() {
-  return 'BudgetModel(categoryId: $categoryId, period: $period, limitAmount: $limitAmount, id: $id, createdAt: $createdAt, spent: $spent)';
+  return 'BudgetModel(categoryId: $categoryId, period: $period, limitAmount: $limitAmount, id: $id, createdAt: $createdAt, periodStart: $periodStart, periodEnd: $periodEnd, spent: $spent)';
 }
 
 
@@ -45,7 +46,7 @@ abstract mixin class $BudgetModelCopyWith<$Res>  {
   factory $BudgetModelCopyWith(BudgetModel value, $Res Function(BudgetModel) _then) = _$BudgetModelCopyWithImpl;
 @useResult
 $Res call({
- int categoryId, String period, int limitAmount, int? id, int createdAt, int spent
+ int categoryId, String period, int limitAmount, int? id, int createdAt, int periodStart, int periodEnd, int spent
 });
 
 
@@ -62,13 +63,15 @@ class _$BudgetModelCopyWithImpl<$Res>
 
 /// Create a copy of BudgetModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? categoryId = null,Object? period = null,Object? limitAmount = null,Object? id = freezed,Object? createdAt = null,Object? spent = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? categoryId = null,Object? period = null,Object? limitAmount = null,Object? id = freezed,Object? createdAt = null,Object? periodStart = null,Object? periodEnd = null,Object? spent = null,}) {
   return _then(_self.copyWith(
 categoryId: null == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
 as int,period: null == period ? _self.period : period // ignore: cast_nullable_to_non_nullable
 as String,limitAmount: null == limitAmount ? _self.limitAmount : limitAmount // ignore: cast_nullable_to_non_nullable
 as int,id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as int,periodStart: null == periodStart ? _self.periodStart : periodStart // ignore: cast_nullable_to_non_nullable
+as int,periodEnd: null == periodEnd ? _self.periodEnd : periodEnd // ignore: cast_nullable_to_non_nullable
 as int,spent: null == spent ? _self.spent : spent // ignore: cast_nullable_to_non_nullable
 as int,
   ));
@@ -155,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int categoryId,  String period,  int limitAmount,  int? id,  int createdAt,  int spent)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int categoryId,  String period,  int limitAmount,  int? id,  int createdAt,  int periodStart,  int periodEnd,  int spent)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BudgetModel() when $default != null:
-return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.createdAt,_that.spent);case _:
+return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.createdAt,_that.periodStart,_that.periodEnd,_that.spent);case _:
   return orElse();
 
 }
@@ -176,10 +179,10 @@ return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.c
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int categoryId,  String period,  int limitAmount,  int? id,  int createdAt,  int spent)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int categoryId,  String period,  int limitAmount,  int? id,  int createdAt,  int periodStart,  int periodEnd,  int spent)  $default,) {final _that = this;
 switch (_that) {
 case _BudgetModel():
-return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.createdAt,_that.spent);case _:
+return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.createdAt,_that.periodStart,_that.periodEnd,_that.spent);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +199,10 @@ return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.c
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int categoryId,  String period,  int limitAmount,  int? id,  int createdAt,  int spent)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int categoryId,  String period,  int limitAmount,  int? id,  int createdAt,  int periodStart,  int periodEnd,  int spent)?  $default,) {final _that = this;
 switch (_that) {
 case _BudgetModel() when $default != null:
-return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.createdAt,_that.spent);case _:
+return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.createdAt,_that.periodStart,_that.periodEnd,_that.spent);case _:
   return null;
 
 }
@@ -211,7 +214,7 @@ return $default(_that.categoryId,_that.period,_that.limitAmount,_that.id,_that.c
 
 
 class _BudgetModel extends BudgetModel {
-  const _BudgetModel({required this.categoryId, required this.period, required this.limitAmount, this.id, this.createdAt = 0, this.spent = 0}): super._();
+  const _BudgetModel({required this.categoryId, required this.period, required this.limitAmount, this.id, this.createdAt = 0, this.periodStart = 0, this.periodEnd = 0, this.spent = 0}): super._();
   
 
 @override final  int categoryId;
@@ -219,6 +222,9 @@ class _BudgetModel extends BudgetModel {
 @override final  int limitAmount;
 @override final  int? id;
 @override@JsonKey() final  int createdAt;
+/// The cycle window (local-midnight millis, half-open `[start, end)`). V2-M1.
+@override@JsonKey() final  int periodStart;
+@override@JsonKey() final  int periodEnd;
 @override@JsonKey() final  int spent;
 
 /// Create a copy of BudgetModel
@@ -231,16 +237,16 @@ _$BudgetModelCopyWith<_BudgetModel> get copyWith => __$BudgetModelCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BudgetModel&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.period, period) || other.period == period)&&(identical(other.limitAmount, limitAmount) || other.limitAmount == limitAmount)&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.spent, spent) || other.spent == spent));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BudgetModel&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.period, period) || other.period == period)&&(identical(other.limitAmount, limitAmount) || other.limitAmount == limitAmount)&&(identical(other.id, id) || other.id == id)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.periodStart, periodStart) || other.periodStart == periodStart)&&(identical(other.periodEnd, periodEnd) || other.periodEnd == periodEnd)&&(identical(other.spent, spent) || other.spent == spent));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,categoryId,period,limitAmount,id,createdAt,spent);
+int get hashCode => Object.hash(runtimeType,categoryId,period,limitAmount,id,createdAt,periodStart,periodEnd,spent);
 
 @override
 String toString() {
-  return 'BudgetModel(categoryId: $categoryId, period: $period, limitAmount: $limitAmount, id: $id, createdAt: $createdAt, spent: $spent)';
+  return 'BudgetModel(categoryId: $categoryId, period: $period, limitAmount: $limitAmount, id: $id, createdAt: $createdAt, periodStart: $periodStart, periodEnd: $periodEnd, spent: $spent)';
 }
 
 
@@ -251,7 +257,7 @@ abstract mixin class _$BudgetModelCopyWith<$Res> implements $BudgetModelCopyWith
   factory _$BudgetModelCopyWith(_BudgetModel value, $Res Function(_BudgetModel) _then) = __$BudgetModelCopyWithImpl;
 @override @useResult
 $Res call({
- int categoryId, String period, int limitAmount, int? id, int createdAt, int spent
+ int categoryId, String period, int limitAmount, int? id, int createdAt, int periodStart, int periodEnd, int spent
 });
 
 
@@ -268,13 +274,15 @@ class __$BudgetModelCopyWithImpl<$Res>
 
 /// Create a copy of BudgetModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? categoryId = null,Object? period = null,Object? limitAmount = null,Object? id = freezed,Object? createdAt = null,Object? spent = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? categoryId = null,Object? period = null,Object? limitAmount = null,Object? id = freezed,Object? createdAt = null,Object? periodStart = null,Object? periodEnd = null,Object? spent = null,}) {
   return _then(_BudgetModel(
 categoryId: null == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
 as int,period: null == period ? _self.period : period // ignore: cast_nullable_to_non_nullable
 as String,limitAmount: null == limitAmount ? _self.limitAmount : limitAmount // ignore: cast_nullable_to_non_nullable
 as int,id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as int,periodStart: null == periodStart ? _self.periodStart : periodStart // ignore: cast_nullable_to_non_nullable
+as int,periodEnd: null == periodEnd ? _self.periodEnd : periodEnd // ignore: cast_nullable_to_non_nullable
 as int,spent: null == spent ? _self.spent : spent // ignore: cast_nullable_to_non_nullable
 as int,
   ));

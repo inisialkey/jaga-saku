@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
@@ -27,6 +28,7 @@ void main() {
   late MockSaveTransaction saveTransaction;
   late MockDeleteTransaction deleteTransaction;
   late TxChangeNotifier txChanges;
+  late AppSettingsCubit appSettings;
 
   // Anchor everything to the local "today" the cubit computes against.
   final now = DateTime.now();
@@ -59,9 +61,18 @@ void main() {
     saveTransaction = MockSaveTransaction();
     deleteTransaction = MockDeleteTransaction();
     txChanges = TxChangeNotifier();
+    // Default start-day 1 → the Home guard looks up the calendar-month cycle,
+    // so every pre-M1 assertion here reproduces unchanged.
+    appSettings = AppSettingsCubit(
+      MockSettingsService(),
+      MockTxChangeNotifier(),
+    );
   });
 
-  tearDown(() => txChanges.dispose());
+  tearDown(() async {
+    await appSettings.close();
+    txChanges.dispose();
+  });
 
   HomeCubit build() => HomeCubit(
     getAccounts: getAccounts,
@@ -74,6 +85,7 @@ void main() {
     saveTransaction: saveTransaction,
     deleteTransaction: deleteTransaction,
     txChangeNotifier: txChanges,
+    appSettings: appSettings,
   );
 
   void stubAll({

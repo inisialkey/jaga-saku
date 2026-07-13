@@ -53,8 +53,8 @@ void main() {
     // The greeting name now flows from the app-global AppSettingsCubit (M6),
     // backed by a mocked SettingsService.
     settings = MockSettingsService();
-    appSettings = AppSettingsCubit(settings);
     txChanges = TxChangeNotifier();
+    appSettings = AppSettingsCubit(settings, txChanges);
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
     when(
@@ -84,6 +84,7 @@ void main() {
     saveTransaction: saveTransaction,
     deleteTransaction: deleteTransaction,
     txChangeNotifier: txChanges,
+    appSettings: appSettings,
   );
 
   // A tall surface so the whole ListView lays out (its lazy children below the

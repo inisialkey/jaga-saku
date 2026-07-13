@@ -15,21 +15,32 @@ abstract class BudgetModel with _$BudgetModel {
     required int limitAmount,
     int? id,
     @Default(0) int createdAt,
+
+    /// The cycle window (local-midnight millis, half-open `[start, end)`). V2-M1.
+    @Default(0) int periodStart,
+    @Default(0) int periodEnd,
     @Default(0) int spent,
   }) = _BudgetModel;
 
   const BudgetModel._();
 
   /// Builds a model from a `SELECT b.*, ... AS spent` row. `spent` may be absent
-  /// (plain reads) — it then defaults to 0.
-  factory BudgetModel.fromMap(Map<String, Object?> map) => BudgetModel(
-    id: map['id'] as int?,
-    categoryId: map['category_id']! as int,
-    period: map['period']! as String,
-    limitAmount: (map['limit_amount'] as int?) ?? 0,
-    createdAt: (map['created_at'] as int?) ?? 0,
-    spent: (map['spent'] as int?) ?? 0,
-  );
+  /// (plain reads) — it then defaults to 0. `period_start` / `period_end` fall
+  /// back to the `period` label's calendar-month bounds — belt-and-suspenders,
+  /// since `_v7` backfills every row so null never actually reaches here.
+  factory BudgetModel.fromMap(Map<String, Object?> map) {
+    final period = map['period']! as String;
+    return BudgetModel(
+      id: map['id'] as int?,
+      categoryId: map['category_id']! as int,
+      period: period,
+      limitAmount: (map['limit_amount'] as int?) ?? 0,
+      createdAt: (map['created_at'] as int?) ?? 0,
+      periodStart: (map['period_start'] as int?) ?? _monthStart(period),
+      periodEnd: (map['period_end'] as int?) ?? _monthEnd(period),
+      spent: (map['spent'] as int?) ?? 0,
+    );
+  }
 
   factory BudgetModel.fromEntity(Budget budget) => BudgetModel(
     id: budget.id,
@@ -37,6 +48,8 @@ abstract class BudgetModel with _$BudgetModel {
     period: budget.period,
     limitAmount: budget.limitAmount,
     createdAt: budget.createdAt,
+    periodStart: budget.periodStart,
+    periodEnd: budget.periodEnd,
     spent: budget.spent,
   );
 
@@ -48,6 +61,8 @@ abstract class BudgetModel with _$BudgetModel {
     'period': period,
     'limit_amount': limitAmount,
     'created_at': createdAt,
+    'period_start': periodStart,
+    'period_end': periodEnd,
   };
 
   Budget toEntity() => Budget(
@@ -56,6 +71,26 @@ abstract class BudgetModel with _$BudgetModel {
     period: period,
     limitAmount: limitAmount,
     createdAt: createdAt,
+    periodStart: periodStart,
+    periodEnd: periodEnd,
     spent: spent,
   );
+
+  /// Calendar-month start millis for a 'YYYY-MM' [period] (the backfill formula).
+  static int _monthStart(String period) {
+    final parts = period.split('-');
+    return DateTime(
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    ).millisecondsSinceEpoch;
+  }
+
+  /// Calendar-month end millis (exclusive) for a 'YYYY-MM' [period].
+  static int _monthEnd(String period) {
+    final parts = period.split('-');
+    return DateTime(
+      int.parse(parts[0]),
+      int.parse(parts[1]) + 1,
+    ).millisecondsSinceEpoch;
+  }
 }

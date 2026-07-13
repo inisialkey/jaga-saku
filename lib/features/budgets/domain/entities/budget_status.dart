@@ -16,30 +16,33 @@ String periodKey(DateTime date) {
 /// safe `< 0.8`, warning `[0.8, 1.0)`, critical `>= 1.0`.
 enum BudgetStatusLevel { safe, warning, critical }
 
-/// Pure money math for one budget in one period — **no Flutter, no DB** (rule
+/// Pure money math for one budget in one cycle — **no Flutter, no DB** (rule
 /// 19). Given the limit, the spent-so-far, the current clock and the budget's
-/// period, it derives the remaining amount, the spent ratio, the days left, the
-/// safe daily spend and the status level.
+/// stored `[periodStart, periodEnd)` cycle, it derives the remaining amount, the
+/// spent ratio, the days left, the safe daily spend and the status level.
 ///
 /// This is the correctness core (plan §2.2): unit-tested hard against the
-/// threshold boundaries, the month-boundary safe-daily, and the divide-by-zero
-/// / past / future edges.
+/// threshold boundaries, the cycle-boundary safe-daily, and the divide-by-zero
+/// / past / future edges. At start-day 1 the cycle is the calendar month, so
+/// every pre-M1 assertion reproduces exactly.
 class BudgetStatus {
-  /// Computes the derived values from raw ints + the clock. [period] is the
-  /// budget's 'YYYY-MM'; [now] is the current time (injected so tests are
-  /// deterministic and only the current month drives safe-daily / warnings).
+  /// Computes the derived values from raw ints + the clock. [periodStart] /
+  /// [periodEnd] are the budget's cycle window (local-midnight millis, half-open);
+  /// [now] is the current time (injected so tests are deterministic and only the
+  /// current cycle drives safe-daily / warnings).
   factory BudgetStatus.compute({
     required int limitAmount,
     required int spent,
     required DateTime now,
-    required String period,
+    required int periodStart,
+    required int periodEnd,
   }) {
     final remaining = limitAmount - spent;
     // Guard divide-by-zero: a zero (or invalid) limit has no meaningful ratio,
     // so it reads as 0% rather than crashing. The form blocks limit <= 0, so
     // this only ever fires for degenerate / legacy data.
     final ratio = limitAmount <= 0 ? 0.0 : spent / limitAmount;
-    final remainingDays = _remainingDays(now, period);
+    final remainingDays = _remainingDays(now, periodStart, periodEnd);
     // Only a period with days left has a safe-daily; a negative remaining floors
     // to 0 so we never surface a negative daily allowance.
     final safeDaily = remainingDays > 0
@@ -73,8 +76,8 @@ class BudgetStatus {
   /// spent / limit (0.0 when the limit is 0). 1.0 == exactly at the limit.
   final double ratio;
 
-  /// Days left in the period *including today* when [period] is the current
-  /// month; 0 for a past period; the full month for a future one.
+  /// Days left in the cycle *including today* when [now] is inside it; 0 for a
+  /// past cycle; the full span for a future one.
   final int remainingDays;
 
   /// `max(0, remaining) ~/ remainingDays` — the per-day spend that still lands
@@ -89,22 +92,24 @@ class BudgetStatus {
   /// True once spending has reached or passed the limit.
   bool get isOverBudget => level == BudgetStatusLevel.critical;
 
-  /// Days left in [period]'s month relative to [now]:
-  /// - current month → `daysInMonth − now.day + 1` (today counts),
-  /// - past month → 0 (safe-daily N/A),
-  /// - future month → the full month.
-  static int _remainingDays(DateTime now, String period) {
-    final parts = period.split('-');
-    final year = int.tryParse(parts.isNotEmpty ? parts[0] : '') ?? now.year;
-    final month = int.tryParse(parts.length > 1 ? parts[1] : '') ?? now.month;
-    // Day 0 of the next month == the last day of this month (Dart normalizes a
-    // month of 13 back to January of the next year).
-    final daysInMonth = DateTime(year, month + 1, 0).day;
-
-    if (year == now.year && month == now.month) {
-      return daysInMonth - now.day + 1;
+  /// Days left in the `[periodStart, periodEnd)` cycle relative to [now]:
+  /// - inside the cycle → days from today to the end (today counts),
+  /// - past cycle (today ≥ end) → 0 (safe-daily N/A),
+  /// - future cycle (today < start) → the full span.
+  ///
+  /// `.inDays` on two local-midnights is exact in WIB (no DST) — the invariant
+  /// the whole app already relies on (see `recurrence_schedule.dart`).
+  static int _remainingDays(DateTime now, int periodStart, int periodEnd) {
+    final today = DateTime(now.year, now.month, now.day);
+    final todayMs = today.millisecondsSinceEpoch;
+    if (todayMs >= periodEnd) return 0; // past cycle
+    final end = DateTime.fromMillisecondsSinceEpoch(periodEnd);
+    if (todayMs < periodStart) {
+      // future cycle: the full span (start → end).
+      return end
+          .difference(DateTime.fromMillisecondsSinceEpoch(periodStart))
+          .inDays;
     }
-    final isPast = year < now.year || (year == now.year && month < now.month);
-    return isPast ? 0 : daysInMonth;
+    return end.difference(today).inDays; // current cycle: days left incl. today
   }
 }

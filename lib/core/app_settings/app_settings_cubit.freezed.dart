@@ -17,7 +17,10 @@ mixin _$AppSettingsState {
 /// Default light per style guide §20; `System` is an explicit user choice.
  ThemeMode get themeMode;/// null → follow the device locale (System).
  Locale? get locale;/// Greeting name; null/blank → guest greeting on Home.
- String? get userName;
+ String? get userName;/// Day-of-month a budget cycle starts (1..31; V2-M1). Default 1 == the
+/// calendar month, so every existing budget is unchanged. Clamped to the
+/// month's last valid day by `BudgetCycle`.
+ int get budgetCycleStartDay;
 /// Create a copy of AppSettingsState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +31,16 @@ $AppSettingsStateCopyWith<AppSettingsState> get copyWith => _$AppSettingsStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettingsState&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.userName, userName) || other.userName == userName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettingsState&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.budgetCycleStartDay, budgetCycleStartDay) || other.budgetCycleStartDay == budgetCycleStartDay));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,themeMode,locale,userName);
+int get hashCode => Object.hash(runtimeType,themeMode,locale,userName,budgetCycleStartDay);
 
 @override
 String toString() {
-  return 'AppSettingsState(themeMode: $themeMode, locale: $locale, userName: $userName)';
+  return 'AppSettingsState(themeMode: $themeMode, locale: $locale, userName: $userName, budgetCycleStartDay: $budgetCycleStartDay)';
 }
 
 
@@ -48,7 +51,7 @@ abstract mixin class $AppSettingsStateCopyWith<$Res>  {
   factory $AppSettingsStateCopyWith(AppSettingsState value, $Res Function(AppSettingsState) _then) = _$AppSettingsStateCopyWithImpl;
 @useResult
 $Res call({
- ThemeMode themeMode, Locale? locale, String? userName
+ ThemeMode themeMode, Locale? locale, String? userName, int budgetCycleStartDay
 });
 
 
@@ -65,12 +68,13 @@ class _$AppSettingsStateCopyWithImpl<$Res>
 
 /// Create a copy of AppSettingsState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? themeMode = null,Object? locale = freezed,Object? userName = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? themeMode = null,Object? locale = freezed,Object? userName = freezed,Object? budgetCycleStartDay = null,}) {
   return _then(_self.copyWith(
 themeMode: null == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
 as ThemeMode,locale: freezed == locale ? _self.locale : locale // ignore: cast_nullable_to_non_nullable
 as Locale?,userName: freezed == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,budgetCycleStartDay: null == budgetCycleStartDay ? _self.budgetCycleStartDay : budgetCycleStartDay // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -155,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ThemeMode themeMode,  Locale? locale,  String? userName)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ThemeMode themeMode,  Locale? locale,  String? userName,  int budgetCycleStartDay)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppSettingsState() when $default != null:
-return $default(_that.themeMode,_that.locale,_that.userName);case _:
+return $default(_that.themeMode,_that.locale,_that.userName,_that.budgetCycleStartDay);case _:
   return orElse();
 
 }
@@ -176,10 +180,10 @@ return $default(_that.themeMode,_that.locale,_that.userName);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ThemeMode themeMode,  Locale? locale,  String? userName)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ThemeMode themeMode,  Locale? locale,  String? userName,  int budgetCycleStartDay)  $default,) {final _that = this;
 switch (_that) {
 case _AppSettingsState():
-return $default(_that.themeMode,_that.locale,_that.userName);case _:
+return $default(_that.themeMode,_that.locale,_that.userName,_that.budgetCycleStartDay);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +200,10 @@ return $default(_that.themeMode,_that.locale,_that.userName);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ThemeMode themeMode,  Locale? locale,  String? userName)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ThemeMode themeMode,  Locale? locale,  String? userName,  int budgetCycleStartDay)?  $default,) {final _that = this;
 switch (_that) {
 case _AppSettingsState() when $default != null:
-return $default(_that.themeMode,_that.locale,_that.userName);case _:
+return $default(_that.themeMode,_that.locale,_that.userName,_that.budgetCycleStartDay);case _:
   return null;
 
 }
@@ -211,7 +215,7 @@ return $default(_that.themeMode,_that.locale,_that.userName);case _:
 
 
 class _AppSettingsState implements AppSettingsState {
-  const _AppSettingsState({this.themeMode = ThemeMode.light, this.locale, this.userName});
+  const _AppSettingsState({this.themeMode = ThemeMode.light, this.locale, this.userName, this.budgetCycleStartDay = 1});
   
 
 /// Default light per style guide §20; `System` is an explicit user choice.
@@ -220,6 +224,10 @@ class _AppSettingsState implements AppSettingsState {
 @override final  Locale? locale;
 /// Greeting name; null/blank → guest greeting on Home.
 @override final  String? userName;
+/// Day-of-month a budget cycle starts (1..31; V2-M1). Default 1 == the
+/// calendar month, so every existing budget is unchanged. Clamped to the
+/// month's last valid day by `BudgetCycle`.
+@override@JsonKey() final  int budgetCycleStartDay;
 
 /// Create a copy of AppSettingsState
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +239,16 @@ _$AppSettingsStateCopyWith<_AppSettingsState> get copyWith => __$AppSettingsStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettingsState&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.userName, userName) || other.userName == userName));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettingsState&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.userName, userName) || other.userName == userName)&&(identical(other.budgetCycleStartDay, budgetCycleStartDay) || other.budgetCycleStartDay == budgetCycleStartDay));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,themeMode,locale,userName);
+int get hashCode => Object.hash(runtimeType,themeMode,locale,userName,budgetCycleStartDay);
 
 @override
 String toString() {
-  return 'AppSettingsState(themeMode: $themeMode, locale: $locale, userName: $userName)';
+  return 'AppSettingsState(themeMode: $themeMode, locale: $locale, userName: $userName, budgetCycleStartDay: $budgetCycleStartDay)';
 }
 
 
@@ -251,7 +259,7 @@ abstract mixin class _$AppSettingsStateCopyWith<$Res> implements $AppSettingsSta
   factory _$AppSettingsStateCopyWith(_AppSettingsState value, $Res Function(_AppSettingsState) _then) = __$AppSettingsStateCopyWithImpl;
 @override @useResult
 $Res call({
- ThemeMode themeMode, Locale? locale, String? userName
+ ThemeMode themeMode, Locale? locale, String? userName, int budgetCycleStartDay
 });
 
 
@@ -268,12 +276,13 @@ class __$AppSettingsStateCopyWithImpl<$Res>
 
 /// Create a copy of AppSettingsState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? themeMode = null,Object? locale = freezed,Object? userName = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? themeMode = null,Object? locale = freezed,Object? userName = freezed,Object? budgetCycleStartDay = null,}) {
   return _then(_AppSettingsState(
 themeMode: null == themeMode ? _self.themeMode : themeMode // ignore: cast_nullable_to_non_nullable
 as ThemeMode,locale: freezed == locale ? _self.locale : locale // ignore: cast_nullable_to_non_nullable
 as Locale?,userName: freezed == userName ? _self.userName : userName // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,budgetCycleStartDay: null == budgetCycleStartDay ? _self.budgetCycleStartDay : budgetCycleStartDay // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

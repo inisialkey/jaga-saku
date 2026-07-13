@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
@@ -12,6 +13,7 @@ import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_cycle.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -35,6 +37,7 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
     required GetBudgetsForPeriod getBudgetsForPeriod,
     required TxChangeNotifier txChangeNotifier,
     required ReceiptStorageService receiptStorage,
+    required AppSettingsCubit appSettings,
     Transaction? initial,
     TxTemplate? prefill,
   }) : _saveTransaction = saveTransaction,
@@ -43,6 +46,7 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
        _getBudgetsForPeriod = getBudgetsForPeriod,
        _txChanges = txChangeNotifier,
        _receiptStorage = receiptStorage,
+       _appSettings = appSettings,
        _initial = initial,
        super(_seed(initial, prefill));
 
@@ -52,6 +56,7 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
   final GetBudgetsForPeriod _getBudgetsForPeriod;
   final TxChangeNotifier _txChanges;
   final ReceiptStorageService _receiptStorage;
+  final AppSettingsCubit _appSettings;
   final Transaction? _initial;
 
   /// True once a save has persisted the current [state.receiptPath]. Gates
@@ -217,8 +222,8 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
     }
 
     // Budget guard (plan §5): a new expense whose amount exceeds its category's
-    // safe-daily for the current month pauses for a confirm sheet before saving.
-    // Non-expense / edit / non-current-month / no-budget → straight through.
+    // safe-daily for the current cycle pauses for a confirm sheet before saving.
+    // Non-expense / edit / outside-current-cycle / no-budget → straight through.
     final safeDaily = await _safeDailyBreach();
     if (isClosed) return;
     if (safeDaily != null) {
@@ -301,18 +306,26 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
 
   /// The category's safe-daily when this expense would breach it (so the page
   /// warns), else null: a non-expense, an edit (its amount is already in the
-  /// budget's spent), a non-current-month date, no budget for the category, or
-  /// `amount <= safeDaily`.
+  /// budget's spent), a date outside the current cycle, no budget for the
+  /// category, or `amount <= safeDaily`.
   Future<int?> _safeDailyBreach() async {
     if (!state.isExpense || state.isEditing || state.categoryId == null) {
       return null;
     }
     final now = DateTime.now();
-    final currentPeriod = periodKey(now);
-    if (periodKey(DateTime.fromMillisecondsSinceEpoch(state.date)) !=
-        currentPeriod) {
-      return null;
-    }
+    // The guard is for the budget cycle CONTAINING now (V2-M1). At start-day 1
+    // this is exactly the calendar month; its lookup label is the cycle-start
+    // month (matching how the budget row was stamped).
+    final cycle = BudgetCycle.range(
+      startDay: _appSettings.state.budgetCycleStartDay,
+      reference: now,
+    );
+    // Only warn when the tx date falls inside the current cycle window
+    // (half-open `[start, end)`).
+    if (state.date < cycle.start || state.date >= cycle.end) return null;
+    final currentPeriod = periodKey(
+      DateTime.fromMillisecondsSinceEpoch(cycle.start),
+    );
     final result = await _getBudgetsForPeriod(currentPeriod);
     final budgets = result.getRight().toNullable() ?? const <Budget>[];
     Budget? budget;
@@ -327,7 +340,8 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
       limitAmount: budget.limitAmount,
       spent: budget.spent,
       now: now,
-      period: currentPeriod,
+      periodStart: budget.periodStart,
+      periodEnd: budget.periodEnd,
     );
     return state.amount > status.safeDaily ? status.safeDaily : null;
   }
