@@ -89,7 +89,12 @@ class _AccountListBody extends StatelessWidget {
         Expanded(
           child: ReorderableListView.builder(
             buildDefaultDragHandles: false,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.xxl,
+            ),
             itemCount: visible.length,
             onReorderItem: (oldIndex, newIndex) =>
                 context.read<AccountListCubit>().reorder(oldIndex, newIndex),

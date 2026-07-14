@@ -64,7 +64,12 @@ class _RecurringListBody extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.xxl,
+      ),
       itemCount: rules.length,
       itemBuilder: (context, index) {
         final rule = rules[index];

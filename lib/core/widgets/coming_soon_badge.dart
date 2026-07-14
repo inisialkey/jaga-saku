@@ -19,7 +19,7 @@ class ComingSoonBadge extends StatelessWidget {
       Strings.of(context)!.comingSoon,
       style: Theme.of(
         context,
-      ).textTheme.labelSmall?.copyWith(color: context.colors.textTertiary),
+      ).textTheme.labelSmall?.copyWith(color: context.colors.textSecondary),
     ),
   );
 }

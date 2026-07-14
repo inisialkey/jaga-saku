@@ -65,7 +65,7 @@ class _InsightBody extends StatelessWidget {
         AppSpacing.lg,
         AppSpacing.sm,
         AppSpacing.lg,
-        AppSpacing.xxl,
+        kFabScrollBottomInset, // clear the center Add FAB
       ),
       children: [
         MonthSelector(

@@ -48,7 +48,12 @@ class _HomeBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(AppSpacing.lg),
+    padding: const EdgeInsets.fromLTRB(
+      AppSpacing.lg,
+      AppSpacing.lg,
+      AppSpacing.lg,
+      kFabScrollBottomInset, // clear the center Add FAB
+    ),
     children: [
       // The greeting name is app-global (M6): read it from AppSettingsCubit so
       // editing it in Settings updates Home live. Only the header rebuilds.

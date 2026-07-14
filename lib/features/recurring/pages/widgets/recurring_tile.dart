@@ -69,7 +69,7 @@ class RecurringTile extends StatelessWidget {
               Text(
                 '—',
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: context.colors.textTertiary,
+                  color: context.colors.textSecondary,
                 ),
               ),
           ],

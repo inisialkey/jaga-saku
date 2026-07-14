@@ -30,7 +30,12 @@ class CalendarPage extends StatelessWidget {
                 onRetry: () => context.read<CalendarCubit>().load(),
               )
             : ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  kFabScrollBottomInset, // clear the center Add FAB
+                ),
                 children: [
                   _CalendarCard(state: state),
                   const SizedBox(height: AppSpacing.lg),

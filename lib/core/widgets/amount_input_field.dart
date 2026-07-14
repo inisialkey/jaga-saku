@@ -37,40 +37,58 @@ class AmountInputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final amountStyle = Theme.of(context).textTheme.displayMedium;
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.colors.border),
-      ),
-      child: Row(
-        children: [
-          Text(
-            'Rp',
-            style: amountStyle?.copyWith(color: context.colors.textTertiary),
+    final s = Strings.of(context);
+    final display = controller.text.isEmpty ? hint : controller.text;
+    // Announce as a button (opens the keypad), not an editable field, and read
+    // the current amount in the label since the inner field is excluded.
+    return Semantics(
+      button: true,
+      label: s == null ? 'Rp $display' : '${s.amount}, Rp $display',
+      excludeSemantics: true,
+      onTap: () => _openKeypad(context),
+      child: GestureDetector(
+        // Opaque so the whole 72px pill is tappable (the Rp prefix + the
+        // horizontal padding were dead zones), not just the inner field.
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _openKeypad(context),
+        child: Container(
+          height: 72,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: context.colors.border),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              autofocus: autofocus,
-              readOnly: true,
-              showCursor: true,
-              onTap: () => _openKeypad(context),
-              style: amountStyle,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                isCollapsed: true,
-                hintText: hint,
-                hintStyle: amountStyle?.copyWith(
-                  color: context.colors.textTertiary,
+          child: Row(
+            children: [
+              Text(
+                'Rp',
+                style: amountStyle?.copyWith(
+                  color: context.colors.textSecondary,
                 ),
               ),
-            ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  autofocus: autofocus,
+                  readOnly: true,
+                  showCursor: true,
+                  onTap: () => _openKeypad(context),
+                  style: amountStyle,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                    hintText: hint,
+                    hintStyle: amountStyle?.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

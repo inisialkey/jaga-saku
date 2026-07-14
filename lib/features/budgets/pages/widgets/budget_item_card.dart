@@ -54,7 +54,7 @@ class BudgetItemCard extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                   icon: Icon(
                     Icons.delete_outline_rounded,
-                    color: context.colors.textTertiary,
+                    color: context.colors.textSecondary,
                   ),
                   onPressed: onDelete,
                 ),

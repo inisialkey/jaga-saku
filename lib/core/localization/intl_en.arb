@@ -292,6 +292,7 @@
   "unarchive": "Unarchive",
   "showArchived": "Show archived",
   "hideArchived": "Hide archived",
+  "reorder": "Reorder",
   "errorLoadTitle": "Couldn't load data",
   "finance": "Finance",
   "data": "Data",

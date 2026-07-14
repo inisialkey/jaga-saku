@@ -45,8 +45,9 @@ void main() {
         result.surfaceSoft,
         Color.lerp(AppColors.surfaceSoft, AppColors.surfaceSoftDark, 0.5),
       );
-      // Tokens identical in both palettes interpolate to themselves.
-      expect(result.income, AppColors.income);
+      // Tokens identical in both palettes interpolate to themselves. (income /
+      // expense / transfer now differ by brightness, so use a stable token.)
+      expect(result.warning, AppColors.warning);
     });
   });
 }
