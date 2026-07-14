@@ -43,7 +43,8 @@ extension StringExtension on String {
       // showToast(msg)
       showToastWidget(
         Toast(
-          bgColor: context.colors.success,
+          // Text-safe dark green (5.0:1 vs white) — vivid success fails AA.
+          bgColor: AppColors.successDark,
           icon: Icons.check_circle,
           message: message,
           textColor: Colors.white,
@@ -65,7 +66,8 @@ extension StringExtension on String {
 
       showToastWidget(
         Toast(
-          bgColor: context.colors.info,
+          // Text-safe dark sky (5.9:1 vs white) — vivid info fails AA.
+          bgColor: AppColors.infoDark,
           icon: Icons.info,
           message: message,
           textColor: Colors.white,

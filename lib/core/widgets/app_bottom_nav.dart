@@ -73,21 +73,28 @@ class _NavCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : context.colors.textTertiary;
-    return InkResponse(
+    final color = selected ? AppColors.primary : context.colors.textSecondary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.label,
+      excludeSemantics: true,
       onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(item.icon, color: color, size: 24),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            item.label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: color),
-          ),
-        ],
+      child: InkResponse(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(item.icon, color: color, size: 24),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              item.label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ],
+        ),
       ),
     );
   }

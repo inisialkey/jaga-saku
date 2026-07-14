@@ -108,7 +108,7 @@ class _AboutHeader extends StatelessWidget {
             Text(
               s.appVersion(version!),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: context.colors.textTertiary,
+                color: context.colors.textSecondary,
               ),
             ),
           ],

@@ -35,3 +35,9 @@ class AppDurations {
   static const Duration normal = Duration(milliseconds: 250);
   static const Duration slow = Duration(milliseconds: 350);
 }
+
+/// Bottom padding for the bottom-nav branch scroll views (Home / Calendar /
+/// Insight) so the last row clears the center-docked 56px Add FAB, half of
+/// which overlaps the 72px nav bar. = FAB half-intrusion + margin + breathing
+/// room. The nav bar already handles the home-indicator inset.
+const double kFabScrollBottomInset = 96;

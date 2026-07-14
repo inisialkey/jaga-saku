@@ -115,7 +115,12 @@ class _CategoryTree extends StatelessWidget {
 
     return ReorderableListView.builder(
       buildDefaultDragHandles: false,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.xxl,
+      ),
       itemCount: topLevel.length,
       onReorderItem: (oldIndex, newIndex) =>
           context.read<CategoryListCubit>().reorder(oldIndex, newIndex),
@@ -154,9 +159,18 @@ class _CategoryTree extends StatelessWidget {
                   ),
                   ReorderableDragStartListener(
                     index: index,
-                    child: Icon(
-                      Icons.drag_indicator_rounded,
-                      color: context.colors.textTertiary,
+                    child: Semantics(
+                      label: s.reorder,
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: Icon(
+                            Icons.drag_indicator_rounded,
+                            color: context.colors.textTertiary,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],

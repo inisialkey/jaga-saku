@@ -31,24 +31,39 @@ class ChoiceChipGroup<T> extends StatelessWidget {
       runSpacing: AppSpacing.sm,
       children: [
         for (final option in options)
-          GestureDetector(
-            onTap: () => onChanged(option.value),
-            child: Container(
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: option.value == selected
-                    ? AppColors.primaryLight
-                    : context.colors.surfaceSoft,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-              child: Text(
-                option.label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: option.value == selected
-                      ? AppColors.primaryDark
-                      : context.colors.textSecondary,
+          Semantics(
+            button: true,
+            selected: option.value == selected,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => onChanged(option.value),
+                customBorder: const StadiumBorder(),
+                // 36px pill stays the visual size; the 4px vertical padding
+                // grows the tap target to the 44px minimum.
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                  child: Container(
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: option.value == selected
+                          ? AppColors.primaryLight
+                          : context.colors.surfaceSoft,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(
+                      option.label,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: option.value == selected
+                            ? AppColors.primaryDark
+                            : context.colors.textSecondary,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

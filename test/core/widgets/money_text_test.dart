@@ -14,7 +14,8 @@ void main() {
         const MoneyText(amount: 20000, sign: MoneySign.income),
       );
       final text = tester.widget<Text>(find.text('+Rp 20.000'));
-      expect(text.style?.color, AppColors.income);
+      // Light mode resolves to the text-safe income variant (WCAG AA).
+      expect(text.style?.color, AppPalette.light.income);
     });
 
     testWidgets('expense renders a -Rp amount in the expense color', (
@@ -25,7 +26,7 @@ void main() {
         const MoneyText(amount: 5000, sign: MoneySign.expense),
       );
       final text = tester.widget<Text>(find.text('-Rp 5.000'));
-      expect(text.style?.color, AppColors.expense);
+      expect(text.style?.color, AppPalette.light.expense);
     });
 
     testWidgets(
@@ -36,7 +37,7 @@ void main() {
           const MoneyText(amount: 1000, sign: MoneySign.transfer),
         );
         final text = tester.widget<Text>(find.text('Rp 1.000'));
-        expect(text.style?.color, AppColors.transfer);
+        expect(text.style?.color, AppPalette.light.transfer);
       },
     );
 

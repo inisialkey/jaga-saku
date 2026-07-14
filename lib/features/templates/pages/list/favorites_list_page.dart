@@ -65,7 +65,12 @@ class _FavoritesListBody extends StatelessWidget {
 
     return ReorderableListView.builder(
       buildDefaultDragHandles: false,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.xxl,
+      ),
       itemCount: items.length,
       onReorderItem: (oldIndex, newIndex) =>
           context.read<FavoritesListCubit>().reorder(oldIndex, newIndex),

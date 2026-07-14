@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:jaga_saku/core/core.dart';
 
+/// A compact top toast pill: a semantic [bgColor] background with a leading
+/// [icon] and the [message]. Built on the design tokens (AppSpacing / AppRadius)
+/// — never `flutter_screenutil` (dimens.dart §8/§9: the 8-point scale is
+/// device-independent). Callers (`String.toToast*` in `ext/string.dart`) pass a
+/// text-safe dark [bgColor] so white [textColor] clears WCAG AA.
 class Toast extends StatelessWidget {
   final IconData? icon;
   final Color? bgColor;
@@ -20,20 +25,24 @@ class Toast extends StatelessWidget {
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       Container(
+        constraints: const BoxConstraints(maxWidth: 320),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
-        padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.lg,
+        ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: textColor),
-            SizedBox(width: 4.w),
-            Container(
-              constraints: BoxConstraints(maxWidth: 250.w),
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(
               child: Text(
-                message!,
+                message ?? '',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: textColor),

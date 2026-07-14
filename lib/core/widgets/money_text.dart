@@ -47,7 +47,12 @@ class MoneyText extends StatelessWidget {
     final base = style ?? Theme.of(context).textTheme.titleMedium;
     return Text(
       formatRupiah(amount, sign: prefix),
-      style: base?.copyWith(color: color, fontWeight: FontWeight.w600),
+      style: base?.copyWith(
+        color: color,
+        fontWeight: FontWeight.w600,
+        // Ledger digits align in columns (equal-width figures).
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
     );
   }
 }

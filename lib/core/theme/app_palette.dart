@@ -33,11 +33,13 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color textSecondary;
   final Color textTertiary;
 
-  /// Light-mode semantic palette.
+  /// Light-mode semantic palette. Income/expense/transfer use the text-safe
+  /// dark variants (≥4.5:1 on white) — the vivid hues fail WCAG for text, icons
+  /// and chart lines on a light surface. The dark palette keeps the vivid hues.
   static const AppPalette light = AppPalette(
-    income: AppColors.income,
-    expense: AppColors.expense,
-    transfer: AppColors.transfer,
+    income: AppColors.primaryDark,
+    expense: AppColors.critical,
+    transfer: AppColors.transferDark,
     warning: AppColors.warning,
     critical: AppColors.critical,
     success: AppColors.success,

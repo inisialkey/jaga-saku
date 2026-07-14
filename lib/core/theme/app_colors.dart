@@ -23,6 +23,15 @@ class AppColors {
   static const Color info = Color(0xFF0EA5E9);
   static const Color success = Color(0xFF16A34A);
 
+  // ── Semantic — text-safe dark variants ───────────────────────────────────
+  // WCAG AA (≥4.5:1 on white) darkenings of the vivid semantic hues, used where
+  // the color carries meaningful TEXT/icon on a light surface: the light
+  // [AppPalette] finance semantics + the info/success toast backgrounds. The
+  // vivid hues above stay for fills and the dark palette (7:1 on dark).
+  static const Color transferDark = Color(0xFF2563EB); // 5.2:1 on white
+  static const Color successDark = Color(0xFF15803D); // 5.0:1 on white
+  static const Color infoDark = Color(0xFF0369A1); // 5.9:1 on white
+
   // ── Neutrals — light ─────────────────────────────────────────────────────
   static const Color background = Color(0xFFF8FAFC);
   static const Color surface = Color(0xFFFFFFFF);

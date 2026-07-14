@@ -55,15 +55,24 @@ class FavoriteTile extends StatelessWidget {
               Text(
                 '—',
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: context.colors.textTertiary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             const SizedBox(width: AppSpacing.sm),
             ReorderableDragStartListener(
               index: index,
-              child: Icon(
-                Icons.drag_indicator_rounded,
-                color: context.colors.textTertiary,
+              child: Semantics(
+                label: Strings.of(context)!.reorder,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    child: Icon(
+                      Icons.drag_indicator_rounded,
+                      color: context.colors.textTertiary,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],

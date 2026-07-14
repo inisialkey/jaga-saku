@@ -470,9 +470,7 @@ class _ReceiptAttachment extends StatelessWidget {
                 child: Text(
                   s.receiptView,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: file != null
-                        ? context.colors.textSecondary
-                        : context.colors.textTertiary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),

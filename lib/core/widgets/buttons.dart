@@ -32,7 +32,9 @@ class PrimaryButton extends StatelessWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.white,
               disabledBackgroundColor: AppColors.disabled,
-              disabledForegroundColor: AppColors.white,
+              // White on #CBD5E1 is ~1.5:1 (label vanishes); textSecondary is
+              // ~3.2:1 — legible while still reading as disabled.
+              disabledForegroundColor: AppColors.textSecondary,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               shape: RoundedRectangleBorder(
@@ -60,38 +62,54 @@ class PrimaryButton extends StatelessWidget {
 }
 
 /// Secondary action (style guide §13.2): 48h, primaryLight fill, primaryDark
-/// text, no border.
+/// text, no border. Loading = spinner + disabled (mirrors [PrimaryButton]).
 class SecondaryButton extends StatelessWidget {
   const SecondaryButton({
     required this.label,
     required this.onPressed,
     super.key,
+    this.isLoading = false,
     this.expanded = true,
     this.icon,
   });
 
   final String label;
   final VoidCallback? onPressed;
+  final bool isLoading;
   final bool expanded;
   final IconData? icon;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 48,
-    width: expanded ? double.infinity : null,
-    child: FilledButton(
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primaryLight,
-        foregroundColor: AppColors.primaryDark,
-        disabledBackgroundColor: context.colors.surfaceSoft,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null && !isLoading;
+    return SizedBox(
+      height: 48,
+      width: expanded ? double.infinity : null,
+      child: FilledButton(
+        onPressed: enabled ? onPressed : null,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primaryLight,
+          foregroundColor: AppColors.primaryDark,
+          disabledBackgroundColor: context.colors.surfaceSoft,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primaryDark,
+                ),
+              )
+            : _Label(label: label, icon: icon),
       ),
-      child: _Label(label: label, icon: icon),
-    ),
-  );
+    );
+  }
 }
 
 /// Tertiary text action (style guide §13.3): no background, green label.
