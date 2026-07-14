@@ -193,13 +193,22 @@ class _CycleStartDayPickerState extends State<_CycleStartDayPicker> {
   static const double _itemExtent = 48;
 
   late final ScrollController _controller;
+  bool _controllerInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    // Land the current day ~two rows below the top of the viewport.
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Build the controller here (not initState) so the initial offset uses the
+    // Dynamic-Type-scaled row extent: MediaQuery is available in
+    // didChangeDependencies and it runs once before the first build. With a
+    // scaled row height but a base-48 offset the selected day scrolls off-screen
+    // for high days at >1.0×. Lands the current day ~two rows below the top of
+    // the viewport (byte-identical to the 48px math at 1.0×).
+    if (_controllerInitialized) return;
+    _controllerInitialized = true;
+    final extent = MediaQuery.textScalerOf(context).scale(_itemExtent);
     _controller = ScrollController(
-      initialScrollOffset: ((widget.current - 1) * _itemExtent - 96).clamp(
+      initialScrollOffset: ((widget.current - 1) * extent - 2 * extent).clamp(
         0.0,
         double.infinity,
       ),
@@ -215,13 +224,16 @@ class _CycleStartDayPickerState extends State<_CycleStartDayPicker> {
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context)!;
+    // Scale the row extent with Dynamic Type (pixel-identical at 1.0×) so the
+    // day label isn't vertically clipped when the system font size grows.
+    final itemExtent = MediaQuery.textScalerOf(context).scale(_itemExtent);
     return SizedBox(
       height: 360,
       child: ListView.builder(
         controller: _controller,
         padding: EdgeInsets.zero,
         itemCount: 31,
-        itemExtent: _itemExtent,
+        itemExtent: itemExtent,
         itemBuilder: (_, index) {
           final day = index + 1;
           return SettingOptionTile(

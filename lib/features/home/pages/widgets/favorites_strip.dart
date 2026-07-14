@@ -33,7 +33,9 @@ class FavoritesStrip extends StatelessWidget {
       children: [
         SectionHeader(title: s.favorites),
         SizedBox(
-          height: 108,
+          // Scales with Dynamic Type (pixel-identical at 1.0×) so the chip
+          // label + amount never clip when the system font size grows.
+          height: MediaQuery.textScalerOf(context).scale(108),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,

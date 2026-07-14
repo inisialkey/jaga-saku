@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
+import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/features/settings/pages/settings_page.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -115,5 +116,36 @@ void main() {
     verify(() => settings.setString('budget_cycle_start_day', '3')).called(1);
     // A cycle-window change is a derived-money-view change (plan §5).
     verify(() => txChanges.ping()).called(1);
+  });
+
+  testWidgets('the start-day picker opens scrolled to the selected day '
+      '(on-screen) at 1.3× Dynamic Type', (tester) async {
+    // W1 regression guard: at 1.3× rows render at scale(48) ≈ 62px, so a scroll
+    // offset computed from the BASE 48px extent scrolls a HIGH selected day
+    // fully off-screen. Seed day 28 and assert its tile is actually visible.
+    await cubit.setBudgetCycleStartDay(28);
+    await pumpApp(
+      tester,
+      BlocProvider.value(value: cubit, child: const SettingsPage()),
+      scaffold: false,
+      textScaler: const TextScaler.linear(1.3),
+    );
+    await tester.pumpAndSettle();
+
+    // Open the picker from the row (now labelled "Day 28").
+    await tester.tap(find.text('Day 28'));
+    await tester.pumpAndSettle();
+
+    // The selected day's tile inside the sheet must be on-screen, not scrolled
+    // past the bottom (the pre-fix base-48 offset lands it below the viewport).
+    final selectedTile = find.descendant(
+      of: find.byType(AppBottomSheet),
+      matching: find.text('Day 28'),
+    );
+    expect(selectedTile, findsOneWidget);
+    final tileRect = tester.getRect(selectedTile);
+    final screenHeight = tester.getSize(find.byType(MaterialApp)).height;
+    expect(tileRect.top, greaterThanOrEqualTo(0.0));
+    expect(tileRect.bottom, lessThanOrEqualTo(screenHeight));
   });
 }

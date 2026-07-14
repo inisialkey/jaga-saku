@@ -45,10 +45,14 @@ class App extends StatelessWidget {
             ],
             supportedLocales: L10n.all,
             builder: (context, child) => MediaQuery(
-              // Lock text scaling so money hierarchy stays predictable.
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: TextScaler.noScaling),
+              // Dynamic Type up to 130%: clamp system font scaling to 1.0–1.3×
+              // so the money hierarchy stays predictable while still honouring
+              // the user's accessibility text-size setting.
+              data: MediaQuery.of(context).copyWith(
+                textScaler: MediaQuery.textScalerOf(
+                  context,
+                ).clamp(minScaleFactor: 1.0, maxScaleFactor: 1.3),
+              ),
               child: child ?? const SizedBox.shrink(),
             ),
           ),

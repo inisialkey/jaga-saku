@@ -102,10 +102,20 @@ class TransactionTile extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.xs),
             ],
-            MoneyText(
-              amount: amount,
-              sign: sign,
-              style: theme.textTheme.bodyLarge,
+            // Expanded (tight) makes the FittedBox fill its slot so the amount
+            // pins flush-right — the ledger column stays aligned across rows and
+            // full-size + tabular at 1.0×; scaleDown only shrinks it to fit at
+            // larger Dynamic Type instead of overflowing the row.
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: MoneyText(
+                  amount: amount,
+                  sign: sign,
+                  style: theme.textTheme.bodyLarge,
+                ),
+              ),
             ),
           ],
         ),

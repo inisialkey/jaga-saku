@@ -98,10 +98,20 @@ class BudgetItemCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                s.safeDaily(formatRupiah(status.safeDaily)),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: context.colors.textSecondary,
+              const SizedBox(width: AppSpacing.sm),
+              // Expanded (tight) makes the FittedBox fill its slot so the hint
+              // pins flush-right, unchanged at 1.0×; scaleDown only shrinks it to
+              // fit at larger Dynamic Type instead of overflowing the row.
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    s.safeDaily(formatRupiah(status.safeDaily)),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
                 ),
               ),
             ],

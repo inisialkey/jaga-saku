@@ -53,7 +53,19 @@ class _LegendRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        MoneyText(amount: slice.amount, style: theme.textTheme.bodyMedium),
+        // Expanded (tight) makes the FittedBox fill its slot so the amount pins
+        // flush-right, full-size + tabular at 1.0×; scaleDown only shrinks it to
+        // fit at larger Dynamic Type instead of overflowing the row.
+        Expanded(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: MoneyText(
+              amount: slice.amount,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+        ),
         const SizedBox(width: AppSpacing.md),
         SizedBox(
           width: 40,

@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -88,6 +89,37 @@ void main() {
     // The post-frame autofocus opened the calculator instead of focusing the
     // read-only field.
     expect(find.byType(CalculatorKeypadSheet), findsOneWidget);
+  });
+
+  testWidgets('renders the whole form at 1.3× Dynamic Type without overflow', (
+    tester,
+  ) async {
+    // Amount field + type segmented + account/category selectors + category
+    // chips, all re-flowed at the 1.3× clamp ceiling. Edit mode so the keypad
+    // does not auto-open and cover the form.
+    when(() => getCategories(any())).thenAnswer(
+      (_) async => const Right<Failure, List<Category>>([
+        Category(id: 1, name: 'Makan', type: CategoryType.expense),
+        Category(id: 2, name: 'Transportasi', type: CategoryType.expense),
+      ]),
+    );
+    when(() => getAccounts(any())).thenAnswer(
+      (_) async => const Right<Failure, List<Account>>([
+        Account(id: 1, name: 'Cash', type: AccountType.cash, balance: 5000000),
+      ]),
+    );
+    final cubit = build(initial: editTx);
+    addTearDown(cubit.close);
+    await pumpApp(
+      tester,
+      BlocProvider.value(value: cubit, child: const AddTransactionPage()),
+      scaffold: false,
+      textScaler: const TextScaler.linear(1.3),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(AmountInputField), findsOneWidget);
   });
 
   testWidgets('D8: editing an existing transaction does NOT auto-open the '

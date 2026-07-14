@@ -96,7 +96,11 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  Future<void> pumpLoaded(WidgetTester tester, HomeCubit cubit) async {
+  Future<void> pumpLoaded(
+    WidgetTester tester,
+    HomeCubit cubit, {
+    TextScaler textScaler = TextScaler.noScaling,
+  }) async {
     // Seed the app-global settings (greeting name) from the mocked store first.
     await appSettings.load();
     await pumpApp(
@@ -109,6 +113,7 @@ void main() {
         child: const HomePage(),
       ),
       scaffold: false,
+      textScaler: textScaler,
     );
     await cubit.load();
     await tester.pumpAndSettle();
@@ -197,6 +202,59 @@ void main() {
     final cubit = build();
     await pumpLoaded(tester, cubit);
 
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.text('Coffee'), findsOneWidget);
+
+    await cubit.close();
+  });
+
+  testWidgets('renders the dense dashboard at 1.3× Dynamic Type without '
+      'overflow', (tester) async {
+    useTallSurface(tester);
+    // The densest possible Home: summary card + populated favorites strip +
+    // recent tx rows, all re-flowed at the 1.3× clamp ceiling.
+    final expense = Transaction(
+      type: TransactionType.expense,
+      amount: 35000,
+      accountId: 1,
+      categoryId: 1,
+      plannedStatus: PlannedStatus.unplanned,
+      date: today.millisecondsSinceEpoch,
+    );
+    when(() => getAccounts(any())).thenAnswer(
+      (_) async => const Right<Failure, List<Account>>([
+        Account(id: 1, name: 'Cash', type: AccountType.cash, balance: 5000000),
+      ]),
+    );
+    when(
+      () => getByMonth(any()),
+    ).thenAnswer((_) async => Right<Failure, List<Transaction>>([expense]));
+    when(
+      () => getRecent(any()),
+    ).thenAnswer((_) async => Right<Failure, List<Transaction>>([expense]));
+    when(() => getCategories(any())).thenAnswer(
+      (_) async => const Right<Failure, List<Category>>([
+        Category(id: 1, name: 'Makan', type: CategoryType.expense),
+      ]),
+    );
+    when(() => getFavorites(any())).thenAnswer(
+      (_) async => const Right<Failure, List<TxTemplate>>([
+        TxTemplate(
+          id: 1,
+          label: 'Coffee',
+          type: TransactionType.expense,
+          accountId: 1,
+          amount: 15000,
+          categoryId: 1,
+        ),
+      ]),
+    );
+    when(() => settings.getString(any())).thenAnswer((_) async => 'Oki');
+
+    final cubit = build();
+    await pumpLoaded(tester, cubit, textScaler: const TextScaler.linear(1.3));
+
+    expect(tester.takeException(), isNull);
     expect(find.text('Favorites'), findsOneWidget);
     expect(find.text('Coffee'), findsOneWidget);
 

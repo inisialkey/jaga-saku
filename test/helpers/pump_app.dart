@@ -20,12 +20,18 @@ import 'package:jaga_saku/core/core.dart';
 ///
 /// Defaults to [AppTheme.light]; pass `theme: AppTheme.dark` to render under the
 /// dark [AppPalette] (used by `dark_mode_smoke_test.dart`).
+///
+/// Pass [textScaler] (e.g. `TextScaler.linear(1.3)`) to render under Dynamic
+/// Type; it is applied through the [MaterialApp] `builder` — exactly like
+/// `lib/app.dart` — so it survives `MaterialApp`'s own `MediaQuery`. The default
+/// [TextScaler.noScaling] (1.0×) leaves every existing caller pixel-identical.
 Future<void> pumpApp(
   WidgetTester tester,
   Widget child, {
   bool scaffold = true,
   Locale locale = const Locale('en'),
   ThemeData? theme,
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   await tester.pumpWidget(
     ScreenUtilInit(
@@ -37,6 +43,10 @@ Future<void> pumpApp(
         localizationsDelegates: Strings.localizationsDelegates,
         supportedLocales: Strings.supportedLocales,
         theme: theme ?? AppTheme.light,
+        builder: (context, navigator) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+          child: navigator ?? const SizedBox.shrink(),
+        ),
         home: scaffold ? Scaffold(body: child) : child,
       ),
     ),

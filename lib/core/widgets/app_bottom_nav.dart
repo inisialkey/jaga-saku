@@ -40,7 +40,9 @@ class AppBottomNav extends StatelessWidget {
     );
 
     return Container(
-      height: 72,
+      // Scales with Dynamic Type (pixel-identical at 1.0×) so the labels never
+      // clip when the system font size grows; stays a definite height for Row.
+      height: MediaQuery.textScalerOf(context).scale(72),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(top: BorderSide(color: context.colors.border)),
