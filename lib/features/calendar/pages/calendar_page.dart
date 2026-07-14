@@ -179,18 +179,31 @@ class _SummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: context.colors.textSecondary,
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
         ),
-        MoneyText(
-          amount: amount,
-          sign: sign,
-          style: theme.textTheme.bodyMedium,
+        const SizedBox(width: AppSpacing.sm),
+        // Expanded (tight) makes the FittedBox fill its slot so the amount pins
+        // flush-right, full-size + tabular at 1.0×; scaleDown only shrinks it to
+        // fit at larger Dynamic Type instead of overflowing the row.
+        Expanded(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: MoneyText(
+              amount: amount,
+              sign: sign,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
         ),
       ],
     );

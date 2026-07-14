@@ -69,6 +69,19 @@ void main() {
       expect(find.text('= Rp 15.500'), findsOneWidget);
     });
 
+    testWidgets('lays out at 1.3× Dynamic Type without overflow', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        const CalculatorKeypadSheet(initial: '15500'),
+        textScaler: const TextScaler.linear(1.3),
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.text('15.500'), findsOneWidget);
+      expect(find.text('= Rp 15.500'), findsOneWidget);
+    });
+
     testWidgets('returns the evaluated integer when Done is tapped', (
       tester,
     ) async {

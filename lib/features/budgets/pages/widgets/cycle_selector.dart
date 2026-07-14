@@ -61,9 +61,16 @@ class CycleSelector extends StatelessWidget {
           icon: const Icon(Icons.chevron_left_rounded),
           onPressed: onPrevious,
         ),
-        Text(
-          s.budgetCycleRange(_fmt(startDate), _fmt(endInclusive)),
-          style: Theme.of(context).textTheme.titleMedium,
+        // Fills the space between the arrows and scales the range down at large
+        // Dynamic Type rather than overflow (one line; unchanged at 1.0×).
+        Expanded(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              s.budgetCycleRange(_fmt(startDate), _fmt(endInclusive)),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
         ),
         IconButton(
           tooltip: s.selectMonth,
