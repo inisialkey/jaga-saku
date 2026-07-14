@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/form/form_validation.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_cycle.dart';
@@ -52,7 +53,9 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
                  limitAmount: initial.limitAmount,
                  isEditing: true,
                ),
-       );
+       ) {
+    _seedState = state;
+  }
 
   final SaveBudget _saveBudget;
   final GetCategories _getCategories;
@@ -60,6 +63,15 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
   final TxChangeNotifier _txChanges;
   final AppSettingsCubit _appSettings;
   final Budget? _initial;
+
+  /// The seed (initial editable fields), captured post-construction so [hasEdits]
+  /// drives the unsaved-changes guard (D2). `load()` mutates only `categories`
+  /// (not an identity field), so a pristine form stays clean.
+  late final BudgetFormState _seedState;
+
+  /// True once the user has changed an editable field from the seed (D2).
+  /// Note: flipping the month alone counts as an edit (month is in the identity).
+  bool get hasEdits => state.formIdentity != _seedState.formIdentity;
 
   /// Loads active expense categories for the picker. A read failure leaves the
   /// picker empty rather than blocking the form.
@@ -92,7 +104,12 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
   );
 
   Future<void> submit() async {
-    if (!state.isValid || state.isSaving) return;
+    if (state.isSaving) return;
+    if (!state.isValid) {
+      // D1: surface the first failing field via the page's failure listener.
+      emit(state.copyWith(status: BudgetFormStatus.failure));
+      return;
+    }
     emit(state.copyWith(status: BudgetFormStatus.saving));
 
     // Resolve the viewed month to its cycle via the global start-day. At

@@ -51,6 +51,11 @@ class RecurringReviewCubit extends Cubit<RecurringReviewState> {
   }
 
   Future<void> confirm(PendingOccurrence occurrence) async {
+    // D3: ignore a tap while any write is already in flight, and flag `busy` so
+    // the page disables the actions until the re-projection lands.
+    final s = state;
+    if (s is! RecurringReviewLoaded || s.busy) return;
+    emit(s.copyWith(busy: true));
     final result = await _confirmOccurrence(occurrence);
     if (isClosed) return;
     final failure = result.getLeft().toNullable();
@@ -64,7 +69,10 @@ class RecurringReviewCubit extends Cubit<RecurringReviewState> {
 
   Future<void> confirmAll() async {
     final s = state;
-    if (s is! RecurringReviewLoaded) return;
+    // D3: re-entrancy guard — a second Confirm-all mid-write is a no-op, so the
+    // ≤60 real tx writes never double-fire.
+    if (s is! RecurringReviewLoaded || s.busy) return;
+    emit(s.copyWith(busy: true));
     // `s.pending` is globally ascending ⇒ per-rule ascending, so each rule's
     // last confirm lands its cursor past its last occurrence.
     for (final occurrence in s.pending) {
@@ -76,6 +84,9 @@ class RecurringReviewCubit extends Cubit<RecurringReviewState> {
   }
 
   Future<void> skip(PendingOccurrence occurrence) async {
+    final s = state;
+    if (s is! RecurringReviewLoaded || s.busy) return;
+    emit(s.copyWith(busy: true));
     final result = await _skipOccurrence(occurrence);
     if (isClosed) return;
     final failure = result.getLeft().toNullable();

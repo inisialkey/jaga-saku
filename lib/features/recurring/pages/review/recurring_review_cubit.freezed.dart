@@ -125,11 +125,11 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loading,TResult Function( List<PendingOccurrence> pending)?  loaded,TResult Function()?  empty,TResult Function( Failure failure)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loading,TResult Function( List<PendingOccurrence> pending,  bool busy)?  loaded,TResult Function()?  empty,TResult Function( Failure failure)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case RecurringReviewLoading() when loading != null:
 return loading();case RecurringReviewLoaded() when loaded != null:
-return loaded(_that.pending);case RecurringReviewEmpty() when empty != null:
+return loaded(_that.pending,_that.busy);case RecurringReviewEmpty() when empty != null:
 return empty();case RecurringReviewError() when error != null:
 return error(_that.failure);case _:
   return orElse();
@@ -149,11 +149,11 @@ return error(_that.failure);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loading,required TResult Function( List<PendingOccurrence> pending)  loaded,required TResult Function()  empty,required TResult Function( Failure failure)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loading,required TResult Function( List<PendingOccurrence> pending,  bool busy)  loaded,required TResult Function()  empty,required TResult Function( Failure failure)  error,}) {final _that = this;
 switch (_that) {
 case RecurringReviewLoading():
 return loading();case RecurringReviewLoaded():
-return loaded(_that.pending);case RecurringReviewEmpty():
+return loaded(_that.pending,_that.busy);case RecurringReviewEmpty():
 return empty();case RecurringReviewError():
 return error(_that.failure);}
 }
@@ -169,11 +169,11 @@ return error(_that.failure);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loading,TResult? Function( List<PendingOccurrence> pending)?  loaded,TResult? Function()?  empty,TResult? Function( Failure failure)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loading,TResult? Function( List<PendingOccurrence> pending,  bool busy)?  loaded,TResult? Function()?  empty,TResult? Function( Failure failure)?  error,}) {final _that = this;
 switch (_that) {
 case RecurringReviewLoading() when loading != null:
 return loading();case RecurringReviewLoaded() when loaded != null:
-return loaded(_that.pending);case RecurringReviewEmpty() when empty != null:
+return loaded(_that.pending,_that.busy);case RecurringReviewEmpty() when empty != null:
 return empty();case RecurringReviewError() when error != null:
 return error(_that.failure);case _:
   return null;
@@ -219,7 +219,7 @@ String toString() {
 
 
 class RecurringReviewLoaded implements RecurringReviewState {
-  const RecurringReviewLoaded({required final  List<PendingOccurrence> pending}): _pending = pending;
+  const RecurringReviewLoaded({required final  List<PendingOccurrence> pending, this.busy = false}): _pending = pending;
   
 
  final  List<PendingOccurrence> _pending;
@@ -229,6 +229,10 @@ class RecurringReviewLoaded implements RecurringReviewState {
   return EqualUnmodifiableListView(_pending);
 }
 
+/// True while a confirm / skip / confirm-all write is in flight (D3): the
+/// page disables all three actions and shows a spinner, so a slow bulk
+/// commit can't be double-tapped into duplicate transactions.
+@JsonKey() final  bool busy;
 
 /// Create a copy of RecurringReviewState
 /// with the given fields replaced by the non-null parameter values.
@@ -240,16 +244,16 @@ $RecurringReviewLoadedCopyWith<RecurringReviewLoaded> get copyWith => _$Recurrin
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecurringReviewLoaded&&const DeepCollectionEquality().equals(other._pending, _pending));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RecurringReviewLoaded&&const DeepCollectionEquality().equals(other._pending, _pending)&&(identical(other.busy, busy) || other.busy == busy));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_pending));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_pending),busy);
 
 @override
 String toString() {
-  return 'RecurringReviewState.loaded(pending: $pending)';
+  return 'RecurringReviewState.loaded(pending: $pending, busy: $busy)';
 }
 
 
@@ -260,7 +264,7 @@ abstract mixin class $RecurringReviewLoadedCopyWith<$Res> implements $RecurringR
   factory $RecurringReviewLoadedCopyWith(RecurringReviewLoaded value, $Res Function(RecurringReviewLoaded) _then) = _$RecurringReviewLoadedCopyWithImpl;
 @useResult
 $Res call({
- List<PendingOccurrence> pending
+ List<PendingOccurrence> pending, bool busy
 });
 
 
@@ -277,10 +281,11 @@ class _$RecurringReviewLoadedCopyWithImpl<$Res>
 
 /// Create a copy of RecurringReviewState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? pending = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? pending = null,Object? busy = null,}) {
   return _then(RecurringReviewLoaded(
 pending: null == pending ? _self._pending : pending // ignore: cast_nullable_to_non_nullable
-as List<PendingOccurrence>,
+as List<PendingOccurrence>,busy: null == busy ? _self.busy : busy // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

@@ -31,8 +31,9 @@ class RecurringReviewPage extends StatelessWidget {
             icon: Iconsax.tick_circle,
             title: s.recurringReviewEmpty,
           ),
-          RecurringReviewLoaded(:final pending) => _ReviewBody(
+          RecurringReviewLoaded(:final pending, :final busy) => _ReviewBody(
             pending: pending,
+            busy: busy,
           ),
         },
       ),
@@ -41,9 +42,27 @@ class RecurringReviewPage extends StatelessWidget {
 }
 
 class _ReviewBody extends StatelessWidget {
-  const _ReviewBody({required this.pending});
+  const _ReviewBody({required this.pending, required this.busy});
 
   final List<PendingOccurrence> pending;
+  final bool busy;
+
+  /// Confirms every pending occurrence — but only behind a confirm-sheet gate
+  /// (D3): this can write up to 60 real transactions, so it must never be a
+  /// single-tap commit.
+  Future<void> _confirmAll(BuildContext context) async {
+    final s = Strings.of(context)!;
+    final ok = await ConfirmSheet.show(
+      context,
+      title: s.recurringConfirmAllTitle,
+      message: s.recurringConfirmAllMessage(pending.length),
+      confirmLabel: s.recurringConfirmAll,
+      cancelLabel: s.cancel,
+    );
+    if (ok && context.mounted) {
+      context.read<RecurringReviewCubit>().confirmAll();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,13 +81,14 @@ class _ReviewBody extends StatelessWidget {
         ],
         PrimaryButton(
           label: s.recurringConfirmAll,
-          onPressed: () => context.read<RecurringReviewCubit>().confirmAll(),
+          isLoading: busy,
+          onPressed: busy ? null : () => _confirmAll(context),
         ),
         const SizedBox(height: AppSpacing.lg),
         for (final occurrence in pending)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: _OccurrenceCard(occurrence: occurrence),
+            child: _OccurrenceCard(occurrence: occurrence, busy: busy),
           ),
       ],
     );
@@ -76,9 +96,10 @@ class _ReviewBody extends StatelessWidget {
 }
 
 class _OccurrenceCard extends StatelessWidget {
-  const _OccurrenceCard({required this.occurrence});
+  const _OccurrenceCard({required this.occurrence, required this.busy});
 
   final PendingOccurrence occurrence;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -129,16 +150,24 @@ class _OccurrenceCard extends StatelessWidget {
               Expanded(
                 child: SecondaryButton(
                   label: s.recurringSkip,
-                  onPressed: () =>
-                      context.read<RecurringReviewCubit>().skip(occurrence),
+                  isLoading: busy,
+                  onPressed: busy
+                      ? null
+                      : () => context.read<RecurringReviewCubit>().skip(
+                          occurrence,
+                        ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: PrimaryButton(
                   label: s.recurringConfirm,
-                  onPressed: () =>
-                      context.read<RecurringReviewCubit>().confirm(occurrence),
+                  isLoading: busy,
+                  onPressed: busy
+                      ? null
+                      : () => context.read<RecurringReviewCubit>().confirm(
+                          occurrence,
+                        ),
                 ),
               ),
             ],

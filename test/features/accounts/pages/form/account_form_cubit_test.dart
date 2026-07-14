@@ -71,10 +71,37 @@ void main() {
   );
 
   blocTest<AccountFormCubit, AccountFormState>(
-    'submit with an empty name does nothing',
+    'submit with an empty name emits a failure state and never saves (D1)',
     build: () => AccountFormCubit(saveAccount: saveAccount),
     act: (cubit) => cubit.submit(),
-    expect: () => const <AccountFormState>[],
+    expect: () => const [AccountFormState(status: AccountFormStatus.failure)],
     verify: (_) => verifyNever(() => saveAccount(any())),
   );
+
+  test('openingBalanceChanged clamps a negative to 0 (C-B)', () {
+    final cubit = AccountFormCubit(saveAccount: saveAccount);
+    cubit.nameChanged('Cash');
+    cubit.openingBalanceChanged(-5000);
+    expect(cubit.state.openingBalance, 0);
+    // With a name set, a clamped balance means Save is allowed and no negative
+    // opening balance can ever persist (the C-B regression).
+    expect(cubit.state.isValid, isTrue);
+    cubit.openingBalanceChanged(25000);
+    expect(cubit.state.openingBalance, 25000);
+  });
+
+  test('hasEdits tracks edits from the create + edit seed (D2)', () {
+    final create = AccountFormCubit(saveAccount: saveAccount);
+    expect(create.hasEdits, isFalse);
+    create.nameChanged('Cash');
+    expect(create.hasEdits, isTrue);
+
+    final edit = AccountFormCubit(
+      saveAccount: saveAccount,
+      initial: const Account(id: 1, name: 'BCA', type: AccountType.bank),
+    );
+    expect(edit.hasEdits, isFalse);
+    edit.nameChanged('BNI');
+    expect(edit.hasEdits, isTrue);
+  });
 }

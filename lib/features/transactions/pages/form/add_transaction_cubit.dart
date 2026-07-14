@@ -48,7 +48,9 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
        _receiptStorage = receiptStorage,
        _appSettings = appSettings,
        _initial = initial,
-       super(_seed(initial, prefill));
+       super(_seed(initial, prefill)) {
+    _seedState = state;
+  }
 
   final SaveTransaction _saveTransaction;
   final GetAccounts _getAccounts;
@@ -58,6 +60,16 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
   final ReceiptStorageService _receiptStorage;
   final AppSettingsCubit _appSettings;
   final Transaction? _initial;
+
+  /// The seed (initial editable fields), captured post-construction so [hasEdits]
+  /// drives the unsaved-changes guard (D2). Includes the receipt path, so
+  /// attaching a receipt marks the form dirty. `load()` mutates only the picker
+  /// lists (not identity fields), so a pristine form stays clean.
+  late final AddTransactionState _seedState;
+
+  /// True once the user has changed an editable field (incl. attaching a
+  /// receipt) from the seed (D2).
+  bool get hasEdits => state.formIdentity != _seedState.formIdentity;
 
   /// True once a save has persisted the current [state.receiptPath]. Gates
   /// [close]'s orphan sweep: an uncommitted picked file is deleted on dismiss,

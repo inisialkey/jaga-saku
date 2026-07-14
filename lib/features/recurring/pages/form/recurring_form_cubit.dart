@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/form/form_validation.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
@@ -32,12 +33,22 @@ class RecurringFormCubit extends Cubit<RecurringFormState> {
        _getAccounts = getAccounts,
        _getCategories = getCategories,
        _initial = initial,
-       super(_seed(initial));
+       super(_seed(initial)) {
+    _seedState = state;
+  }
 
   final SaveRecurringRule _saveRule;
   final GetAccounts _getAccounts;
   final GetCategories _getCategories;
   final RecurringRule? _initial;
+
+  /// The seed (initial editable fields), captured post-construction so [hasEdits]
+  /// drives the unsaved-changes guard (D2). `load()` mutates only the picker
+  /// lists (not identity fields), so a pristine form stays clean.
+  late final RecurringFormState _seedState;
+
+  /// True once the user has changed an editable field from the seed (D2).
+  bool get hasEdits => state.formIdentity != _seedState.formIdentity;
 
   static RecurringFormState _seed(RecurringRule? initial) {
     if (initial == null) return const RecurringFormState();
@@ -154,7 +165,12 @@ class RecurringFormCubit extends Cubit<RecurringFormState> {
   );
 
   Future<void> submit() async {
-    if (!state.isValid || state.isSaving) return;
+    if (state.isSaving) return;
+    if (!state.isValid) {
+      // D1: surface the first failing field via the page's failure listener.
+      emit(state.copyWith(status: RecurringFormStatus.failure));
+      return;
+    }
     emit(state.copyWith(status: RecurringFormStatus.saving));
 
     final now = DateTime.now().millisecondsSinceEpoch;

@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/form/form_validation.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
@@ -200,16 +201,22 @@ void main() {
   );
 
   blocTest<FavoriteFormCubit, FavoriteFormState>(
-    'submit with an empty label does nothing',
+    'submit with an empty label emits failure and never saves (D1)',
     build: build,
     seed: () => const FavoriteFormState(accountId: 1, categoryId: 1),
     act: (cubit) => cubit.submit(),
-    expect: () => const <FavoriteFormState>[],
+    expect: () => const [
+      FavoriteFormState(
+        accountId: 1,
+        categoryId: 1,
+        status: FavoriteFormStatus.failure,
+      ),
+    ],
     verify: (_) => verifyNever(() => saveTemplate(any())),
   );
 
   blocTest<FavoriteFormCubit, FavoriteFormState>(
-    'a transfer to the same account is invalid and never saves',
+    'a transfer to the same account emits failure and never saves (D1)',
     build: build,
     seed: () => const FavoriteFormState(
       label: 'Move',
@@ -218,9 +225,54 @@ void main() {
       toAccountId: 1,
     ),
     act: (cubit) => cubit.submit(),
-    expect: () => const <FavoriteFormState>[],
+    expect: () => const [
+      FavoriteFormState(
+        label: 'Move',
+        type: TransactionType.transfer,
+        accountId: 1,
+        toAccountId: 1,
+        status: FavoriteFormStatus.failure,
+      ),
+    ],
     verify: (_) => verifyNever(() => saveTemplate(any())),
   );
+
+  test('firstError reports the first failing field (D1)', () {
+    expect(
+      const FavoriteFormState().firstError,
+      FormValidationError.labelRequired,
+    );
+    expect(
+      const FavoriteFormState(
+        label: 'Move',
+        type: TransactionType.transfer,
+        accountId: 1,
+        toAccountId: 1,
+      ).firstError,
+      FormValidationError.transferSameAccount,
+    );
+  });
+
+  test('hasEdits is false on the create + edit seed, true after edit (D2)', () {
+    final create = build();
+    expect(create.hasEdits, isFalse);
+    create.labelChanged('Coffee');
+    expect(create.hasEdits, isTrue);
+
+    final edit = build(
+      initial: const TxTemplate(
+        id: 5,
+        label: 'Coffee',
+        type: TransactionType.expense,
+        accountId: 1,
+        amount: 15000,
+        categoryId: 1,
+      ),
+    );
+    expect(edit.hasEdits, isFalse);
+    edit.amountChanged(20000);
+    expect(edit.hasEdits, isTrue);
+  });
 
   blocTest<FavoriteFormCubit, FavoriteFormState>(
     'typeChanged to transfer clears category / planned / spending',

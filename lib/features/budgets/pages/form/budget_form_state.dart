@@ -24,10 +24,19 @@ abstract class BudgetFormState with _$BudgetFormState {
 
   const BudgetFormState._();
 
+  /// First failing field for the invalid-submit toast (D1), in the same order as
+  /// [isValid].
+  FormValidationError? get firstError => categoryId == null
+      ? FormValidationError.categoryRequired
+      : (limitAmount <= 0 ? FormValidationError.amountRequired : null);
+
   /// Submit is allowed once a category is chosen and the limit is positive.
-  bool get isValid => categoryId != null && limitAmount > 0;
+  bool get isValid => firstError == null;
 
   bool get isSaving => status == BudgetFormStatus.saving;
+
+  /// The editable fields only (D2) — excludes categories / status / error.
+  (DateTime, int?, int) get formIdentity => (month, categoryId, limitAmount);
 
   Category? get selectedCategory {
     for (final c in categories) {

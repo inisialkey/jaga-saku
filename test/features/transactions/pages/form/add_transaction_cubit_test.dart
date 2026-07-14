@@ -642,4 +642,21 @@ void main() {
     // never delete it — contrast the uncommitted-picked test above, which does.
     verifyNever(() => receiptStorage.delete('receipts/x.jpg'));
   });
+
+  test('hasEdits is false on a fresh form, true after an edit (D2)', () async {
+    final cubit = build();
+    expect(cubit.hasEdits, isFalse);
+    cubit.amountChanged(15000);
+    expect(cubit.hasEdits, isTrue);
+    await cubit.close();
+  });
+
+  test('hasEdits becomes true after attaching a receipt (D2)', () async {
+    final cubit = build();
+    expect(cubit.hasEdits, isFalse);
+    // A picked-but-unsaved receipt marks the form dirty (the audit headline).
+    await cubit.pickReceipt(ImageSource.gallery);
+    expect(cubit.hasEdits, isTrue);
+    await cubit.close();
+  });
 }

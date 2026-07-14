@@ -10,11 +10,16 @@ class SettingOptionTile extends StatelessWidget {
     required this.selected,
     required this.onTap,
     super.key,
+    this.leading,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Optional leading widget (e.g. a category avatar for the parent picker, D4).
+  /// Null keeps the plain label-only row used by the appearance/language groups.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +30,10 @@ class SettingOptionTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         child: Row(
           children: [
+            if (leading != null) ...[
+              leading!,
+              const SizedBox(width: AppSpacing.md),
+            ],
             Expanded(
               child: Text(
                 label,
