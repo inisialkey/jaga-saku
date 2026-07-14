@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/form/form_validation.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
@@ -99,7 +100,7 @@ void main() {
   });
 
   blocTest<RecurringFormCubit, RecurringFormState>(
-    'a zero amount is invalid and never saves (amount required)',
+    'a zero amount emits failure and never saves (amount required, D1)',
     build: build,
     seed: () => RecurringFormState(
       label: 'Rent',
@@ -108,12 +109,20 @@ void main() {
       startDate: futureStart,
     ),
     act: (cubit) => cubit.submit(),
-    expect: () => const <RecurringFormState>[],
+    expect: () => [
+      RecurringFormState(
+        label: 'Rent',
+        accountId: 1,
+        categoryId: 1,
+        startDate: futureStart,
+        status: RecurringFormStatus.failure,
+      ),
+    ],
     verify: (_) => verifyNever(() => saveRule(any())),
   );
 
   blocTest<RecurringFormCubit, RecurringFormState>(
-    'an end date before the start is invalid and never saves',
+    'an end date before the start emits failure and never saves (D1)',
     build: build,
     seed: () => RecurringFormState(
       label: 'Rent',
@@ -124,9 +133,69 @@ void main() {
       endDate: pastStart, // before start
     ),
     act: (cubit) => cubit.submit(),
-    expect: () => const <RecurringFormState>[],
+    expect: () => [
+      RecurringFormState(
+        label: 'Rent',
+        amount: 50000,
+        accountId: 1,
+        categoryId: 1,
+        startDate: futureStart,
+        endDate: pastStart,
+        status: RecurringFormStatus.failure,
+      ),
+    ],
     verify: (_) => verifyNever(() => saveRule(any())),
   );
+
+  test('firstError reports the first failing field (D1)', () {
+    expect(
+      const RecurringFormState(
+        label: 'Rent',
+        amount: 50000,
+        accountId: 1,
+        categoryId: 1,
+      ).firstError,
+      FormValidationError.startDateRequired,
+    );
+    expect(
+      RecurringFormState(
+        label: 'Rent',
+        amount: 50000,
+        accountId: 1,
+        categoryId: 1,
+        startDate: futureStart,
+        endDate: pastStart,
+      ).firstError,
+      FormValidationError.endDateBeforeStart,
+    );
+  });
+
+  test('hasEdits is false on the create + edit seed, true after edit (D2)', () {
+    final create = build();
+    expect(create.hasEdits, isFalse);
+    create.amountChanged(50000);
+    expect(create.hasEdits, isTrue);
+
+    final edit = build(
+      initial: RecurringRule(
+        id: 5,
+        templateId: 3,
+        freq: RecurrenceFreq.monthly,
+        startDate: pastStart,
+        nextDue: pastStart,
+        template: const TxTemplate(
+          label: 'Rent',
+          type: TransactionType.expense,
+          accountId: 1,
+          amount: 50000,
+          categoryId: 1,
+        ),
+      ),
+    );
+    expect(edit.hasEdits, isFalse);
+    edit.amountChanged(99000);
+    expect(edit.hasEdits, isTrue);
+  });
 
   blocTest<RecurringFormCubit, RecurringFormState>(
     'submit insert builds an owned template (is_favorite 0) with next_due = start',

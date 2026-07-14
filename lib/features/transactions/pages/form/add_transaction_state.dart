@@ -96,6 +96,34 @@ abstract class AddTransactionState with _$AddTransactionState {
     return categoryId != null;
   }
 
+  /// The editable fields only (D2) — excludes accounts / categories / status /
+  /// validation / safeDaily. `receiptPath` is included so an attached-but-unsaved
+  /// receipt correctly marks the form dirty (the audit's headline unsaved case).
+  (
+    TransactionType,
+    int,
+    int?,
+    int?,
+    int?,
+    PlannedStatus?,
+    SpendingType?,
+    int,
+    String,
+    String,
+  )
+  get formIdentity => (
+    type,
+    amount,
+    accountId,
+    toAccountId,
+    categoryId,
+    plannedStatus,
+    spendingType,
+    date,
+    note,
+    receiptPath,
+  );
+
   bool _typeMatches(Category c) => switch (type) {
     TransactionType.income => c.type == CategoryType.income,
     _ => c.type == CategoryType.expense,

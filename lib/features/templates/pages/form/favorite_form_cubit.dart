@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/form/form_validation.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
@@ -29,12 +30,22 @@ class FavoriteFormCubit extends Cubit<FavoriteFormState> {
        _getAccounts = getAccounts,
        _getCategories = getCategories,
        _initial = initial,
-       super(_seed(initial));
+       super(_seed(initial)) {
+    _seedState = state;
+  }
 
   final SaveTxTemplate _saveTemplate;
   final GetAccounts _getAccounts;
   final GetCategories _getCategories;
   final TxTemplate? _initial;
+
+  /// The seed (initial editable fields), captured post-construction so [hasEdits]
+  /// drives the unsaved-changes guard (D2). `load()` mutates only the picker
+  /// lists (not identity fields), so a pristine form stays clean.
+  late final FavoriteFormState _seedState;
+
+  /// True once the user has changed an editable field from the seed (D2).
+  bool get hasEdits => state.formIdentity != _seedState.formIdentity;
 
   static FavoriteFormState _seed(TxTemplate? initial) {
     if (initial == null) return const FavoriteFormState();
@@ -108,7 +119,12 @@ class FavoriteFormCubit extends Cubit<FavoriteFormState> {
   void noteChanged(String note) => emit(state.copyWith(note: note));
 
   Future<void> submit() async {
-    if (!state.isValid || state.isSaving) return;
+    if (state.isSaving) return;
+    if (!state.isValid) {
+      // D1: surface the first failing field via the page's failure listener.
+      emit(state.copyWith(status: FavoriteFormStatus.failure));
+      return;
+    }
     emit(state.copyWith(status: FavoriteFormStatus.saving));
 
     // Built explicitly (not via copyWith) so type-specific fields drop for the

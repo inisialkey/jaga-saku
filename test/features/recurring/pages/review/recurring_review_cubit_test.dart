@@ -1,3 +1,4 @@
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
@@ -180,4 +181,108 @@ void main() {
     expect(cubit.state, isA<RecurringReviewError>());
     await cubit.close();
   });
+
+  // ── D3: busy guard ──────────────────────────────────────────────────────────
+
+  void stubReproject() {
+    var loadCall = 0;
+    when(() => getDueOccurrences(any())).thenAnswer((_) async {
+      loadCall++;
+      return Right<Failure, List<PendingOccurrence>>(
+        loadCall == 1 ? [occ(1)] : const [],
+      );
+    });
+  }
+
+  blocTest<RecurringReviewCubit, RecurringReviewState>(
+    'confirm flags busy on the loaded list before re-projecting (D3)',
+    setUp: () {
+      stubReproject();
+      when(
+        () => confirmOccurrence(any()),
+      ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
+    },
+    build: build,
+    act: (cubit) async {
+      await cubit.load();
+      await cubit.confirm(occ(1));
+    },
+    expect: () => [
+      // bloc always emits the first state even if it equals the seed, so load()'s
+      // initial loading() shows here.
+      isA<RecurringReviewLoading>(),
+      isA<RecurringReviewLoaded>().having((s) => s.busy, 'busy', isFalse),
+      isA<RecurringReviewLoaded>().having((s) => s.busy, 'busy', isTrue),
+      isA<RecurringReviewLoading>(),
+      isA<RecurringReviewEmpty>(),
+    ],
+  );
+
+  blocTest<RecurringReviewCubit, RecurringReviewState>(
+    'skip flags busy on the loaded list before re-projecting (D3)',
+    setUp: () {
+      stubReproject();
+      when(
+        () => skipOccurrence(any()),
+      ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
+    },
+    build: build,
+    act: (cubit) async {
+      await cubit.load();
+      await cubit.skip(occ(1));
+    },
+    expect: () => [
+      // bloc always emits the first state even if it equals the seed, so load()'s
+      // initial loading() shows here.
+      isA<RecurringReviewLoading>(),
+      isA<RecurringReviewLoaded>().having((s) => s.busy, 'busy', isFalse),
+      isA<RecurringReviewLoaded>().having((s) => s.busy, 'busy', isTrue),
+      isA<RecurringReviewLoading>(),
+      isA<RecurringReviewEmpty>(),
+    ],
+  );
+
+  blocTest<RecurringReviewCubit, RecurringReviewState>(
+    'confirmAll flags busy on the loaded list before re-projecting (D3)',
+    setUp: () {
+      stubReproject();
+      when(
+        () => confirmOccurrence(any()),
+      ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
+    },
+    build: build,
+    act: (cubit) async {
+      await cubit.load();
+      await cubit.confirmAll();
+    },
+    expect: () => [
+      // bloc always emits the first state even if it equals the seed, so load()'s
+      // initial loading() shows here.
+      isA<RecurringReviewLoading>(),
+      isA<RecurringReviewLoaded>().having((s) => s.busy, 'busy', isFalse),
+      isA<RecurringReviewLoaded>().having((s) => s.busy, 'busy', isTrue),
+      isA<RecurringReviewLoading>(),
+      isA<RecurringReviewEmpty>(),
+    ],
+  );
+
+  blocTest<RecurringReviewCubit, RecurringReviewState>(
+    'a second confirmAll while the first is in flight is a no-op (D3)',
+    setUp: () {
+      stubReproject();
+      when(
+        () => confirmOccurrence(any()),
+      ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
+    },
+    build: build,
+    act: (cubit) async {
+      await cubit.load();
+      // The first confirmAll flags busy and suspends on its first write; the
+      // second sees busy == true and returns without a second write.
+      final first = cubit.confirmAll();
+      final second = cubit.confirmAll();
+      await Future.wait([first, second]);
+    },
+    verify: (_) => verify(() => confirmOccurrence(any())).called(1),
+  );
 }

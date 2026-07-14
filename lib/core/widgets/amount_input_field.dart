@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:jaga_saku/core/core.dart';
 
 /// Large amount entry (style guide §13.11): 72h, 28 bold, `Rp` prefix. Tapping
-/// the field opens the in-app [CalculatorKeypadSheet] instead of the system
-/// keyboard; the sheet returns the evaluated integer rupiah.
+/// anywhere on the pill opens the in-app [CalculatorKeypadSheet] instead of the
+/// system keyboard; the sheet returns the evaluated integer rupiah.
+///
+/// When [autofocus] is set the keypad opens itself after the first frame (D8) —
+/// the inner field is read-only and can't usefully take focus, so a new
+/// transaction lands straight on the calculator instead of an inert cursor.
 ///
 /// The caller owns the [controller] and receives the value as a decimal string
 /// via [onChanged] (parse with `int.tryParse`) — the pre-keypad public API, so
 /// the four amount call sites need no change.
-class AmountInputField extends StatelessWidget {
+class AmountInputField extends StatefulWidget {
   const AmountInputField({
     required this.controller,
     super.key,
@@ -22,23 +26,42 @@ class AmountInputField extends StatelessWidget {
   final bool autofocus;
   final ValueChanged<String>? onChanged;
 
+  @override
+  State<AmountInputField> createState() => _AmountInputFieldState();
+}
+
+class _AmountInputFieldState extends State<AmountInputField> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autofocus) {
+      // D8: open the keypad once laid out, not focus a read-only field. Guarded
+      // so a form dismissed before the first frame never touches a dead context.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) _openKeypad(context);
+      });
+    }
+  }
+
   Future<void> _openKeypad(BuildContext context) async {
     final result = await CalculatorKeypadSheet.show(
       context,
-      initial: controller.text,
+      initial: widget.controller.text,
     );
     if (!context.mounted) return;
     if (result == null) return; // dismissed — leave the amount unchanged
     final display = result == 0 ? '' : '$result';
-    controller.text = display;
-    onChanged?.call(display);
+    widget.controller.text = display;
+    widget.onChanged?.call(display);
   }
 
   @override
   Widget build(BuildContext context) {
     final amountStyle = Theme.of(context).textTheme.displayMedium;
     final s = Strings.of(context);
-    final display = controller.text.isEmpty ? hint : controller.text;
+    final display = widget.controller.text.isEmpty
+        ? widget.hint
+        : widget.controller.text;
     // Announce as a button (opens the keypad), not an editable field, and read
     // the current amount in the label since the inner field is excluded.
     return Semantics(
@@ -70,8 +93,7 @@ class AmountInputField extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: TextField(
-                  controller: controller,
-                  autofocus: autofocus,
+                  controller: widget.controller,
                   readOnly: true,
                   showCursor: true,
                   onTap: () => _openKeypad(context),
@@ -79,7 +101,7 @@ class AmountInputField extends StatelessWidget {
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     isCollapsed: true,
-                    hintText: hint,
+                    hintText: widget.hint,
                     hintStyle: amountStyle?.copyWith(
                       color: context.colors.textSecondary,
                     ),

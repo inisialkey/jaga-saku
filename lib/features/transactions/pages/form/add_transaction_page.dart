@@ -93,141 +93,156 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       },
       builder: (context, state) {
         final cubit = context.read<AddTransactionCubit>();
-        return AppScaffold(
-          appBar: AppBar(
-            leading: const CloseButton(),
-            title: Text(state.isEditing ? s.editTransaction : s.addTransaction),
-            actions: [
-              IconButton(
-                icon: const Icon(Iconsax.archive_add),
-                tooltip: s.favoriteSaveAs,
-                onPressed: () => _saveAsFavorite(context),
+        return UnsavedChangesGuard(
+          canLeave: !cubit.hasEdits || state.isSaving,
+          child: AppScaffold(
+            appBar: AppBar(
+              leading: const CloseButton(),
+              title: Text(
+                state.isEditing ? s.editTransaction : s.addTransaction,
               ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              SegmentedControl<TransactionType>(
-                selected: state.type,
-                onChanged: cubit.typeChanged,
-                options: [
-                  SegmentOption(
-                    value: TransactionType.expense,
-                    label: s.expense,
-                  ),
-                  SegmentOption(value: TransactionType.income, label: s.income),
-                  SegmentOption(
-                    value: TransactionType.transfer,
-                    label: s.transfer,
+              actions: [
+                IconButton(
+                  icon: const Icon(Iconsax.archive_add),
+                  tooltip: s.favoriteSaveAs,
+                  onPressed: () => _saveAsFavorite(context),
+                ),
+              ],
+            ),
+            body: ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                SegmentedControl<TransactionType>(
+                  selected: state.type,
+                  onChanged: cubit.typeChanged,
+                  options: [
+                    SegmentOption(
+                      value: TransactionType.expense,
+                      label: s.expense,
+                    ),
+                    SegmentOption(
+                      value: TransactionType.income,
+                      label: s.income,
+                    ),
+                    SegmentOption(
+                      value: TransactionType.transfer,
+                      label: s.transfer,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _FieldLabel(s.amount),
+                AmountInputField(
+                  controller: _amountController,
+                  autofocus: !state.isEditing,
+                  onChanged: (value) =>
+                      cubit.amountChanged(int.tryParse(value) ?? 0),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _FieldLabel(state.isTransfer ? s.fromAccount : s.account),
+                SelectorField(
+                  label: state.selectedAccount?.name ?? s.selectAccount,
+                  icon: state.selectedAccount == null
+                      ? Icons.account_balance_wallet_outlined
+                      : AppIcons.resolve(state.selectedAccount!.icon),
+                  onTap: () => _pickAccount(context),
+                ),
+                if (state.isTransfer) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  _FieldLabel(s.toAccount),
+                  SelectorField(
+                    label: state.selectedToAccount?.name ?? s.selectAccount,
+                    icon: state.selectedToAccount == null
+                        ? Icons.account_balance_wallet_outlined
+                        : AppIcons.resolve(state.selectedToAccount!.icon),
+                    onTap: () => _pickToAccount(context),
                   ),
                 ],
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.amount),
-              AmountInputField(
-                controller: _amountController,
-                autofocus: !state.isEditing,
-                onChanged: (value) =>
-                    cubit.amountChanged(int.tryParse(value) ?? 0),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(state.isTransfer ? s.fromAccount : s.account),
-              SelectorField(
-                label: state.selectedAccount?.name ?? s.selectAccount,
-                icon: state.selectedAccount == null
-                    ? Icons.account_balance_wallet_outlined
-                    : AppIcons.resolve(state.selectedAccount!.icon),
-                onTap: () => _pickAccount(context),
-              ),
-              if (state.isTransfer) ...[
+                if (!state.isTransfer) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  _FieldLabel(s.category),
+                  SelectorField(
+                    label: state.selectedCategory?.name ?? s.selectCategory,
+                    icon: state.selectedCategory == null
+                        ? Icons.category_outlined
+                        : AppIcons.resolve(state.selectedCategory!.icon),
+                    onTap: () => _pickCategory(context),
+                  ),
+                ],
+                if (state.isExpense) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  _FieldLabel(s.plannedStatus),
+                  ChoiceChipGroup<PlannedStatus>(
+                    selected: state.plannedStatus,
+                    onChanged: cubit.plannedStatusChanged,
+                    options: [
+                      ChipOption(
+                        value: PlannedStatus.planned,
+                        label: s.planned,
+                      ),
+                      ChipOption(
+                        value: PlannedStatus.unplanned,
+                        label: s.unplanned,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _FieldLabel(s.spendingType),
+                  ChoiceChipGroup<SpendingType>(
+                    selected: state.spendingType,
+                    onChanged: cubit.spendingTypeChanged,
+                    options: [
+                      ChipOption(value: SpendingType.need, label: s.need),
+                      ChipOption(value: SpendingType.want, label: s.want),
+                      ChipOption(
+                        value: SpendingType.lifestyle,
+                        label: s.lifestyle,
+                      ),
+                      ChipOption(
+                        value: SpendingType.emergency,
+                        label: s.emergency,
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.toAccount),
+                _FieldLabel(s.date),
                 SelectorField(
-                  label: state.selectedToAccount?.name ?? s.selectAccount,
-                  icon: state.selectedToAccount == null
-                      ? Icons.account_balance_wallet_outlined
-                      : AppIcons.resolve(state.selectedToAccount!.icon),
-                  onTap: () => _pickToAccount(context),
-                ),
-              ],
-              if (!state.isTransfer) ...[
-                const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.category),
-                SelectorField(
-                  label: state.selectedCategory?.name ?? s.selectCategory,
-                  icon: state.selectedCategory == null
-                      ? Icons.category_outlined
-                      : AppIcons.resolve(state.selectedCategory!.icon),
-                  onTap: () => _pickCategory(context),
-                ),
-              ],
-              if (state.isExpense) ...[
-                const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.plannedStatus),
-                ChoiceChipGroup<PlannedStatus>(
-                  selected: state.plannedStatus,
-                  onChanged: cubit.plannedStatusChanged,
-                  options: [
-                    ChipOption(value: PlannedStatus.planned, label: s.planned),
-                    ChipOption(
-                      value: PlannedStatus.unplanned,
-                      label: s.unplanned,
-                    ),
-                  ],
+                  label: _formatDate(context, state.date),
+                  icon: Icons.calendar_today_rounded,
+                  onTap: () => _pickDate(context),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.spendingType),
-                ChoiceChipGroup<SpendingType>(
-                  selected: state.spendingType,
-                  onChanged: cubit.spendingTypeChanged,
-                  options: [
-                    ChipOption(value: SpendingType.need, label: s.need),
-                    ChipOption(value: SpendingType.want, label: s.want),
-                    ChipOption(
-                      value: SpendingType.lifestyle,
-                      label: s.lifestyle,
-                    ),
-                    ChipOption(
-                      value: SpendingType.emergency,
-                      label: s.emergency,
-                    ),
-                  ],
+                _FieldLabel(s.note),
+                TextField(
+                  controller: _noteController,
+                  onChanged: cubit.noteChanged,
+                  textCapitalization: TextCapitalization.sentences,
+                  // D5: let a longer note wrap instead of scrolling one line.
+                  minLines: 1,
+                  maxLines: 3,
+                  textInputAction: TextInputAction.newline,
+                  decoration: _inputDecoration(context, hint: s.noteHint),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _FieldLabel(s.receiptAttach),
+                _ReceiptAttachment(
+                  receiptPath: state.receiptPath,
+                  resolve: cubit.resolveReceipt,
+                  onPick: () => _pickReceiptSource(context),
+                  onRemove: cubit.removeReceipt,
+                  onView: (file) => _viewReceipt(context, file),
                 ),
               ],
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.date),
-              SelectorField(
-                label: _formatDate(context, state.date),
-                icon: Icons.calendar_today_rounded,
-                onTap: () => _pickDate(context),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.note),
-              TextField(
-                controller: _noteController,
-                onChanged: cubit.noteChanged,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: _inputDecoration(context, hint: s.noteHint),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.receiptAttach),
-              _ReceiptAttachment(
-                receiptPath: state.receiptPath,
-                resolve: cubit.resolveReceipt,
-                onPick: () => _pickReceiptSource(context),
-                onRemove: cubit.removeReceipt,
-                onView: (file) => _viewReceipt(context, file),
-              ),
-            ],
-          ),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: PrimaryButton(
-                label: state.isTransfer ? s.saveTransfer : s.saveTransaction,
-                isLoading: state.isSaving,
-                onPressed: state.isValid ? cubit.submit : null,
+            ),
+            bottomNavigationBar: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: PrimaryButton(
+                  label: state.isTransfer ? s.saveTransfer : s.saveTransaction,
+                  isLoading: state.isSaving,
+                  onPressed: cubit.submit,
+                ),
               ),
             ),
           ),

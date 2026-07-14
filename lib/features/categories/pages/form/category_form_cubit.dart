@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/form/form_validation.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dart';
@@ -37,11 +38,21 @@ class CategoryFormCubit extends Cubit<CategoryFormState> {
                  color: initial.color,
                  isEditing: true,
                ),
-       );
+       ) {
+    _seedState = state;
+  }
 
   final SaveCategory _saveCategory;
   final GetCategories _getCategories;
   final Category? _initial;
+
+  /// The seed (initial editable fields), captured post-construction so [hasEdits]
+  /// drives the unsaved-changes guard (D2). Loading parents mutates only
+  /// `parentOptions` (not an identity field), so a pristine form stays clean.
+  late final CategoryFormState _seedState;
+
+  /// True once the user has changed an editable field from the seed (D2).
+  bool get hasEdits => state.formIdentity != _seedState.formIdentity;
 
   /// Loads top-level, same-type categories as parent candidates (excludes self
   /// and archived rows).
@@ -96,7 +107,12 @@ class CategoryFormCubit extends Cubit<CategoryFormState> {
   void colorChanged(int? color) => emit(state.copyWith(color: color));
 
   Future<void> submit() async {
-    if (!state.isValid || state.isSaving) return;
+    if (state.isSaving) return;
+    if (!state.isValid) {
+      // D1: surface the first failing field via the page's failure listener.
+      emit(state.copyWith(status: CategoryFormStatus.failure));
+      return;
+    }
     emit(state.copyWith(status: CategoryFormStatus.saving));
 
     // Built explicitly (not via copyWith) so a null parentId genuinely clears.

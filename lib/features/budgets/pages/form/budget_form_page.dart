@@ -52,52 +52,59 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
       listener: (context, state) {
         if (state.status == BudgetFormStatus.success) {
           context.pop(true);
-        } else if (state.status == BudgetFormStatus.failure &&
-            state.error != null) {
-          state.error!.localize(context).toToastError(context);
+        } else if (state.status == BudgetFormStatus.failure) {
+          // D1: a save failure carries `error`; an invalid submit carries only
+          // `firstError` — surface whichever applies.
+          (state.error?.localize(context) ??
+                  state.firstError?.localize(context) ??
+                  s.errorUnexpected)
+              .toToastError(context);
         }
       },
       builder: (context, state) {
         final cubit = context.read<BudgetFormCubit>();
-        return AppScaffold(
-          appBar: AppBar(
-            leading: const CloseButton(),
-            title: Text(state.isEditing ? s.editBudget : s.createBudget),
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              _FieldLabel(s.selectMonth),
-              MonthSelector(
-                month: state.month,
-                onPrevious: cubit.previousMonth,
-                onNext: cubit.nextMonth,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.category),
-              SelectorField(
-                label: state.selectedCategory?.name ?? s.selectCategory,
-                icon: state.selectedCategory == null
-                    ? Icons.category_outlined
-                    : AppIcons.resolve(state.selectedCategory!.icon),
-                onTap: () => _pickCategory(context),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.budgetLimit),
-              AmountInputField(
-                controller: _limitController,
-                onChanged: (value) =>
-                    cubit.limitChanged(int.tryParse(value) ?? 0),
-              ),
-            ],
-          ),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
+        return UnsavedChangesGuard(
+          canLeave: !cubit.hasEdits || state.isSaving,
+          child: AppScaffold(
+            appBar: AppBar(
+              leading: const CloseButton(),
+              title: Text(state.isEditing ? s.editBudget : s.createBudget),
+            ),
+            body: ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              child: PrimaryButton(
-                label: s.save,
-                isLoading: state.isSaving,
-                onPressed: state.isValid ? cubit.submit : null,
+              children: [
+                _FieldLabel(s.selectMonth),
+                MonthSelector(
+                  month: state.month,
+                  onPrevious: cubit.previousMonth,
+                  onNext: cubit.nextMonth,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _FieldLabel(s.category),
+                SelectorField(
+                  label: state.selectedCategory?.name ?? s.selectCategory,
+                  icon: state.selectedCategory == null
+                      ? Icons.category_outlined
+                      : AppIcons.resolve(state.selectedCategory!.icon),
+                  onTap: () => _pickCategory(context),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _FieldLabel(s.budgetLimit),
+                AmountInputField(
+                  controller: _limitController,
+                  onChanged: (value) =>
+                      cubit.limitChanged(int.tryParse(value) ?? 0),
+                ),
+              ],
+            ),
+            bottomNavigationBar: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: PrimaryButton(
+                  label: s.save,
+                  isLoading: state.isSaving,
+                  onPressed: cubit.submit,
+                ),
               ),
             ),
           ),

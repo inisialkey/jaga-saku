@@ -45,93 +45,100 @@ class _AccountFormPageState extends State<AccountFormPage> {
       listener: (context, state) {
         if (state.status == AccountFormStatus.success) {
           context.pop(true);
-        } else if (state.status == AccountFormStatus.failure &&
-            state.error != null) {
-          state.error!.localize(context).toToastError(context);
+        } else if (state.status == AccountFormStatus.failure) {
+          // D1: a save failure carries `error`; an invalid submit carries only
+          // `firstError` — surface whichever applies.
+          (state.error?.localize(context) ??
+                  state.firstError?.localize(context) ??
+                  s.errorUnexpected)
+              .toToastError(context);
         }
       },
       builder: (context, state) {
         final cubit = context.read<AccountFormCubit>();
-        return AppScaffold(
-          appBar: AppBar(
-            leading: const CloseButton(),
-            title: Text(state.isEditing ? s.editAccount : s.addAccount),
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              _FieldLabel(s.accountType),
-              SegmentedControl<AccountType>(
-                selected: state.type,
-                onChanged: cubit.typeChanged,
-                options: [
-                  SegmentOption(value: AccountType.cash, label: s.cash),
-                  SegmentOption(value: AccountType.bank, label: s.bank),
-                  SegmentOption(value: AccountType.ewallet, label: s.ewallet),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.accountName),
-              TextField(
-                controller: _nameController,
-                onChanged: cubit.nameChanged,
-                textCapitalization: TextCapitalization.words,
-                decoration: _inputDecoration(context, hint: s.accountName),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FieldLabel(s.openingBalance),
-              AmountInputField(
-                controller: _amountController,
-                onChanged: (value) =>
-                    cubit.openingBalanceChanged(int.tryParse(value) ?? 0),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Center(
-                child: CategoryIconAvatar(
-                  icon: state.icon,
-                  color: state.color,
-                  size: 64,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SelectorField(
-                label: s.icon,
-                icon: AppIcons.resolve(state.icon),
-                onTap: () => _pickIcon(context),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              SelectorField(
-                label: s.color,
-                icon: Icons.palette_outlined,
-                onTap: () => _pickColor(context),
-              ),
-              // V2-M6: reconcile is only meaningful for an existing account
-              // (a new one has no history/derived balance to correct).
-              if (state.isEditing) ...[
-                const SizedBox(height: AppSpacing.xl),
-                SelectorField(
-                  label: s.reconcile,
-                  icon: Icons.tune,
-                  onTap: () {
-                    final account = cubit.initial;
-                    if (account?.id == null) return;
-                    ReconcileSheet.show(
-                      context,
-                      accountId: account!.id!,
-                      currentBalance: account.balance,
-                    );
-                  },
-                ),
-              ],
-            ],
-          ),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
+        return UnsavedChangesGuard(
+          canLeave: !cubit.hasEdits || state.isSaving,
+          child: AppScaffold(
+            appBar: AppBar(
+              leading: const CloseButton(),
+              title: Text(state.isEditing ? s.editAccount : s.addAccount),
+            ),
+            body: ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
-              child: PrimaryButton(
-                label: s.save,
-                isLoading: state.isSaving,
-                onPressed: state.isValid ? cubit.submit : null,
+              children: [
+                _FieldLabel(s.accountType),
+                SegmentedControl<AccountType>(
+                  selected: state.type,
+                  onChanged: cubit.typeChanged,
+                  options: [
+                    SegmentOption(value: AccountType.cash, label: s.cash),
+                    SegmentOption(value: AccountType.bank, label: s.bank),
+                    SegmentOption(value: AccountType.ewallet, label: s.ewallet),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _FieldLabel(s.accountName),
+                TextField(
+                  controller: _nameController,
+                  onChanged: cubit.nameChanged,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: _inputDecoration(context, hint: s.accountName),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _FieldLabel(s.openingBalance),
+                AmountInputField(
+                  controller: _amountController,
+                  onChanged: (value) =>
+                      cubit.openingBalanceChanged(int.tryParse(value) ?? 0),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Center(
+                  child: CategoryIconAvatar(
+                    icon: state.icon,
+                    color: state.color,
+                    size: 64,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SelectorField(
+                  label: s.icon,
+                  icon: AppIcons.resolve(state.icon),
+                  onTap: () => _pickIcon(context),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SelectorField(
+                  label: s.color,
+                  icon: Icons.palette_outlined,
+                  onTap: () => _pickColor(context),
+                ),
+                // V2-M6: reconcile is only meaningful for an existing account
+                // (a new one has no history/derived balance to correct).
+                if (state.isEditing) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  SelectorField(
+                    label: s.reconcile,
+                    icon: Icons.tune,
+                    onTap: () {
+                      final account = cubit.initial;
+                      if (account?.id == null) return;
+                      ReconcileSheet.show(
+                        context,
+                        accountId: account!.id!,
+                        currentBalance: account.balance,
+                      );
+                    },
+                  ),
+                ],
+              ],
+            ),
+            bottomNavigationBar: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: PrimaryButton(
+                  label: s.save,
+                  isLoading: state.isSaving,
+                  onPressed: cubit.submit,
+                ),
               ),
             ),
           ),

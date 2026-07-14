@@ -23,9 +23,21 @@ abstract class AccountFormState with _$AccountFormState {
 
   const AccountFormState._();
 
-  /// Submit is allowed once the name is non-empty (opening balance is always
-  /// >= 0 — the amount field is digits-only).
-  bool get isValid => name.trim().isNotEmpty && openingBalance >= 0;
+  /// First failing field for the invalid-submit toast (D1), in the same order as
+  /// [isValid]. `openingBalance` is clamped to >= 0 by the cubit
+  /// (`openingBalanceChanged`), so only the name can fail here.
+  FormValidationError? get firstError =>
+      name.trim().isEmpty ? FormValidationError.nameRequired : null;
+
+  /// Submit is allowed once the name is non-empty (`openingBalance` is clamped
+  /// to >= 0 in the cubit, so it can never be the blocker).
+  bool get isValid => firstError == null;
 
   bool get isSaving => status == AccountFormStatus.saving;
+
+  /// The editable fields only (D2) — excludes status / error / loaded lists — so
+  /// a pristine form compares equal to its seed and `hasEdits` stays false until
+  /// the user actually changes something.
+  (AccountType, String, int, String?, int?) get formIdentity =>
+      (type, name, openingBalance, icon, color);
 }

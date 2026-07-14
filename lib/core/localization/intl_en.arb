@@ -345,6 +345,24 @@
   "accountRequiredError": "Select an account first",
   "categoryRequiredError": "Select a category first",
   "toAccountRequiredError": "Select a destination account",
+  "nameRequired": "Enter a name first",
+  "labelRequired": "Enter a label first",
+  "startDateRequired": "Select a start date",
+  "endDateBeforeStart": "The end date must be on or after the start date",
+  "unsavedChangesTitle": "Discard changes?",
+  "unsavedChangesMessage": "You have unsaved changes. Leaving now will discard them.",
+  "discard": "Discard",
+  "keepEditing": "Keep editing",
+  "clear": "Clear",
+  "recurringConfirmAllTitle": "Confirm all?",
+  "recurringConfirmAllMessage": "Create {count} transactions now?",
+  "@recurringConfirmAllMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deleteTransaction": "Delete Transaction",
   "deleteTransactionConfirm": "Delete this transaction?",
   "incomeLabel": "Income",

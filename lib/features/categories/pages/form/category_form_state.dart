@@ -23,9 +23,17 @@ abstract class CategoryFormState with _$CategoryFormState {
 
   const CategoryFormState._();
 
-  bool get isValid => name.trim().isNotEmpty;
+  /// First failing field for the invalid-submit toast (D1).
+  FormValidationError? get firstError =>
+      name.trim().isEmpty ? FormValidationError.nameRequired : null;
+
+  bool get isValid => firstError == null;
 
   bool get isSaving => status == CategoryFormStatus.saving;
+
+  /// The editable fields only (D2) — excludes parentOptions / status / error.
+  (CategoryType, String, int?, String?, int?) get formIdentity =>
+      (type, name, parentId, icon, color);
 
   /// The currently selected parent (if any), resolved from [parentOptions].
   Category? get selectedParent {

@@ -70,16 +70,63 @@ abstract class RecurringFormState with _$RecurringFormState {
     return null;
   }
 
+  /// First failing field for the invalid-submit toast (D1), in the same order as
+  /// [isValid].
+  FormValidationError? get firstError {
+    if (label.trim().isEmpty) return FormValidationError.labelRequired;
+    if (accountId == null) return FormValidationError.accountRequired;
+    if (amount <= 0) return FormValidationError.amountRequired;
+    if (startDate == null) return FormValidationError.startDateRequired;
+    if (endDate != null && endDate! < startDate!) {
+      return FormValidationError.endDateBeforeStart;
+    }
+    if (isTransfer) {
+      if (toAccountId == null) return FormValidationError.toAccountRequired;
+      if (toAccountId == accountId) {
+        return FormValidationError.transferSameAccount;
+      }
+    } else if (categoryId == null) {
+      return FormValidationError.categoryRequired;
+    }
+    return null;
+  }
+
   /// All required fields for the current type are present AND amount > 0 AND a
   /// start date is set AND (no end date OR end ≥ start) — drives the Save button.
-  bool get isValid {
-    if (label.trim().isEmpty || accountId == null) return false;
-    if (amount <= 0) return false;
-    if (startDate == null) return false;
-    if (endDate != null && endDate! < startDate!) return false;
-    if (isTransfer) return toAccountId != null && toAccountId != accountId;
-    return categoryId != null;
-  }
+  bool get isValid => firstError == null;
+
+  /// The editable fields only (D2), incl. the schedule — excludes accounts /
+  /// categories / status.
+  (
+    String,
+    TransactionType,
+    int,
+    int?,
+    int?,
+    int?,
+    PlannedStatus?,
+    SpendingType?,
+    String,
+    RecurrenceFreq,
+    int,
+    int?,
+    int?,
+  )
+  get formIdentity => (
+    label,
+    type,
+    amount,
+    accountId,
+    toAccountId,
+    categoryId,
+    plannedStatus,
+    spendingType,
+    note,
+    freq,
+    interval,
+    startDate,
+    endDate,
+  );
 
   bool _typeMatches(Category c) => switch (type) {
     TransactionType.income => c.type == CategoryType.income,

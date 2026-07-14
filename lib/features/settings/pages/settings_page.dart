@@ -154,31 +154,82 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// Day-of-month picker (1..31): day 1 is labelled "monthly calendar", the rest
   /// "Day N". Choosing one persists it via the app-global cubit (which pings the
-  /// tx bus so budget views recompute live) and closes the sheet.
+  /// tx bus so budget views recompute live) and closes the sheet. Scroll-
+  /// controlled so the whole month fits, and opens scrolled to the current day
+  /// (D6).
   Future<void> _showCycleStartDayPicker(BuildContext context, int current) {
     final s = Strings.of(context)!;
     return showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       builder: (sheetContext) => AppBottomSheet(
         title: s.budgetCycle,
-        child: ListView.builder(
-          shrinkWrap: true,
-          padding: EdgeInsets.zero,
-          itemCount: 31,
-          itemBuilder: (_, index) {
-            final day = index + 1;
-            return SettingOptionTile(
-              label: day == 1
-                  ? s.budgetCycleMonthly
-                  : s.budgetCycleStartDay(day),
-              selected: day == current,
-              onTap: () {
-                _settings.setBudgetCycleStartDay(day);
-                Navigator.of(sheetContext).pop();
-              },
-            );
+        child: _CycleStartDayPicker(
+          current: current,
+          onSelected: (day) {
+            _settings.setBudgetCycleStartDay(day);
+            Navigator.of(sheetContext).pop();
           },
         ),
+      ),
+    );
+  }
+}
+
+/// The 1..31 day list for the budget-cycle picker (D6). Opens scrolled to the
+/// current day instead of always at the top; owns + disposes its
+/// [ScrollController].
+class _CycleStartDayPicker extends StatefulWidget {
+  const _CycleStartDayPicker({required this.current, required this.onSelected});
+
+  final int current;
+  final ValueChanged<int> onSelected;
+
+  @override
+  State<_CycleStartDayPicker> createState() => _CycleStartDayPickerState();
+}
+
+class _CycleStartDayPickerState extends State<_CycleStartDayPicker> {
+  static const double _itemExtent = 48;
+
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // Land the current day ~two rows below the top of the viewport.
+    _controller = ScrollController(
+      initialScrollOffset: ((widget.current - 1) * _itemExtent - 96).clamp(
+        0.0,
+        double.infinity,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Strings.of(context)!;
+    return SizedBox(
+      height: 360,
+      child: ListView.builder(
+        controller: _controller,
+        padding: EdgeInsets.zero,
+        itemCount: 31,
+        itemExtent: _itemExtent,
+        itemBuilder: (_, index) {
+          final day = index + 1;
+          return SettingOptionTile(
+            label: day == 1 ? s.budgetCycleMonthly : s.budgetCycleStartDay(day),
+            selected: day == widget.current,
+            onTap: () => widget.onSelected(day),
+          );
+        },
       ),
     );
   }

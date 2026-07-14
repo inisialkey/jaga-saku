@@ -62,13 +62,49 @@ abstract class FavoriteFormState with _$FavoriteFormState {
     return null;
   }
 
+  /// First failing field for the invalid-submit toast (D1), in the same order as
+  /// [isValid]. Amount is intentionally excluded (a favorite may be amount-less).
+  FormValidationError? get firstError {
+    if (label.trim().isEmpty) return FormValidationError.labelRequired;
+    if (accountId == null) return FormValidationError.accountRequired;
+    if (isTransfer) {
+      if (toAccountId == null) return FormValidationError.toAccountRequired;
+      if (toAccountId == accountId) {
+        return FormValidationError.transferSameAccount;
+      }
+    } else if (categoryId == null) {
+      return FormValidationError.categoryRequired;
+    }
+    return null;
+  }
+
   /// All required fields for the current type are present — drives the Save
   /// button. Amount is intentionally excluded (a favorite may be amount-less).
-  bool get isValid {
-    if (label.trim().isEmpty || accountId == null) return false;
-    if (isTransfer) return toAccountId != null && toAccountId != accountId;
-    return categoryId != null;
-  }
+  bool get isValid => firstError == null;
+
+  /// The editable fields only (D2) — excludes accounts / categories / status.
+  (
+    String,
+    TransactionType,
+    int,
+    int?,
+    int?,
+    int?,
+    PlannedStatus?,
+    SpendingType?,
+    String,
+  )
+  get formIdentity => (
+    label,
+    type,
+    amount,
+    accountId,
+    toAccountId,
+    categoryId,
+    plannedStatus,
+    spendingType,
+    note,
+  );
 
   bool _typeMatches(Category c) => switch (type) {
     TransactionType.income => c.type == CategoryType.income,

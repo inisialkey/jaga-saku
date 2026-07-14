@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/form/form_validation.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/pages/form/budget_form_cubit.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -100,13 +101,45 @@ void main() {
   });
 
   blocTest<BudgetFormCubit, BudgetFormState>(
-    'invalid submit (no positive limit) never saves',
+    'invalid submit (no positive limit) emits failure and never saves (D1)',
     build: () => build(month: DateTime(2026, 5)),
     seed: () => BudgetFormState(month: DateTime(2026, 5), categoryId: 1),
     act: (cubit) => cubit.submit(),
-    expect: () => const <BudgetFormState>[],
+    expect: () => [
+      BudgetFormState(
+        month: DateTime(2026, 5),
+        categoryId: 1,
+        status: BudgetFormStatus.failure,
+      ),
+    ],
     verify: (_) => verifyNever(() => saveBudget(any())),
   );
+
+  test('firstError reports the first missing field (D1)', () {
+    expect(
+      BudgetFormState(month: DateTime(2026, 5)).firstError,
+      FormValidationError.categoryRequired,
+    );
+    expect(
+      BudgetFormState(month: DateTime(2026, 5), categoryId: 1).firstError,
+      FormValidationError.amountRequired,
+    );
+    expect(
+      BudgetFormState(
+        month: DateTime(2026, 5),
+        categoryId: 1,
+        limitAmount: 100,
+      ).firstError,
+      isNull,
+    );
+  });
+
+  test('hasEdits is false on the create seed and true after an edit (D2)', () {
+    final cubit = build(month: DateTime(2026, 5));
+    expect(cubit.hasEdits, isFalse);
+    cubit.limitChanged(200000);
+    expect(cubit.hasEdits, isTrue);
+  });
 
   blocTest<BudgetFormCubit, BudgetFormState>(
     'create with no existing budget inserts (id null) and pings',

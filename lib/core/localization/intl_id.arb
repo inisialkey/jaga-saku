@@ -345,6 +345,24 @@
   "accountRequiredError": "Pilih akun terlebih dahulu",
   "categoryRequiredError": "Pilih kategori terlebih dahulu",
   "toAccountRequiredError": "Pilih akun tujuan",
+  "nameRequired": "Masukkan nama terlebih dahulu",
+  "labelRequired": "Masukkan label terlebih dahulu",
+  "startDateRequired": "Pilih tanggal mulai",
+  "endDateBeforeStart": "Tanggal akhir harus sama atau setelah tanggal mulai",
+  "unsavedChangesTitle": "Buang perubahan?",
+  "unsavedChangesMessage": "Ada perubahan yang belum disimpan. Keluar sekarang akan membuangnya.",
+  "discard": "Buang",
+  "keepEditing": "Lanjut mengedit",
+  "clear": "Hapus",
+  "recurringConfirmAllTitle": "Konfirmasi semua?",
+  "recurringConfirmAllMessage": "Buat {count} transaksi sekarang?",
+  "@recurringConfirmAllMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "deleteTransaction": "Hapus Transaksi",
   "deleteTransactionConfirm": "Yakin ingin menghapus transaksi ini?",
   "incomeLabel": "Pemasukan",

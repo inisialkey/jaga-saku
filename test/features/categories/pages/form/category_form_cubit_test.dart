@@ -94,15 +94,34 @@ void main() {
   );
 
   blocTest<CategoryFormCubit, CategoryFormState>(
-    'submit with an empty name does nothing',
+    'submit with an empty name emits a failure state and never saves (D1)',
     build: () => CategoryFormCubit(
       saveCategory: saveCategory,
       getCategories: getCategories,
     ),
     act: (cubit) => cubit.submit(),
-    expect: () => const <CategoryFormState>[],
+    expect: () => const [CategoryFormState(status: CategoryFormStatus.failure)],
     verify: (_) => verifyNever(() => saveCategory(any())),
   );
+
+  test('hasEdits tracks edits from the create + edit seed (D2)', () {
+    final create = CategoryFormCubit(
+      saveCategory: saveCategory,
+      getCategories: getCategories,
+    );
+    expect(create.hasEdits, isFalse);
+    create.nameChanged('Food');
+    expect(create.hasEdits, isTrue);
+
+    final edit = CategoryFormCubit(
+      saveCategory: saveCategory,
+      getCategories: getCategories,
+      initial: const Category(id: 1, name: 'Food', type: CategoryType.expense),
+    );
+    expect(edit.hasEdits, isFalse);
+    edit.nameChanged('Groceries');
+    expect(edit.hasEdits, isTrue);
+  });
 
   blocTest<CategoryFormCubit, CategoryFormState>(
     'typeChanged switches type and clears the selected parent',
