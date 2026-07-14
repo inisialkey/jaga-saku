@@ -36,8 +36,7 @@ class InsightPage extends StatelessWidget {
       ),
       body: BlocBuilder<InsightCubit, InsightState>(
         builder: (context, state) => switch (state) {
-          InsightInitial() ||
-          InsightLoading() => const Center(child: Loading()),
+          InsightInitial() || InsightLoading() => const DashboardSkeleton(),
           InsightError(:final failure) => ErrorStateView(
             title: s.errorLoadTitle,
             message: failure.localize(context),

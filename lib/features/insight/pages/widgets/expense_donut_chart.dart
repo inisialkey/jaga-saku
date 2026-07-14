@@ -34,6 +34,8 @@ class ExpenseDonutChart extends StatelessWidget {
     }
 
     final theme = Theme.of(context);
+    // Respect the OS "reduce motion" setting — skip the entrance animation.
+    final reduce = MediaQuery.disableAnimationsOf(context);
     return AppCard(
       child: Column(
         children: [
@@ -43,6 +45,7 @@ class ExpenseDonutChart extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 PieChart(
+                  duration: reduce ? Duration.zero : AppDurations.fast,
                   PieChartData(
                     sectionsSpace: 2,
                     centerSpaceRadius: 64,
@@ -81,8 +84,9 @@ class ExpenseDonutChart extends StatelessWidget {
     );
   }
 
-  /// The category's stored color, falling back to the brand green (same fallback
-  /// as [CategoryIconAvatar]) so a color-less category still renders a wedge.
+  /// The slice's color. The cubit now seeds a distinct swatch per colorless
+  /// category, so this null-guard only covers direct-construction / widget-test
+  /// slices; it falls back to [CategoryColors.fallback] to render a wedge.
   Color _sliceColor(CategorySlice slice) =>
-      slice.color != null ? Color(slice.color!) : AppColors.primary;
+      Color(slice.color ?? CategoryColors.fallback);
 }

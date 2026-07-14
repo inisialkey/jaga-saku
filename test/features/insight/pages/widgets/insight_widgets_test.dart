@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jaga_saku/core/resources/category_colors.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/insight/pages/insight_cubit.dart';
 import 'package:jaga_saku/features/insight/pages/insight_rules.dart';
@@ -82,6 +83,48 @@ void main() {
       );
       expect(find.byType(PieChart), findsNothing);
       expect(find.text('No expenses this month yet'), findsOneWidget);
+    });
+
+    testWidgets('renders each slice color as a distinct donut wedge (C3)', (
+      tester,
+    ) async {
+      // The cubit assigns CategoryColors.swatches[i] to colorless categories;
+      // the donut must render each wedge in its own slice color so adjacent
+      // wedges never collide (the legend then matches automatically).
+      await pumpApp(
+        tester,
+        ExpenseDonutChart(
+          totalExpense: 2000000,
+          categoriesById: const {
+            1: Category(id: 1, name: 'A', type: CategoryType.expense),
+            2: Category(id: 2, name: 'B', type: CategoryType.expense),
+          },
+          slices: [
+            CategorySlice(
+              categoryId: 1,
+              name: 'A',
+              amount: 1000000,
+              pct: 0.5,
+              color: CategoryColors.swatches[0],
+            ),
+            CategorySlice(
+              categoryId: 2,
+              name: 'B',
+              amount: 1000000,
+              pct: 0.5,
+              color: CategoryColors.swatches[1],
+            ),
+          ],
+        ),
+      );
+      final sections = tester
+          .widget<PieChart>(find.byType(PieChart))
+          .data
+          .sections;
+      expect(sections.length, 2);
+      expect(sections[0].color, isNot(sections[1].color));
+      expect(sections[0].color, Color(CategoryColors.swatches[0]));
+      expect(sections[1].color, Color(CategoryColors.swatches[1]));
     });
   });
 

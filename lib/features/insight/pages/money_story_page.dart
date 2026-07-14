@@ -22,7 +22,7 @@ class MoneyStoryPage extends StatelessWidget {
       body: BlocBuilder<MoneyStoryCubit, MoneyStoryState>(
         builder: (context, state) => switch (state) {
           MoneyStoryInitial() ||
-          MoneyStoryLoading() => const Center(child: Loading()),
+          MoneyStoryLoading() => const DashboardSkeleton(),
           MoneyStoryError(:final failure) => ErrorStateView(
             title: s.errorLoadTitle,
             message: failure.localize(context),

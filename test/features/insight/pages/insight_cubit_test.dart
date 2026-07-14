@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/resources/category_colors.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -294,6 +295,51 @@ void main() {
       // C2: the month-over-month trend fold (:245) excluded it too, so no
       // insight references "Penyesuaian".
       expect(r.insights.every((i) => i.category != 'Penyesuaian'), isTrue);
+      await cubit.close();
+    },
+  );
+
+  // ── Donut color collision (Tranche C, C3) ───────────────────────────────────
+
+  test('colorless categories get distinct swatch colors by position', () async {
+    stub(
+      current: [
+        tx(amount: 600000, categoryId: 2), // Transport — stored color is null
+        tx(amount: 400000, categoryId: 4), // Kopi — stored color is null
+      ],
+      expenseCats: expenseCats,
+      incomeCats: incomeCats,
+    );
+
+    final cubit = build();
+    await cubit.load(thisMonth);
+
+    final slices = (cubit.state as InsightLoaded).report.expenseByCategory;
+    // Sorted desc (Transport 600k, Kopi 400k); each colorless category gets a
+    // distinct swatch by position so its donut wedge never collides.
+    expect(slices.map((s) => s.name).toList(), ['Transport', 'Kopi']);
+    expect(slices[0].color, CategoryColors.swatches[0]);
+    expect(slices[1].color, CategoryColors.swatches[1]);
+    expect(slices[0].color, isNot(slices[1].color));
+    await cubit.close();
+  });
+
+  test(
+    'a category with a stored color keeps it (no swatch override)',
+    () async {
+      stub(
+        current: [
+          tx(amount: 500000, categoryId: 1), // Makan — stored color 0xFFEF4444
+        ],
+        expenseCats: expenseCats,
+        incomeCats: incomeCats,
+      );
+
+      final cubit = build();
+      await cubit.load(thisMonth);
+
+      final slices = (cubit.state as InsightLoaded).report.expenseByCategory;
+      expect(slices.single.color, 0xFFEF4444);
       await cubit.close();
     },
   );
