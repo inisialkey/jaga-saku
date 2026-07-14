@@ -24,10 +24,12 @@ class Shimmer extends StatefulWidget {
 }
 
 class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
+  // Constructed un-started; the sweep is (re)started in build() only when
+  // animations are enabled, so reduced-motion never runs an infinite repeat.
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
-  )..repeat();
+  );
 
   @override
   void dispose() {
@@ -40,6 +42,17 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final base = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
     final highlight = isDark ? Colors.grey.shade700 : Colors.grey.shade100;
+
+    // Respect the OS "reduce motion" setting: paint a static grey wash (no
+    // sweep) so the placeholder settles — pumpAndSettle() then completes.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      if (_controller.isAnimating) _controller.stop();
+      return ColorFiltered(
+        colorFilter: ColorFilter.mode(base, BlendMode.srcATop),
+        child: widget.child,
+      );
+    }
+    if (!_controller.isAnimating) _controller.repeat();
 
     return AnimatedBuilder(
       animation: _controller,
@@ -124,6 +137,51 @@ class ListSkeleton extends StatelessWidget {
           ],
         ),
       ),
+    ),
+  );
+}
+
+/// A generic dashboard loading placeholder: a hero card, two smaller cards and
+/// a chart block. Shared by Home, Insight and Money Story while their cubits
+/// load. Inherits the reduced-motion gate from [Shimmer] for free.
+class DashboardSkeleton extends StatelessWidget {
+  const DashboardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) => Shimmer(
+    child: ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      children: const [
+        SkeletonBox(
+          width: double.infinity,
+          height: 96,
+          borderRadius: AppRadius.xl,
+        ),
+        SizedBox(height: AppSpacing.lg),
+        SkeletonBox(
+          width: double.infinity,
+          height: 72,
+          borderRadius: AppRadius.xl,
+        ),
+        SizedBox(height: AppSpacing.lg),
+        SkeletonBox(
+          width: double.infinity,
+          height: 72,
+          borderRadius: AppRadius.xl,
+        ),
+        SizedBox(height: AppSpacing.xl),
+        SkeletonBox(
+          width: double.infinity,
+          height: 200,
+          borderRadius: AppRadius.xl,
+        ),
+      ],
     ),
   );
 }

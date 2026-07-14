@@ -553,5 +553,13 @@
   "storyVsLastMonth": "vs last month",
   "storyNeedWant": "Needs vs wants",
   "netWorth": "Net worth",
-  "assetTrend12mo": "Last 12 months"
+  "assetTrend12mo": "Last 12 months",
+  "chartTrendSemantics": "Net worth trend chart, currently {amount}",
+  "@chartTrendSemantics": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  }
 }

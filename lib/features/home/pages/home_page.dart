@@ -27,7 +27,7 @@ class HomePage extends StatelessWidget {
     return AppScaffold(
       body: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) => switch (state) {
-          HomeInitial() || HomeLoading() => const Center(child: Loading()),
+          HomeInitial() || HomeLoading() => const DashboardSkeleton(),
           HomeError(:final failure) => ErrorStateView(
             title: s.errorLoadTitle,
             message: failure.localize(context),

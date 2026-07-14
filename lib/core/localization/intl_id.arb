@@ -553,5 +553,13 @@
   "storyVsLastMonth": "Dibanding bulan lalu",
   "storyNeedWant": "Kebutuhan vs Keinginan",
   "netWorth": "Kekayaan bersih",
-  "assetTrend12mo": "12 bulan terakhir"
+  "assetTrend12mo": "12 bulan terakhir",
+  "chartTrendSemantics": "Diagram tren kekayaan bersih, saat ini {amount}",
+  "@chartTrendSemantics": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  }
 }

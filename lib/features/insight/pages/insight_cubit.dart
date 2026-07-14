@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
+import 'package:jaga_saku/core/resources/category_colors.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
@@ -146,7 +147,7 @@ class InsightCubit extends Cubit<InsightState> {
       currentTx,
       excludeCategoryIds: excludeCategoryIds,
     );
-    final slices = currentByCategory.entries.map((e) {
+    final sorted = currentByCategory.entries.map((e) {
       final category = categoriesById[e.key];
       return CategorySlice(
         categoryId: e.key,
@@ -158,6 +159,18 @@ class InsightCubit extends Cubit<InsightState> {
         pct: expense > 0 ? e.value / expense : 0,
       );
     }).toList()..sort((a, b) => b.amount.compareTo(a.amount));
+    // A category with no stored color gets a distinct swatch by sorted position
+    // so adjacent donut wedges never collide (single source of truth — the
+    // legend reads slice.color, so it matches the donut automatically). Ceiling:
+    // >10 colorless categories in one month repeat a swatch — acceptable.
+    final slices = [
+      for (final (i, slice) in sorted.indexed)
+        slice.copyWith(
+          color:
+              slice.color ??
+              CategoryColors.swatches[i % CategoryColors.swatches.length],
+        ),
+    ];
 
     // ── Planned vs. unplanned (typed subset) ──────────────────────────────
     final plannedSplit = _plannedSplit(currentTx);
