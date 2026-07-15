@@ -88,7 +88,7 @@ dev_dependencies:
   build_runner: ^2.8.0
 
   # In-memory / FFI sqflite for DB tests off-device
-  sqflite_common_ffi: ^2.3.4
+  sqflite_common_ffi: ^2.4.2
 
   # Codegen-free mocks (also a bloc_test transitive dep). Standardized across
   # the suite — mockito is intentionally not used.
