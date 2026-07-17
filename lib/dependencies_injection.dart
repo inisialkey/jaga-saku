@@ -50,6 +50,13 @@ import 'package:jaga_saku/features/recurring/domain/usecases/get_due_occurrences
 import 'package:jaga_saku/features/recurring/domain/usecases/get_recurring_rules.dart';
 import 'package:jaga_saku/features/recurring/domain/usecases/save_recurring_rule.dart';
 import 'package:jaga_saku/features/recurring/domain/usecases/skip_occurrence.dart';
+import 'package:jaga_saku/features/backup/data/datasources/backup_local_datasource.dart';
+import 'package:jaga_saku/features/backup/data/repositories/backup_repository_impl.dart';
+import 'package:jaga_saku/features/backup/domain/repositories/backup_repository.dart';
+import 'package:jaga_saku/features/backup/domain/usecases/export_backup.dart';
+import 'package:jaga_saku/features/backup/domain/usecases/preview_backup.dart';
+import 'package:jaga_saku/features/backup/domain/usecases/restore_backup.dart';
+import 'package:jaga_saku/features/backup/domain/usecases/validate_backup.dart';
 
 GetIt sl = GetIt.instance;
 
@@ -85,6 +92,11 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
       docsDirProvider: getApplicationDocumentsDirectory,
     ),
   );
+  // Whole-DB backup/restore file I/O (V3-M1). Same docsDirProvider seam as the
+  // receipt service — prod wires path_provider; unit tests inject a temp dir.
+  sl.registerLazySingleton<BackupFileService>(
+    () => BackupFileService(docsDirProvider: getApplicationDocumentsDirectory),
+  );
 
   _registerAccounts();
   _registerCategories();
@@ -92,6 +104,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   _registerTemplates();
   _registerTransactions();
   _registerRecurring();
+  _registerBackup();
 }
 
 void _registerAccounts() {
@@ -170,4 +183,14 @@ void _registerRecurring() {
     // lazy, so cross-feature resolution works regardless of registration order.
     ..registerLazySingleton(() => ConfirmOccurrence(sl(), sl()))
     ..registerLazySingleton(() => SkipOccurrence(sl()));
+}
+
+void _registerBackup() {
+  sl
+    ..registerLazySingleton(() => BackupLocalDatasource(sl<AppDatabase>()))
+    ..registerLazySingleton<BackupRepository>(() => BackupRepositoryImpl(sl()))
+    ..registerLazySingleton(() => ExportBackup(sl()))
+    ..registerLazySingleton(() => ValidateBackup(sl()))
+    ..registerLazySingleton(() => const PreviewBackup())
+    ..registerLazySingleton(() => RestoreBackup(sl()));
 }

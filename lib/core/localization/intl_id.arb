@@ -560,5 +560,38 @@
         "type": "String"
       }
     }
-  }
+  },
+  "backupSectionBackup": "Cadangan",
+  "backupSectionRestore": "Pulihkan",
+  "backupExport": "Ekspor Cadangan",
+  "backupExportSubtitle": "Simpan salinan seluruh data Anda.",
+  "backupLastExport": "Ekspor terakhir: {date}",
+  "@backupLastExport": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "backupNoBackupYet": "Belum ada cadangan",
+  "backupChooseFile": "Pilih Berkas Cadangan",
+  "backupPreviewTitle": "Pratinjau Cadangan",
+  "backupRestoreData": "Pulihkan Data",
+  "backupRestoreConfirmTitle": "Pulihkan dan ganti semua data?",
+  "backupRestoreConfirmBody": "Ini akan mengganti seluruh data aplikasi dengan cadangan.",
+  "backupRestoreWarning": "Tindakan ini tidak dapat dibatalkan. Salinan pengaman disimpan lebih dulu.",
+  "backupExportSuccess": "Cadangan diekspor",
+  "backupRestoreSuccess": "Data dipulihkan",
+  "backupErrorInvalidFile": "Berkas bukan cadangan Jaga Saku yang valid.",
+  "backupErrorUnsupportedVersion": "Cadangan ini dari versi aplikasi yang lebih baru.",
+  "backupErrorCorrupt": "Berkas cadangan rusak.",
+  "backupItemCount": "{count, plural, =0{Tidak ada item} other{{count} item}}",
+  "@backupItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transactions": "Transaksi"
 }

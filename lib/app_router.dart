@@ -43,6 +43,8 @@ import 'package:jaga_saku/features/templates/pages/list/favorites_list_cubit.dar
 import 'package:jaga_saku/features/templates/pages/list/favorites_list_page.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_page.dart';
+import 'package:jaga_saku/features/backup/pages/backup/backup_page.dart';
+import 'package:jaga_saku/features/backup/pages/backup/cubit/backup_cubit.dart';
 
 /// App route locations. Add is not a tab — it is a full-screen route pushed on
 /// the root navigator by the shell FAB.
@@ -76,6 +78,9 @@ class AppRoute {
 
   // Money Story (V2-M7) — full-screen recap pushed from the Insight tab.
   static const String moneyStory = '/money-story';
+
+  // Data / tools (V3-M1) — full-screen, pushed on the root navigator.
+  static const String backupRestore = '/backup-restore';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -363,6 +368,23 @@ final GoRouter appRouter = GoRouter(
           txChangeNotifier: sl(),
         )..load(DateTime.now()),
         child: const MoneyStoryPage(),
+      ),
+    ),
+    // ── Backup & Restore (V3-M1) ─────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.backupRestore,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => BackupCubit(
+          exportBackup: sl(),
+          validateBackup: sl(),
+          previewBackup: sl(),
+          restoreBackup: sl(),
+          backupFileService: sl(),
+          settingsService: sl(),
+          txChangeNotifier: sl(),
+        )..loadMeta(),
+        child: const BackupPage(),
       ),
     ),
   ],
