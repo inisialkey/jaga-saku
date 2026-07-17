@@ -57,6 +57,9 @@ import 'package:jaga_saku/features/backup/domain/usecases/export_backup.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/preview_backup.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/restore_backup.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/validate_backup.dart';
+import 'package:jaga_saku/features/export/data/repositories/export_repository_impl.dart';
+import 'package:jaga_saku/features/export/domain/repositories/export_repository.dart';
+import 'package:jaga_saku/features/export/domain/usecases/export_transactions_csv.dart';
 
 GetIt sl = GetIt.instance;
 
@@ -97,6 +100,11 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   sl.registerLazySingleton<BackupFileService>(
     () => BackupFileService(docsDirProvider: getApplicationDocumentsDirectory),
   );
+  // CSV export file I/O (V3-M2). Exports are transient, so the seam wires
+  // path_provider's getTemporaryDirectory (not app-docs); tests inject a temp.
+  sl.registerLazySingleton<ExportFileService>(
+    () => ExportFileService(tempDirProvider: getTemporaryDirectory),
+  );
 
   _registerAccounts();
   _registerCategories();
@@ -105,6 +113,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   _registerTransactions();
   _registerRecurring();
   _registerBackup();
+  _registerExport();
 }
 
 void _registerAccounts() {
@@ -193,4 +202,15 @@ void _registerBackup() {
     ..registerLazySingleton(() => ValidateBackup(sl()))
     ..registerLazySingleton(() => const PreviewBackup())
     ..registerLazySingleton(() => RestoreBackup(sl()));
+}
+
+void _registerExport() {
+  // Reuses TransactionLocalDatasource (registered in _registerTransactions) —
+  // all lazy, so cross-feature resolution is order-independent. The cubit is
+  // built at the route, not registered here (codebase convention).
+  sl
+    ..registerLazySingleton<ExportRepository>(
+      () => ExportRepositoryImpl(sl<TransactionLocalDatasource>()),
+    )
+    ..registerLazySingleton(() => ExportTransactionsCsv(sl()));
 }

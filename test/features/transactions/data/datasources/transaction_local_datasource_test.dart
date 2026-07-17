@@ -4,6 +4,7 @@ import 'package:jaga_saku/features/accounts/data/datasources/account_local_datas
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
 import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/search_transaction_params.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/transaction_aggregator.dart';
 import 'package:mocktail/mocktail.dart';
@@ -445,5 +446,231 @@ void main() {
         expect(deltas.single.delta, -(100000 + 300000));
       },
     );
+  });
+
+  // ── searchWithNames (V3-M2 export / M3 search join) ───────────────────────
+
+  group('searchWithNames', () {
+    Future<void> seedAdjustmentCategory() => db.insert('categories', {
+      'id': 8,
+      'name': 'Penyesuaian',
+      'type': 'expense',
+      'system_key': 'adjustment_out',
+      'created_at': 0,
+    });
+
+    test('expense row resolves account + category names, no target', () async {
+      await datasource.insert(
+        model(amount: 35000, categoryId: 1, date: millis(2026, 7, 8)),
+      );
+
+      final rows = await datasource.searchWithNames(
+        const SearchTransactionParams(),
+      );
+      expect(rows, hasLength(1));
+      final row = rows.single;
+      expect(row['account_name'], 'Cash');
+      expect(row['category_name'], 'Makan');
+      expect(row['target_account_name'], isNull);
+      expect(row['category_system_key'], isNull);
+    });
+
+    test('transfer row resolves the target account, empty category', () async {
+      await datasource.insert(
+        model(
+          type: TransactionType.transfer,
+          amount: 20000,
+          toAccountId: 2,
+          date: millis(2026, 7, 8),
+        ),
+      );
+
+      final row = (await datasource.searchWithNames(
+        const SearchTransactionParams(),
+      )).single;
+      expect(row['account_name'], 'Cash');
+      expect(row['target_account_name'], 'BCA');
+      expect(row['category_name'], isNull);
+    });
+
+    test('reconcile category surfaces its system_key', () async {
+      await seedAdjustmentCategory();
+      await datasource.insert(
+        model(amount: 40000, categoryId: 8, date: millis(2026, 7, 5)),
+      );
+
+      final row = (await datasource.searchWithNames(
+        const SearchTransactionParams(),
+      )).single;
+      expect(row['category_system_key'], 'adjustment_out');
+    });
+
+    test('account filter matches both source and incoming transfer', () async {
+      // Outgoing from Cash(1), incoming transfer into Cash(1) from BCA(2), and
+      // an unrelated BCA(2) expense that must NOT match the Cash filter.
+      await datasource.insert(model(categoryId: 1, date: millis(2026, 7, 1)));
+      await datasource.insert(
+        model(
+          type: TransactionType.transfer,
+          amount: 2000,
+          accountId: 2,
+          toAccountId: 1,
+          date: millis(2026, 7, 2),
+        ),
+      );
+      await datasource.insert(
+        model(
+          amount: 3000,
+          accountId: 2,
+          categoryId: 1,
+          date: millis(2026, 7, 3),
+        ),
+      );
+
+      final rows = await datasource.searchWithNames(
+        const SearchTransactionParams(accountId: 1),
+      );
+      expect(rows.map((r) => r['amount']), [1000, 2000]);
+    });
+
+    test('category / type / planned / spending / date filters', () async {
+      await datasource.insert(
+        model(
+          amount: 100,
+          categoryId: 1,
+          plannedStatus: PlannedStatus.planned,
+          spendingType: SpendingType.need,
+          date: millis(2026, 7, 10),
+        ),
+      );
+      await datasource.insert(
+        model(
+          type: TransactionType.income,
+          amount: 200,
+          categoryId: 7,
+          date: millis(2026, 7, 12),
+        ),
+      );
+      await datasource.insert(
+        model(
+          amount: 300,
+          categoryId: 1,
+          plannedStatus: PlannedStatus.unplanned,
+          spendingType: SpendingType.want,
+          date: millis(2026, 8, 1),
+        ),
+      );
+
+      Future<List<Object?>> amounts(SearchTransactionParams p) async =>
+          (await datasource.searchWithNames(
+            p,
+          )).map((r) => r['amount']).toList();
+
+      expect(await amounts(const SearchTransactionParams(categoryId: 7)), [
+        200,
+      ]);
+      expect(
+        await amounts(
+          const SearchTransactionParams(type: TransactionType.income),
+        ),
+        [200],
+      );
+      expect(
+        await amounts(
+          const SearchTransactionParams(plannedStatus: PlannedStatus.planned),
+        ),
+        [100],
+      );
+      expect(
+        await amounts(
+          const SearchTransactionParams(spendingType: SpendingType.want),
+        ),
+        [300],
+      );
+      // Half-open [Jul, Aug) keeps the two July rows, drops the Aug 1 row.
+      expect(
+        await amounts(
+          SearchTransactionParams(
+            startDate: millis(2026, 7, 1),
+            endDate: millis(2026, 8, 1),
+          ),
+        ),
+        [100, 200],
+      );
+    });
+
+    test('combined filter narrows to the matching subset', () async {
+      await datasource.insert(
+        model(
+          amount: 111,
+          categoryId: 1,
+          plannedStatus: PlannedStatus.planned,
+          date: millis(2026, 7, 10),
+        ),
+      );
+      await datasource.insert(
+        model(
+          amount: 222,
+          categoryId: 1,
+          plannedStatus: PlannedStatus.unplanned,
+          date: millis(2026, 7, 11),
+        ),
+      );
+
+      final rows = await datasource.searchWithNames(
+        SearchTransactionParams(
+          accountId: 1,
+          categoryId: 1,
+          type: TransactionType.expense,
+          plannedStatus: PlannedStatus.planned,
+          startDate: millis(2026, 7, 1),
+          endDate: millis(2026, 8, 1),
+        ),
+      );
+      expect(rows.map((r) => r['amount']), [111]);
+    });
+
+    test('a no-match filter returns an empty list', () async {
+      await datasource.insert(
+        model(amount: 100, categoryId: 1, date: millis(2026, 7, 10)),
+      );
+
+      final rows = await datasource.searchWithNames(
+        const SearchTransactionParams(categoryId: 999),
+      );
+      expect(rows, isEmpty);
+    });
+
+    test('is read-only — row counts are unchanged', () async {
+      await seedAdjustmentCategory();
+      await datasource.insert(
+        model(amount: 100, categoryId: 1, date: millis(2026, 7, 10)),
+      );
+      await datasource.insert(
+        model(
+          type: TransactionType.transfer,
+          amount: 200,
+          toAccountId: 2,
+          date: millis(2026, 7, 11),
+        ),
+      );
+
+      Future<int> count(String table) async =>
+          (await db.rawQuery('SELECT COUNT(*) AS c FROM $table')).first['c']!
+              as int;
+
+      final before = [
+        await count('transactions'),
+        await count('accounts'),
+        await count('categories'),
+      ];
+      await datasource.searchWithNames(const SearchTransactionParams());
+      final after = [
+        await count('transactions'),
+        await count('accounts'),
+        await count('categories'),
+      ];
+      expect(after, before);
+    });
   });
 }

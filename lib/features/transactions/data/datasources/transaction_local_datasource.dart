@@ -1,6 +1,8 @@
 import 'package:jaga_saku/core/database/app_database.dart';
+import 'package:jaga_saku/features/transactions/data/datasources/transaction_query.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
 import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/search_transaction_params.dart';
 
 /// sqflite DAO for the `transactions` table. Reads/writes through the shared
 /// [AppDatabase] connection (resolved per call via `.db`); never opens its own.
@@ -113,6 +115,34 @@ class TransactionLocalDatasource {
         delta: (r['delta'] as int?) ?? 0,
       );
     }).toList();
+  }
+
+  /// Filtered read for Export (V3-M2) and Search (V3-M3): the `transactions`
+  /// rows matching [params], LEFT-JOINed to their account / target-account /
+  /// category **names** plus the category `system_key` (which drives the
+  /// reconciliation source in the same pass). `LEFT JOIN` (not INNER) so a
+  /// transfer's null `category_id` and an income's null `to_account_id` still
+  /// yield a row with an empty joined cell. Read-only — one `rawQuery`, no
+  /// mutation. Returns neutral column maps (no export-domain import here); the
+  /// export repo maps them to `ExportRow`.
+  Future<List<Map<String, Object?>>> searchWithNames(
+    SearchTransactionParams params,
+  ) {
+    final (:where, :args) = TransactionQuery.buildWhere(params);
+    final whereClause = where.isEmpty ? '' : 'WHERE $where';
+    return _database.db.rawQuery('''
+      SELECT t.*,
+        a.name  AS account_name,
+        a2.name AS target_account_name,
+        c.name  AS category_name,
+        c.system_key AS category_system_key
+      FROM $_table t
+      LEFT JOIN accounts   a  ON a.id  = t.account_id
+      LEFT JOIN accounts   a2 ON a2.id = t.to_account_id
+      LEFT JOIN categories c  ON c.id  = t.category_id
+      $whereClause
+      ORDER BY t.date, t.id
+    ''', args);
   }
 
   Future<List<TransactionModel>> _range(int startMillis, int endMillis) async {

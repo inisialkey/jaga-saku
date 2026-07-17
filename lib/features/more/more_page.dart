@@ -6,8 +6,8 @@ import 'package:jaga_saku/core/core.dart';
 
 /// The More tab: an app-info header + grouped menu (Finance / Data / App).
 /// Live tiles: Accounts / Categories / Budget / Favorites / Recurring (Finance),
-/// Backup & Restore (Data), and Appearance / Settings / About (App). Still
-/// deferred (muted "Soon" badge, inert): Export CSV (V3-M2) and Security.
+/// Backup & Restore + Export CSV (Data), and Appearance / Settings / About
+/// (App). Still deferred (muted "Soon" badge, inert): Security.
 class MorePage extends StatelessWidget {
   const MorePage({super.key});
 
@@ -69,7 +69,7 @@ class MorePage extends StatelessWidget {
                 icon: Iconsax.document_download,
                 iconColor: colors.success,
                 title: s.exportCsv,
-                trailing: const ComingSoonBadge(),
+                onTap: () => context.push(AppRoute.exportData),
               ),
               MenuTile(
                 icon: Iconsax.cloud,
