@@ -167,13 +167,13 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(find.text('Coffee'), findsOneWidget);
-      // The strip's SizedBox (base 108) scaled by 1.3× — measured via its
-      // horizontal ListView which fills that box exactly.
+      // The strip's SizedBox (base 132, sized for a two-line label) scaled by
+      // 1.3× — measured via its horizontal ListView which fills that box exactly.
       final strip = find.descendant(
         of: find.byType(FavoritesStrip),
         matching: find.byType(ListView),
       );
-      expect(tester.getSize(strip).height, closeTo(108 * scale, 0.5));
+      expect(tester.getSize(strip).height, closeTo(132 * scale, 0.5));
     });
   });
 }
