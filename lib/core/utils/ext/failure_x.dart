@@ -46,6 +46,13 @@ extension FailureLocalization on Failure {
         (message == null || message.isEmpty) ? s.errorServer : message,
       ServerFailure(:final message) =>
         (message == null || message.isEmpty) ? s.errorUnexpected : message,
+      BackupFailure(:final reason) => switch (reason) {
+        BackupFailureReason.invalidFile => s.backupErrorInvalidFile,
+        BackupFailureReason.unsupportedVersion =>
+          s.backupErrorUnsupportedVersion,
+        BackupFailureReason.corrupt => s.backupErrorCorrupt,
+        BackupFailureReason.io => s.errorUnexpected,
+      },
     };
   }
 }

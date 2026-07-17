@@ -68,8 +68,13 @@ dependencies:
   table_calendar: ^3.2.0
 
   # Reads the app name / version at runtime for the About screen (M6, offline —
-  # never hardcode the version).
-  package_info_plus: ^10.2.0
+  # never hardcode the version). Held at 9.x: every 10.x pulls win32 ^6.0.x, which
+  # no STABLE file_picker/share_plus can match (they need win32 5.x) and won't
+  # compile against — their Windows impls compile even for Android builds, and the
+  # only win32-6 file_picker is a pre-release (12.0.0-beta.1). Keeping all three
+  # plugins on stable + win32 5.x is worth this downgrade; only the stable
+  # PackageInfo.fromPlatform() is used (about_page.dart), unchanged since 4.x.
+  package_info_plus: ^9.0.1
 
   # Camera + gallery picker for receipt attachment (V2-M4). image_picker handles
   # its own runtime permission prompts — no permission_handler (YAGNI).
@@ -78,6 +83,16 @@ dependencies:
   # Resolves <app-docs> so receipts persist under <docs>/receipts/ as relative
   # paths (resolved at read; survives iOS container migration).
   path_provider: ^2.1.5
+  # Restore = pick a backup JSON (V3-M1). 11.x uses the Android v2 embedding
+  # (3.0.4, the win32-free version pub first picked, uses the removed v1 embedding
+  # and fails `build apk`). Co-resolves with package_info_plus held at 10.0.x —
+  # see the win32 note above.
+  file_picker: ^11.0.0
+  # Export delivery = system share sheet (V3-M1). Held at 11.x: 13.x needs
+  # win32 ^6.0.1 (incompatible with file_picker's win32 5.x, and both compile
+  # their Windows impl even for Android). 11.x uses win32 ^5.5.3 and exposes the
+  # same SharePlus.instance.share(ShareParams(...)) API as 13.x.
+  share_plus: ^11.1.0
 
 dev_dependencies:
   flutter_test:

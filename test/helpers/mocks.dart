@@ -59,6 +59,15 @@ import 'package:jaga_saku/features/recurring/domain/usecases/get_due_occurrences
 import 'package:jaga_saku/features/recurring/domain/usecases/get_recurring_rules.dart';
 import 'package:jaga_saku/features/recurring/domain/usecases/save_recurring_rule.dart';
 import 'package:jaga_saku/features/recurring/domain/usecases/skip_occurrence.dart';
+import 'package:jaga_saku/core/utils/services/backup_file_service.dart';
+import 'package:jaga_saku/features/backup/data/datasources/backup_local_datasource.dart';
+import 'package:jaga_saku/features/backup/domain/entities/backup_data.dart';
+import 'package:jaga_saku/features/backup/domain/entities/backup_file.dart';
+import 'package:jaga_saku/features/backup/domain/entities/backup_preview.dart';
+import 'package:jaga_saku/features/backup/domain/repositories/backup_repository.dart';
+import 'package:jaga_saku/features/backup/domain/usecases/export_backup.dart';
+import 'package:jaga_saku/features/backup/domain/usecases/restore_backup.dart';
+import 'package:jaga_saku/features/backup/domain/usecases/validate_backup.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// Shared mocktail declarations + fallback registration for the test suite.
@@ -173,6 +182,19 @@ class MockConfirmOccurrence extends Mock implements ConfirmOccurrence {}
 
 class MockSkipOccurrence extends Mock implements SkipOccurrence {}
 
+// ── Backup / Restore (V3-M1) ──────────────────────────────────────────────────
+class MockBackupLocalDatasource extends Mock implements BackupLocalDatasource {}
+
+class MockBackupRepository extends Mock implements BackupRepository {}
+
+class MockBackupFileService extends Mock implements BackupFileService {}
+
+class MockExportBackup extends Mock implements ExportBackup {}
+
+class MockValidateBackup extends Mock implements ValidateBackup {}
+
+class MockRestoreBackup extends Mock implements RestoreBackup {}
+
 /// Registers fallback sentinels for custom (non-nullable) types used with
 /// `any()` / `captureAny()` matchers. Idempotent — safe to call repeatedly.
 void registerFallbackValues() {
@@ -251,4 +273,15 @@ void registerFallbackValues() {
       rule: recurringRuleFallback,
     ),
   );
+  // ── Backup / Restore (V3-M1) ──
+  registerFallbackValue(const BackupData());
+  registerFallbackValue(
+    const BackupFile(
+      schemaVersion: 0,
+      exportedAt: 0,
+      itemCount: 0,
+      content: '',
+    ),
+  );
+  registerFallbackValue(const BackupPreview());
 }
