@@ -199,6 +199,7 @@ final GoRouter appRouter = GoRouter(
       builder: (_, state) => BlocProvider(
         create: (_) => AccountFormCubit(
           saveAccount: sl(),
+          txChangeNotifier: sl(),
           initial: state.extra as Account?,
         ),
         child: const AccountFormPage(),

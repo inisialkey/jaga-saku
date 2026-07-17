@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/form/form_validation.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/save_account.dart';
 
@@ -12,25 +13,30 @@ part 'account_form_cubit.freezed.dart';
 /// [submit] validates, calls [SaveAccount] and folds the result into a
 /// success / failure status the page listens on.
 class AccountFormCubit extends Cubit<AccountFormState> {
-  AccountFormCubit({required SaveAccount saveAccount, Account? initial})
-    : _saveAccount = saveAccount,
-      _initial = initial,
-      super(
-        initial == null
-            ? const AccountFormState()
-            : AccountFormState(
-                type: initial.type,
-                name: initial.name,
-                openingBalance: initial.openingBalance,
-                icon: initial.icon,
-                color: initial.color,
-                isEditing: true,
-              ),
-      ) {
+  AccountFormCubit({
+    required SaveAccount saveAccount,
+    required TxChangeNotifier txChangeNotifier,
+    Account? initial,
+  }) : _saveAccount = saveAccount,
+       _txChanges = txChangeNotifier,
+       _initial = initial,
+       super(
+         initial == null
+             ? const AccountFormState()
+             : AccountFormState(
+                 type: initial.type,
+                 name: initial.name,
+                 openingBalance: initial.openingBalance,
+                 icon: initial.icon,
+                 color: initial.color,
+                 isEditing: true,
+               ),
+       ) {
     _seedState = state;
   }
 
   final SaveAccount _saveAccount;
+  final TxChangeNotifier _txChanges;
   final Account? _initial;
 
   /// The seed (initial editable fields), captured post-construction so [hasEdits]
@@ -87,7 +93,13 @@ class AccountFormCubit extends Cubit<AccountFormState> {
       result.fold(
         (failure) =>
             state.copyWith(status: AccountFormStatus.failure, error: failure),
-        (_) => state.copyWith(status: AccountFormStatus.success),
+        (_) {
+          // A balance/name/type change must refresh the live subscribers — Home
+          // total balance, the account list, calendar, insight — same ping the
+          // reconcile + favorite paths fire (otherwise Home stays stale).
+          _txChanges.ping();
+          return state.copyWith(status: AccountFormStatus.success);
+        },
       ),
     );
   }

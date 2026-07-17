@@ -4,8 +4,7 @@ import 'package:jaga_saku/core/core.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// About screen (More → About, M6): app icon, name, tagline and the real
-/// runtime version (via `package_info_plus`), plus a Licenses row that opens
-/// Flutter's built-in [showLicensePage]. Read-only.
+/// runtime version (via `package_info_plus`). Read-only.
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
 
@@ -44,24 +43,7 @@ class _AboutPageState extends State<AboutPage> {
           AppSpacing.lg,
           AppSpacing.xxl,
         ),
-        children: [
-          _AboutHeader(version: version),
-          const SizedBox(height: AppSpacing.xl),
-          HairlineCard(
-            children: [
-              MenuTile(
-                icon: Iconsax.document_text,
-                iconColor: context.colors.info,
-                title: s.licenses,
-                onTap: () => showLicensePage(
-                  context: context,
-                  applicationName: Constants.get.appName,
-                  applicationVersion: info?.version,
-                ),
-              ),
-            ],
-          ),
-        ],
+        children: [_AboutHeader(version: version)],
       ),
     );
   }

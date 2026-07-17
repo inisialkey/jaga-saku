@@ -33,9 +33,10 @@ class FavoritesStrip extends StatelessWidget {
       children: [
         SectionHeader(title: s.favorites),
         SizedBox(
-          // Scales with Dynamic Type (pixel-identical at 1.0×) so the chip
-          // label + amount never clip when the system font size grows.
-          height: MediaQuery.textScalerOf(context).scale(108),
+          // Tall enough for the 36px avatar + a two-line label + the amount in
+          // the real font; scales with Dynamic Type (pixel-identical at 1.0×) so
+          // nothing clips when the system font size grows.
+          height: MediaQuery.textScalerOf(context).scale(132),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
@@ -73,7 +74,9 @@ class _FavoriteChip extends StatelessWidget {
       onTap: () => _apply(context),
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Container(
-        width: 96,
+        // Wide enough that a three-word favorite ("Uang Makan Mingguan") wraps
+        // to two lines instead of spilling to a clipped third line.
+        width: 116,
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: theme.cardColor,
@@ -86,19 +89,29 @@ class _FavoriteChip extends StatelessWidget {
           children: [
             CategoryIconAvatar(icon: iconKey, color: color, size: 36),
             const SizedBox(height: AppSpacing.sm),
+            // Two lines so a normal favorite name ("Beras Bulanan", "Uang
+            // Makan") shows in full; only a genuinely long name ellipsizes.
             Text(
               t.label,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium,
             ),
             if (t.amount != null)
-              Text(
-                formatRupiah(t.amount!),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: context.colors.textSecondary,
+              // scaleDown keeps the full amount readable in the narrow 96px chip
+              // — a clipped "Rp 2.50…" is unreadable money (same idiom as the
+              // hero card / transaction tile). The title above stays ellipsized:
+              // a label can be arbitrarily long, so truncating it reads better
+              // than shrinking it to microscopic.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  formatRupiah(t.amount!),
+                  maxLines: 1,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
                 ),
               ),
           ],
@@ -108,28 +121,19 @@ class _FavoriteChip extends StatelessWidget {
   }
 
   /// Applies the favorite and reacts to the cubit's [ApplyFavoriteResult]:
-  /// commit → an Undo SnackBar (the app `Toast` has no action button, so this
-  /// uses the native [ScaffoldMessenger]); amount-less → open the prefilled
-  /// add-form; failure → a localized error toast.
+  /// commit → a success toast; amount-less → open the prefilled add-form;
+  /// failure → a localized error toast.
   Future<void> _apply(BuildContext context) async {
     final s = Strings.of(context)!;
     final cubit = context.read<HomeCubit>();
-    final messenger = ScaffoldMessenger.of(context);
     final result = await cubit.applyFavorite(template);
     if (!context.mounted) return;
     switch (result) {
-      case FavoriteCommitted(:final txId):
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(s.favoriteApplied),
-              action: SnackBarAction(
-                label: s.favoriteUndo,
-                onPressed: () => cubit.undoApply(txId),
-              ),
-            ),
-          );
+      case FavoriteCommitted():
+        // The app's standard top toast (oktoast, 3s) auto-dismisses — the old
+        // inline SnackBar could linger on screen; every other action already
+        // uses this toast, so favorites now match.
+        s.favoriteApplied.toToastSuccess(context);
       case FavoriteNeedsPrefill(:final template):
         context.push(
           AppRoute.add,

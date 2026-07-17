@@ -21,7 +21,7 @@ void main() {
       tester,
     ) async {
       await pumpApp(tester, AmountInputField(controller: controller));
-      await tester.tap(find.byType(TextField));
+      await tester.tap(find.byType(AmountInputField));
       await tester.pumpAndSettle();
       expect(find.byType(CalculatorKeypadSheet), findsOneWidget);
       // A read-only field never opens an input connection.
@@ -35,7 +35,7 @@ void main() {
         tester,
         AmountInputField(controller: controller, onChanged: (v) => changed = v),
       );
-      await tester.tap(find.byType(TextField));
+      await tester.tap(find.byType(AmountInputField));
       await tester.pumpAndSettle();
       for (final id in const [
         'calcKey_1',
@@ -57,6 +57,9 @@ void main() {
       // 12000 + 3500 evaluated to 15500, emitted as the plain int string.
       expect(controller.text, '15500');
       expect(changed, '15500');
+      // The field renders it grouped (dot-thousands) while the controller and
+      // onChanged stay bare digits for parsing.
+      expect(find.text('15.500'), findsOneWidget);
     });
   });
 }

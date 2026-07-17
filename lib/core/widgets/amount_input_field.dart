@@ -61,7 +61,7 @@ class _AmountInputFieldState extends State<AmountInputField> {
     final s = Strings.of(context);
     final display = widget.controller.text.isEmpty
         ? widget.hint
-        : widget.controller.text;
+        : groupDigits(widget.controller.text);
     // Announce as a button (opens the keypad), not an editable field, and read
     // the current amount in the label since the inner field is excluded.
     return Semantics(
@@ -92,20 +92,30 @@ class _AmountInputFieldState extends State<AmountInputField> {
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: TextField(
-                  controller: widget.controller,
-                  readOnly: true,
-                  showCursor: true,
-                  onTap: () => _openKeypad(context),
-                  style: amountStyle,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    isCollapsed: true,
-                    hintText: widget.hint,
-                    hintStyle: amountStyle?.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
+                // Read-only, grouped display of the raw controller digits — the
+                // keypad owns editing. groupDigits renders dot-thousands while
+                // the controller stays bare digits, so callers' int.tryParse and
+                // the keypad re-seed keep working. AnimatedBuilder tracks the
+                // controller so the value updates without a parent rebuild;
+                // scaleDown keeps a big amount readable instead of clipping.
+                child: AnimatedBuilder(
+                  animation: widget.controller,
+                  builder: (context, _) {
+                    final raw = widget.controller.text;
+                    return FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        raw.isEmpty ? widget.hint : groupDigits(raw),
+                        maxLines: 1,
+                        style: raw.isEmpty
+                            ? amountStyle?.copyWith(
+                                color: context.colors.textSecondary,
+                              )
+                            : amountStyle,
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
