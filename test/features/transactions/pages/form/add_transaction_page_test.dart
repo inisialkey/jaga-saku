@@ -16,7 +16,7 @@ import '../../../../helpers/mocks.dart';
 import '../../../../helpers/pump_app.dart';
 
 /// [AddTransactionPage] over a real [AddTransactionCubit] (mocked usecases): the
-/// D8 amount-keypad autofocus (opens on a new tx, not an edit) and the catch #2
+/// amount keypad opens on tap (never auto-opens on load) and the catch #2
 /// success-pop (a dirty form still leaves cleanly on save, no double-prompt).
 void main() {
   setUpAll(registerFallbackValues);
@@ -74,7 +74,7 @@ void main() {
     date: DateTime(2026, 7).millisecondsSinceEpoch,
   );
 
-  testWidgets('D8: a new transaction auto-opens the amount keypad', (
+  testWidgets('a new transaction opens the amount keypad only on tap', (
     tester,
   ) async {
     final cubit = build();
@@ -86,8 +86,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The post-frame autofocus opened the calculator instead of focusing the
-    // read-only field.
+    // No auto-open on load — the form lands on an inert amount pill, not the
+    // calculator.
+    expect(find.byType(CalculatorKeypadSheet), findsNothing);
+
+    // Tapping the amount field is what opens the keypad.
+    await tester.tap(find.byType(AmountInputField));
+    await tester.pumpAndSettle();
     expect(find.byType(CalculatorKeypadSheet), findsOneWidget);
   });
 

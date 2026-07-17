@@ -4,8 +4,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../helpers/pump_app.dart';
 
-/// [AboutPage] smoke test: the app name, tagline, the real runtime version
-/// (mocked via `package_info_plus`) and a Licenses row all render.
+/// [AboutPage] smoke test: the app name, tagline and the real runtime version
+/// (mocked via `package_info_plus`) all render.
 void main() {
   setUp(() {
     PackageInfo.setMockInitialValues(
@@ -17,15 +17,12 @@ void main() {
     );
   });
 
-  testWidgets('renders app name, tagline, version and a Licenses row', (
-    tester,
-  ) async {
+  testWidgets('renders app name, tagline and version', (tester) async {
     await pumpApp(tester, const AboutPage(), scaffold: false);
     await tester.pumpAndSettle();
 
     expect(find.text('Jaga Saku'), findsOneWidget);
     expect(find.text('Track spending, understand habits.'), findsOneWidget);
     expect(find.text('Version 1.2.3 (7)'), findsOneWidget);
-    expect(find.text('Licenses'), findsOneWidget);
   });
 }

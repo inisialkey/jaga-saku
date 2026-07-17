@@ -12,12 +12,17 @@ void main() {
   setUpAll(registerFallbackValues);
 
   late MockSaveAccount saveAccount;
+  late MockTxChangeNotifier txChanges;
 
-  setUp(() => saveAccount = MockSaveAccount());
+  setUp(() {
+    saveAccount = MockSaveAccount();
+    txChanges = MockTxChangeNotifier();
+  });
 
   test('seeds fields from the initial account when editing', () {
     final cubit = AccountFormCubit(
       saveAccount: saveAccount,
+      txChangeNotifier: txChanges,
       initial: const Account(
         id: 1,
         name: 'BCA',
@@ -37,7 +42,8 @@ void main() {
     setUp: () => when(
       () => saveAccount(any()),
     ).thenAnswer((_) async => const Right<Failure, int>(1)),
-    build: () => AccountFormCubit(saveAccount: saveAccount),
+    build: () =>
+        AccountFormCubit(saveAccount: saveAccount, txChangeNotifier: txChanges),
     act: (cubit) {
       cubit.nameChanged('Cash');
       cubit.submit();
@@ -47,6 +53,8 @@ void main() {
       AccountFormState(name: 'Cash', status: AccountFormStatus.saving),
       AccountFormState(name: 'Cash', status: AccountFormStatus.success),
     ],
+    // A saved account edit must ping so Home total balance + the list refresh.
+    verify: (_) => verify(() => txChanges.ping()).called(1),
   );
 
   blocTest<AccountFormCubit, AccountFormState>(
@@ -54,7 +62,8 @@ void main() {
     setUp: () => when(
       () => saveAccount(any()),
     ).thenAnswer((_) async => const Left<Failure, int>(CacheFailure())),
-    build: () => AccountFormCubit(saveAccount: saveAccount),
+    build: () =>
+        AccountFormCubit(saveAccount: saveAccount, txChangeNotifier: txChanges),
     act: (cubit) {
       cubit.nameChanged('Cash');
       cubit.submit();
@@ -68,18 +77,23 @@ void main() {
         error: CacheFailure(),
       ),
     ],
+    verify: (_) => verifyNever(() => txChanges.ping()),
   );
 
   blocTest<AccountFormCubit, AccountFormState>(
     'submit with an empty name emits a failure state and never saves (D1)',
-    build: () => AccountFormCubit(saveAccount: saveAccount),
+    build: () =>
+        AccountFormCubit(saveAccount: saveAccount, txChangeNotifier: txChanges),
     act: (cubit) => cubit.submit(),
     expect: () => const [AccountFormState(status: AccountFormStatus.failure)],
     verify: (_) => verifyNever(() => saveAccount(any())),
   );
 
   test('openingBalanceChanged clamps a negative to 0 (C-B)', () {
-    final cubit = AccountFormCubit(saveAccount: saveAccount);
+    final cubit = AccountFormCubit(
+      saveAccount: saveAccount,
+      txChangeNotifier: txChanges,
+    );
     cubit.nameChanged('Cash');
     cubit.openingBalanceChanged(-5000);
     expect(cubit.state.openingBalance, 0);
@@ -91,13 +105,17 @@ void main() {
   });
 
   test('hasEdits tracks edits from the create + edit seed (D2)', () {
-    final create = AccountFormCubit(saveAccount: saveAccount);
+    final create = AccountFormCubit(
+      saveAccount: saveAccount,
+      txChangeNotifier: txChanges,
+    );
     expect(create.hasEdits, isFalse);
     create.nameChanged('Cash');
     expect(create.hasEdits, isTrue);
 
     final edit = AccountFormCubit(
       saveAccount: saveAccount,
+      txChangeNotifier: txChanges,
       initial: const Account(id: 1, name: 'BCA', type: AccountType.bank),
     );
     expect(edit.hasEdits, isFalse);

@@ -134,7 +134,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 _FieldLabel(s.amount),
                 AmountInputField(
                   controller: _amountController,
-                  autofocus: !state.isEditing,
                   onChanged: (value) =>
                       cubit.amountChanged(int.tryParse(value) ?? 0),
                 ),

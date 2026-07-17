@@ -144,12 +144,19 @@ class _SummaryPill extends StatelessWidget {
                     color: AppColors.white.withValues(alpha: 0.85),
                   ),
                 ),
-                Text(
-                  formatRupiah(amount),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: AppColors.white,
+                // scaleDown shrinks a big amount to fit the pill instead of
+                // ellipsis-truncating it — a truncated "Rp 10.00…" is unreadable
+                // money (same money-row idiom as TransactionTile).
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    formatRupiah(amount),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: AppColors.white,
+                    ),
                   ),
                 ),
               ],

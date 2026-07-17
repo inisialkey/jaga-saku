@@ -317,7 +317,6 @@
       }
     }
   },
-  "licenses": "Licenses",
   "editTransaction": "Edit Transaction",
   "saveTransaction": "Save Transaction",
   "saveTransfer": "Save Transfer",
