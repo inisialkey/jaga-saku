@@ -593,5 +593,27 @@
       }
     }
   },
-  "transactions": "Transactions"
+  "transactions": "Transactions",
+  "exportTitle": "Export Data",
+  "exportDateRange": "Date range",
+  "exportPresetLastMonth": "Last month",
+  "exportPresetCustom": "Custom",
+  "exportAll": "All",
+  "exportStartDate": "Start date",
+  "exportEndDate": "End date",
+  "exportAllAccounts": "All accounts",
+  "exportAllCategories": "All categories",
+  "exportType": "Type",
+  "exportFormat": "Format",
+  "exportFormatCsv": "CSV",
+  "exportFormatPdfLater": "PDF — Later",
+  "exportEmpty": "No transactions match your filters",
+  "exportSuccess": "{count, plural, =1{1 transaction exported} other{{count} transactions exported}}",
+  "@exportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

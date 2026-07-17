@@ -593,5 +593,27 @@
       }
     }
   },
-  "transactions": "Transaksi"
+  "transactions": "Transaksi",
+  "exportTitle": "Ekspor Data",
+  "exportDateRange": "Rentang tanggal",
+  "exportPresetLastMonth": "Bulan lalu",
+  "exportPresetCustom": "Kustom",
+  "exportAll": "Semua",
+  "exportStartDate": "Tanggal mulai",
+  "exportEndDate": "Tanggal akhir",
+  "exportAllAccounts": "Semua akun",
+  "exportAllCategories": "Semua kategori",
+  "exportType": "Tipe",
+  "exportFormat": "Format",
+  "exportFormatCsv": "CSV",
+  "exportFormatPdfLater": "PDF — Nanti",
+  "exportEmpty": "Tidak ada transaksi yang cocok dengan filter",
+  "exportSuccess": "{count, plural, =1{1 transaksi diekspor} other{{count} transaksi diekspor}}",
+  "@exportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

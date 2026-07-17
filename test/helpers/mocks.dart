@@ -60,6 +60,10 @@ import 'package:jaga_saku/features/recurring/domain/usecases/get_recurring_rules
 import 'package:jaga_saku/features/recurring/domain/usecases/save_recurring_rule.dart';
 import 'package:jaga_saku/features/recurring/domain/usecases/skip_occurrence.dart';
 import 'package:jaga_saku/core/utils/services/backup_file_service.dart';
+import 'package:jaga_saku/core/utils/services/export_file_service.dart';
+import 'package:jaga_saku/features/export/domain/repositories/export_repository.dart';
+import 'package:jaga_saku/features/export/domain/usecases/export_transactions_csv.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/search_transaction_params.dart';
 import 'package:jaga_saku/features/backup/data/datasources/backup_local_datasource.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_data.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_file.dart';
@@ -195,6 +199,13 @@ class MockValidateBackup extends Mock implements ValidateBackup {}
 
 class MockRestoreBackup extends Mock implements RestoreBackup {}
 
+// ── Export (V3-M2) ────────────────────────────────────────────────────────────
+class MockExportRepository extends Mock implements ExportRepository {}
+
+class MockExportTransactionsCsv extends Mock implements ExportTransactionsCsv {}
+
+class MockExportFileService extends Mock implements ExportFileService {}
+
 /// Registers fallback sentinels for custom (non-nullable) types used with
 /// `any()` / `captureAny()` matchers. Idempotent — safe to call repeatedly.
 void registerFallbackValues() {
@@ -284,4 +295,6 @@ void registerFallbackValues() {
     ),
   );
   registerFallbackValue(const BackupPreview());
+  // ── Export (V3-M2) ──
+  registerFallbackValue(const SearchTransactionParams());
 }

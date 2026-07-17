@@ -45,6 +45,8 @@ import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_page.dart';
 import 'package:jaga_saku/features/backup/pages/backup/backup_page.dart';
 import 'package:jaga_saku/features/backup/pages/backup/cubit/backup_cubit.dart';
+import 'package:jaga_saku/features/export/pages/export/cubit/export_cubit.dart';
+import 'package:jaga_saku/features/export/pages/export/export_page.dart';
 
 /// App route locations. Add is not a tab — it is a full-screen route pushed on
 /// the root navigator by the shell FAB.
@@ -81,6 +83,9 @@ class AppRoute {
 
   // Data / tools (V3-M1) — full-screen, pushed on the root navigator.
   static const String backupRestore = '/backup-restore';
+
+  // Export Data (V3-M2) — full-screen, pushed on the root navigator.
+  static const String exportData = '/export';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -385,6 +390,20 @@ final GoRouter appRouter = GoRouter(
           txChangeNotifier: sl(),
         )..loadMeta(),
         child: const BackupPage(),
+      ),
+    ),
+    // ── Export Data (V3-M2) ──────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.exportData,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => ExportCubit(
+          exportCsv: sl(),
+          getAccounts: sl(),
+          getCategories: sl(),
+          fileService: sl(),
+        )..load(),
+        child: const ExportPage(),
       ),
     ),
   ],
