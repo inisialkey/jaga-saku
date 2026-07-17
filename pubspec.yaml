@@ -17,7 +17,7 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your app.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
 
   # Rounded, offline icon font for category / account icons (style guide §12).
   # Resolved via the shared AppIcons catalog (lib/core/resources/app_icons.dart).
