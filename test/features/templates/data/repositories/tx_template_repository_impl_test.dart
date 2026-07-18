@@ -67,6 +67,7 @@ void main() {
   });
 
   late MockTxTemplateLocalDatasource datasource;
+  late MockTxChangeNotifier notifier;
   late TxTemplateRepositoryImpl repository;
 
   const template = TxTemplate(
@@ -77,7 +78,8 @@ void main() {
 
   setUp(() {
     datasource = MockTxTemplateLocalDatasource();
-    repository = TxTemplateRepositoryImpl(datasource);
+    notifier = MockTxChangeNotifier();
+    repository = TxTemplateRepositoryImpl(datasource, notifier);
   });
 
   test('getFavorites success maps models to Right(entities)', () async {
@@ -95,6 +97,8 @@ void main() {
 
     expect(result.isRight(), isTrue);
     expect(result.getRight().toNullable()?.single.label, 'Coffee');
+    // A read routes through `_guard`, never `_guardWrite` — so it never pings.
+    verifyNever(() => notifier.ping());
   });
 
   test('saveTemplate insert returns Right(new id)', () async {
@@ -105,6 +109,8 @@ void main() {
     expect(result.getRight().toNullable(), 42);
     verify(() => datasource.insert(any())).called(1);
     verifyNever(() => datasource.update(any()));
+    // A successful write broadcasts via `_guardWrite` (V4-M1).
+    verify(() => notifier.ping()).called(1);
   });
 
   test('saveTemplate update returns Right(existing id)', () async {
@@ -115,6 +121,7 @@ void main() {
     expect(result.getRight().toNullable(), 7);
     verify(() => datasource.update(any())).called(1);
     verifyNever(() => datasource.insert(any()));
+    verify(() => notifier.ping()).called(1);
   });
 
   test('saveTemplate unique violation → Left(ConflictFailure)', () async {
@@ -123,6 +130,8 @@ void main() {
     final result = await repository.saveTemplate(template);
 
     expect(result.getLeft().toNullable(), isA<ConflictFailure>());
+    // A Left write never pings — `_guardWrite` gates on `isRight()`.
+    verifyNever(() => notifier.ping());
   });
 
   test('generic DatabaseException → Left(CacheFailure)', () async {
@@ -147,6 +156,7 @@ void main() {
     final result = await repository.deleteTemplate(1);
 
     expect(result.isRight(), isTrue);
+    verify(() => notifier.ping()).called(1);
   });
 
   test('reorderTemplates success → Right(unit)', () async {
@@ -156,5 +166,6 @@ void main() {
 
     expect(result.isRight(), isTrue);
     verify(() => datasource.reorder([3, 1, 2])).called(1);
+    verify(() => notifier.ping()).called(1);
   });
 }

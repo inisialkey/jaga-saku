@@ -37,6 +37,7 @@ void main() {
   });
 
   late MockRecurringLocalDatasource datasource;
+  late MockTxChangeNotifier notifier;
   late RecurringRepositoryImpl repository;
 
   const template = TxTemplate(
@@ -55,7 +56,8 @@ void main() {
 
   setUp(() {
     datasource = MockRecurringLocalDatasource();
-    repository = RecurringRepositoryImpl(datasource);
+    notifier = MockTxChangeNotifier();
+    repository = RecurringRepositoryImpl(datasource, notifier);
   });
 
   test('getRules success maps models to Right(entities)', () async {
@@ -67,6 +69,8 @@ void main() {
 
     expect(result.isRight(), isTrue);
     expect(result.getRight().toNullable()?.single.template?.label, 'Rent');
+    // A read routes through `_guard`, never `_guardWrite` — so it never pings.
+    verifyNever(() => notifier.ping());
   });
 
   test('insertRuleWithTemplate returns Right(new rule id)', () async {
@@ -77,6 +81,8 @@ void main() {
     final result = await repository.insertRuleWithTemplate(template, rule);
 
     expect(result.getRight().toNullable(), 42);
+    // A successful write broadcasts via `_guardWrite` (V4-M1).
+    verify(() => notifier.ping()).called(1);
   });
 
   test('updateRule success → Right(unit)', () async {
@@ -88,6 +94,7 @@ void main() {
     );
 
     expect(result.isRight(), isTrue);
+    verify(() => notifier.ping()).called(1);
   });
 
   test('deleteRule success → Right(unit)', () async {
@@ -96,6 +103,7 @@ void main() {
     final result = await repository.deleteRule(1);
 
     expect(result.isRight(), isTrue);
+    verify(() => notifier.ping()).called(1);
   });
 
   test('advanceCursor success → Right(unit)', () async {
@@ -104,6 +112,8 @@ void main() {
     final result = await repository.advanceCursor(1, 2000);
 
     expect(result.isRight(), isTrue);
+    // Skip's badge drop relies on this — advanceCursor must ping (V4-M1).
+    verify(() => notifier.ping()).called(1);
   });
 
   test('a DatabaseException → Left(CacheFailure)', () async {
@@ -114,6 +124,8 @@ void main() {
     final result = await repository.insertRuleWithTemplate(template, rule);
 
     expect(result.getLeft().toNullable(), isA<CacheFailure>());
+    // A Left write never pings — `_guardWrite` gates on `isRight()`.
+    verifyNever(() => notifier.ping());
   });
 
   test('an unexpected (non-DB) error → Left(CacheFailure)', () async {

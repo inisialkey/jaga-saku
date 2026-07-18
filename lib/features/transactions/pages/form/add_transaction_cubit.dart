@@ -9,7 +9,6 @@ import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
 import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
-import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
@@ -35,7 +34,6 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
     required GetAccounts getAccounts,
     required GetCategories getCategories,
     required GetBudgetsForPeriod getBudgetsForPeriod,
-    required TxChangeNotifier txChangeNotifier,
     required ReceiptStorageService receiptStorage,
     required AppSettingsCubit appSettings,
     Transaction? initial,
@@ -44,7 +42,6 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
        _getAccounts = getAccounts,
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
-       _txChanges = txChangeNotifier,
        _receiptStorage = receiptStorage,
        _appSettings = appSettings,
        _initial = initial,
@@ -56,7 +53,6 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
   final GetAccounts _getAccounts;
   final GetCategories _getCategories;
   final GetBudgetsForPeriod _getBudgetsForPeriod;
-  final TxChangeNotifier _txChanges;
   final ReceiptStorageService _receiptStorage;
   final AppSettingsCubit _appSettings;
   final Transaction? _initial;
@@ -309,10 +305,6 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
     if (_originalPath.isNotEmpty && _originalPath != saved) {
       await _receiptStorage.delete(_originalPath);
     }
-    // W2 fix: a successful write pings the shared notifier so Home + Calendar +
-    // the Budget guard refresh live — even for the fire-and-forget shell FAB
-    // path that can't await this form.
-    _txChanges.ping();
     emit(state.copyWith(status: AddTxStatus.success));
   }
 

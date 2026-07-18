@@ -22,7 +22,6 @@ void main() {
   late MockGetAccounts getAccounts;
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
-  late MockTxChangeNotifier txChangeNotifier;
   late MockReceiptStorageService receiptStorage;
   late AppSettingsCubit appSettings;
 
@@ -44,7 +43,6 @@ void main() {
     getAccounts = MockGetAccounts();
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
-    txChangeNotifier = MockTxChangeNotifier();
     receiptStorage = MockReceiptStorageService();
     // Default start-day 1 → the guard's cycle is the calendar month, matching
     // the pre-M1 behavior these tests assert.
@@ -70,7 +68,6 @@ void main() {
     getAccounts: getAccounts,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
-    txChangeNotifier: txChangeNotifier,
     receiptStorage: receiptStorage,
     appSettings: appSettings,
   );
@@ -81,7 +78,6 @@ void main() {
       getAccounts: getAccounts,
       getCategories: getCategories,
       getBudgetsForPeriod: getBudgets,
-      txChangeNotifier: txChangeNotifier,
       receiptStorage: receiptStorage,
       appSettings: appSettings,
       initial: const Transaction(
@@ -108,7 +104,6 @@ void main() {
       getAccounts: getAccounts,
       getCategories: getCategories,
       getBudgetsForPeriod: getBudgets,
-      txChangeNotifier: txChangeNotifier,
       receiptStorage: receiptStorage,
       appSettings: appSettings,
       prefill: const TxTemplate(
@@ -141,7 +136,6 @@ void main() {
       getAccounts: getAccounts,
       getCategories: getCategories,
       getBudgetsForPeriod: getBudgets,
-      txChangeNotifier: txChangeNotifier,
       receiptStorage: receiptStorage,
       appSettings: appSettings,
       prefill: const TxTemplate(
@@ -312,11 +306,7 @@ void main() {
         status: AddTxStatus.success,
       ),
     ],
-    verify: (_) {
-      verify(() => saveTransaction(any())).called(1);
-      // W2: a successful save pings the shared notifier (Home + Calendar refresh).
-      verify(() => txChangeNotifier.ping()).called(1);
-    },
+    verify: (_) => verify(() => saveTransaction(any())).called(1),
   );
 
   // ── Budget-guard retrofit (plan §5) ─────────────────────────────────────────
@@ -355,7 +345,7 @@ void main() {
   );
 
   blocTest<AddTransactionCubit, AddTransactionState>(
-    'confirmSave commits the paused expense and pings',
+    'confirmSave commits the paused expense',
     setUp: () => when(
       () => saveTransaction(any()),
     ).thenAnswer((_) async => const Right<Failure, int>(1)),
@@ -380,10 +370,7 @@ void main() {
         AddTxStatus.success,
       ),
     ],
-    verify: (_) {
-      verify(() => saveTransaction(any())).called(1);
-      verify(() => txChangeNotifier.ping()).called(1);
-    },
+    verify: (_) => verify(() => saveTransaction(any())).called(1),
   );
 
   blocTest<AddTransactionCubit, AddTransactionState>(
@@ -581,7 +568,6 @@ void main() {
       getAccounts: getAccounts,
       getCategories: getCategories,
       getBudgetsForPeriod: getBudgets,
-      txChangeNotifier: txChangeNotifier,
       receiptStorage: receiptStorage,
       appSettings: appSettings,
       initial: const Transaction(

@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/categories/data/datasources/category_local_datasource.dart';
 import 'package:jaga_saku/features/categories/data/models/category_model.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -11,9 +12,10 @@ import 'package:sqflite/sqflite.dart';
 /// [DatabaseException] becomes [CacheFailure]; a unique-constraint violation
 /// becomes [ConflictFailure].
 class CategoryRepositoryImpl implements CategoryRepository {
-  CategoryRepositoryImpl(this._datasource);
+  CategoryRepositoryImpl(this._datasource, this._txChanges);
 
   final CategoryLocalDatasource _datasource;
+  final TxChangeNotifier _txChanges;
 
   @override
   Future<Either<Failure, List<Category>>> getCategories({
@@ -36,7 +38,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
 
   @override
   Future<Either<Failure, int>> saveCategory(Category category) =>
-      _guard(() async {
+      _guardWrite(() async {
         final model = CategoryModel.fromEntity(category);
         if (category.id == null) return _datasource.insert(model);
         await _datasource.update(model);
@@ -44,7 +46,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
       });
 
   @override
-  Future<Either<Failure, Unit>> deleteCategory(int id) => _guard(() async {
+  Future<Either<Failure, Unit>> deleteCategory(int id) => _guardWrite(() async {
     await _datasource.delete(id);
     return unit;
   });
@@ -53,14 +55,14 @@ class CategoryRepositoryImpl implements CategoryRepository {
   Future<Either<Failure, Unit>> archiveCategory(
     int id, {
     required bool archived,
-  }) => _guard(() async {
+  }) => _guardWrite(() async {
     await _datasource.setArchived(id, archived: archived);
     return unit;
   });
 
   @override
   Future<Either<Failure, Unit>> reorderCategories(List<int> orderedIds) =>
-      _guard(() async {
+      _guardWrite(() async {
         await _datasource.reorder(orderedIds);
         return unit;
       });
@@ -79,5 +81,14 @@ class CategoryRepositoryImpl implements CategoryRepository {
       log.e('Category failure', error: e, stackTrace: s);
       return const Left(CacheFailure());
     }
+  }
+
+  /// Like [_guard], but pings [_txChanges] after a successful write so every
+  /// derived money view refreshes live (V4-M1 — the write-seam broadcast
+  /// invariant: a successful repository write broadcasts, structurally).
+  Future<Either<Failure, T>> _guardWrite<T>(Future<T> Function() action) async {
+    final result = await _guard(action);
+    if (result.isRight()) _txChanges.ping();
+    return result;
   }
 }

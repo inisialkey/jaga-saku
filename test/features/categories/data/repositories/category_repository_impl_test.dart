@@ -53,13 +53,15 @@ void main() {
   });
 
   late MockCategoryLocalDatasource datasource;
+  late MockTxChangeNotifier notifier;
   late CategoryRepositoryImpl repository;
 
   const category = Category(name: 'Food', type: CategoryType.expense);
 
   setUp(() {
     datasource = MockCategoryLocalDatasource();
-    repository = CategoryRepositoryImpl(datasource);
+    notifier = MockTxChangeNotifier();
+    repository = CategoryRepositoryImpl(datasource, notifier);
   });
 
   test('getCategories success maps models to Right(entities)', () async {
@@ -80,6 +82,8 @@ void main() {
     );
 
     expect(result.getRight().toNullable()?.single.name, 'Food');
+    // A read routes through `_guard`, never `_guardWrite` — so it never pings.
+    verifyNever(() => notifier.ping());
   });
 
   test('getBySystemKey maps a found model to Right(Category)', () async {
@@ -124,6 +128,8 @@ void main() {
     final result = await repository.saveCategory(category);
 
     expect(result.getRight().toNullable(), 7);
+    // A successful write broadcasts via `_guardWrite` (V4-M1).
+    verify(() => notifier.ping()).called(1);
   });
 
   test('saveCategory unique violation → Left(ConflictFailure)', () async {
@@ -132,6 +138,8 @@ void main() {
     final result = await repository.saveCategory(category);
 
     expect(result.getLeft().toNullable(), isA<ConflictFailure>());
+    // A Left write never pings — `_guardWrite` gates on `isRight()`.
+    verifyNever(() => notifier.ping());
   });
 
   test('generic DatabaseException → Left(CacheFailure)', () async {
@@ -148,5 +156,27 @@ void main() {
     final result = await repository.deleteCategory(1);
 
     expect(result.isRight(), isTrue);
+    verify(() => notifier.ping()).called(1);
+  });
+
+  test('archiveCategory success → Right(unit) and pings', () async {
+    when(
+      () => datasource.setArchived(1, archived: true),
+    ).thenAnswer((_) async {});
+
+    final result = await repository.archiveCategory(1, archived: true);
+
+    expect(result.isRight(), isTrue);
+    verify(() => notifier.ping()).called(1);
+  });
+
+  test('reorderCategories success → Right(unit) and pings', () async {
+    when(() => datasource.reorder(any())).thenAnswer((_) async {});
+
+    final result = await repository.reorderCategories([3, 1, 2]);
+
+    expect(result.isRight(), isTrue);
+    verify(() => datasource.reorder([3, 1, 2])).called(1);
+    verify(() => notifier.ping()).called(1);
   });
 }

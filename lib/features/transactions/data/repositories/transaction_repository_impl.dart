@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
 import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
@@ -17,10 +18,15 @@ import 'package:sqflite/sqflite.dart' hide Transaction;
 /// [DatabaseException] becomes [CacheFailure] (there is no unique constraint on
 /// the table, but the mapping mirrors the accounts repository for uniformity).
 class TransactionRepositoryImpl implements TransactionRepository {
-  TransactionRepositoryImpl(this._datasource, this._receiptStorage);
+  TransactionRepositoryImpl(
+    this._datasource,
+    this._receiptStorage,
+    this._txChanges,
+  );
 
   final TransactionLocalDatasource _datasource;
   final ReceiptStorageService _receiptStorage;
+  final TxChangeNotifier _txChanges;
 
   @override
   Future<Either<Failure, List<Transaction>>> getTransactionsByMonth(
@@ -55,7 +61,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<Either<Failure, int>> saveTransaction(Transaction transaction) =>
-      _guard(() async {
+      _guardWrite(() async {
         final model = TransactionModel.fromEntity(transaction);
         if (transaction.id == null) return _datasource.insert(model);
         await _datasource.update(model);
@@ -63,15 +69,17 @@ class TransactionRepositoryImpl implements TransactionRepository {
       });
 
   @override
-  Future<Either<Failure, Unit>> deleteTransaction(int id) => _guard(() async {
-    // Read the receipt path before the row goes, so every delete caller (edit
-    // form, any future swipe-to-delete) frees the file — the root-cause fix.
-    final path = await _datasource.getReceiptPath(id);
-    await _datasource.delete(id);
-    // No-throw (logs on failure) → a stale file never blocks the row delete.
-    if (path != null) await _receiptStorage.delete(path);
-    return unit;
-  });
+  Future<Either<Failure, Unit>> deleteTransaction(int id) => _guardWrite(
+    () async {
+      // Read the receipt path before the row goes, so every delete caller (edit
+      // form, any future swipe-to-delete) frees the file — the root-cause fix.
+      final path = await _datasource.getReceiptPath(id);
+      await _datasource.delete(id);
+      // No-throw (logs on failure) → a stale file never blocks the row delete.
+      if (path != null) await _receiptStorage.delete(path);
+      return unit;
+    },
+  );
 
   @override
   Future<Either<Failure, List<MonthDelta>>> monthlyNetDeltas(
@@ -95,5 +103,14 @@ class TransactionRepositoryImpl implements TransactionRepository {
       log.e('Transaction failure', error: e, stackTrace: s);
       return const Left(CacheFailure());
     }
+  }
+
+  /// Like [_guard], but pings [_txChanges] after a successful write so every
+  /// derived money view refreshes live (V4-M1 — the write-seam broadcast
+  /// invariant: a successful repository write broadcasts, structurally).
+  Future<Either<Failure, T>> _guardWrite<T>(Future<T> Function() action) async {
+    final result = await _guard(action);
+    if (result.isRight()) _txChanges.ping();
+    return result;
   }
 }

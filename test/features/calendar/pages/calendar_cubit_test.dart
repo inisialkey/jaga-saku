@@ -106,32 +106,25 @@ void main() {
     await cubit.close();
   });
 
-  test(
-    'deleteTransaction pings; the subscription reloads month + day',
-    () async {
-      when(
-        () => deleteTransaction(1),
-      ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
-      when(
-        () => getByMonth(any()),
-      ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
-      when(
-        () => getByDay(any()),
-      ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
+  test('deleteTransaction delegates to the usecase', () async {
+    when(
+      () => deleteTransaction(1),
+    ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
+    when(
+      () => getByMonth(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
+    when(
+      () => getByDay(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Transaction>>([]));
 
-      final cubit = build();
-      await cubit.deleteTransaction(1);
-      // The refresh runs off the notifier subscription (async), so let the event
-      // queue drain before asserting the reload happened.
-      await pumpEventQueue();
+    final cubit = build();
+    await cubit.deleteTransaction(1);
 
-      verify(() => deleteTransaction(1)).called(1);
-      // Exactly one reload ran (via the ping → subscription, no direct _fetch).
-      verify(() => getByDay(any())).called(1);
-      expect(cubit.state.status, CalendarStatus.ready);
-      await cubit.close();
-    },
-  );
+    // The transaction repo pings on the delete (V4-M1); this cubit just
+    // delegates. The subscription-driven reload is covered by the ping test.
+    verify(() => deleteTransaction(1)).called(1);
+    await cubit.close();
+  });
 
   test('a notifier ping refreshes the calendar (subscription wired)', () async {
     when(

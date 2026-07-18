@@ -12,13 +12,15 @@ void main() {
   setUpAll(registerFallbackValues);
 
   late MockBackupLocalDatasource datasource;
+  late MockTxChangeNotifier notifier;
   late BackupRepositoryImpl repository;
 
   const serializer = BackupSerializer();
 
   setUp(() {
     datasource = MockBackupLocalDatasource();
-    repository = BackupRepositoryImpl(datasource);
+    notifier = MockTxChangeNotifier();
+    repository = BackupRepositoryImpl(datasource, notifier);
   });
 
   Map<String, List<Map<String, Object?>>> tablesFixture() => {
@@ -86,6 +88,8 @@ void main() {
         final decoded = serializer.decode(file.content);
         expect(decoded.schemaVersion, Migrations.latestVersion);
         expect(decoded.data.categories, hasLength(2));
+        // export is a read (stays `_guard`) — never pings.
+        verifyNever(() => notifier.ping());
       },
     );
 
@@ -194,6 +198,8 @@ void main() {
       expect(preview!.accounts, 2);
       expect(preview.transactions, 1);
       expect(preview.categories, 0);
+      // restore is the only backup write (`_guardWrite`) — a success pings.
+      verify(() => notifier.ping()).called(1);
     });
 
     test('datasource throws → Left(CacheFailure)', () async {
@@ -202,6 +208,8 @@ void main() {
       final result = await repository.restore(const BackupData());
 
       expect(result.getLeft().toNullable(), isA<CacheFailure>());
+      // A Left write never pings — `_guardWrite` gates on `isRight()`.
+      verifyNever(() => notifier.ping());
     });
   });
 }

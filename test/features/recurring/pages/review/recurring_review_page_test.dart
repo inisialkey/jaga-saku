@@ -24,7 +24,6 @@ void main() {
   late MockGetDueOccurrences getDueOccurrences;
   late MockConfirmOccurrence confirmOccurrence;
   late MockSkipOccurrence skipOccurrence;
-  late TxChangeNotifier txChanges;
 
   const template = TxTemplate(
     label: 'Rent',
@@ -46,16 +45,12 @@ void main() {
     getDueOccurrences = MockGetDueOccurrences();
     confirmOccurrence = MockConfirmOccurrence();
     skipOccurrence = MockSkipOccurrence();
-    txChanges = TxChangeNotifier();
   });
-
-  tearDown(() => txChanges.dispose());
 
   RecurringReviewCubit build() => RecurringReviewCubit(
     getDueOccurrences: getDueOccurrences,
     confirmOccurrence: confirmOccurrence,
     skipOccurrence: skipOccurrence,
-    txChangeNotifier: txChanges,
   );
 
   // A tall surface so both occurrence cards (and their buttons) lay out.

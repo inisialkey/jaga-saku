@@ -3,7 +3,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/form/form_validation.dart';
-import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_cycle.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
@@ -21,8 +20,7 @@ part 'budget_form_cubit.freezed.dart';
 /// (`[periodStart, periodEnd)` via [BudgetCycle] + the global start-day) and
 /// resolves a duplicate `(category, period)` to an update — so creating a budget
 /// for a category that already has one that cycle edits it instead of hitting
-/// the UNIQUE constraint (plan §3). A successful save pings [TxChangeNotifier]
-/// so derived-money views refresh (plan §6). Every emit is guarded by [isClosed]
+/// the UNIQUE constraint (plan §3). Every emit is guarded by [isClosed]
 /// (rule 5).
 ///
 /// The month-granularity selector (`MonthSelector`) is kept: at start-day 1 the
@@ -34,14 +32,12 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
     required SaveBudget saveBudget,
     required GetCategories getCategories,
     required GetBudgetsForPeriod getBudgetsForPeriod,
-    required TxChangeNotifier txChangeNotifier,
     required AppSettingsCubit appSettings,
     Budget? initial,
     DateTime? month,
   }) : _saveBudget = saveBudget,
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
-       _txChanges = txChangeNotifier,
        _appSettings = appSettings,
        _initial = initial,
        super(
@@ -60,7 +56,6 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
   final SaveBudget _saveBudget;
   final GetCategories _getCategories;
   final GetBudgetsForPeriod _getBudgetsForPeriod;
-  final TxChangeNotifier _txChanges;
   final AppSettingsCubit _appSettings;
   final Budget? _initial;
 
@@ -150,7 +145,6 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
 
     final result = await _saveBudget(budget);
     if (isClosed) return;
-    if (result.isRight()) _txChanges.ping();
     emit(
       result.fold(
         (failure) =>

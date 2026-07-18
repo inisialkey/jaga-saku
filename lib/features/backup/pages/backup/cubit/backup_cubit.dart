@@ -6,7 +6,6 @@ import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
 import 'package:jaga_saku/core/utils/services/backup_file_service.dart';
 import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
-import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_data.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_preview.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/export_backup.dart';
@@ -29,14 +28,12 @@ class BackupCubit extends Cubit<BackupState> {
     required RestoreBackup restoreBackup,
     required BackupFileService backupFileService,
     required SettingsService settingsService,
-    required TxChangeNotifier txChangeNotifier,
   }) : _exportBackup = exportBackup,
        _validateBackup = validateBackup,
        _previewBackup = previewBackup,
        _restoreBackup = restoreBackup,
        _fileService = backupFileService,
        _settings = settingsService,
-       _txChanges = txChangeNotifier,
        super(const BackupState.idle());
 
   final ExportBackup _exportBackup;
@@ -45,7 +42,6 @@ class BackupCubit extends Cubit<BackupState> {
   final RestoreBackup _restoreBackup;
   final BackupFileService _fileService;
   final SettingsService _settings;
-  final TxChangeNotifier _txChanges;
 
   static const String _kLastExportedAt = 'backup.lastExportedAt';
   static const String _kLastItemCount = 'backup.lastItemCount';
@@ -154,8 +150,6 @@ class BackupCubit extends Cubit<BackupState> {
       emit(BackupState.failure(result.getLeft().toNullable()!));
       return;
     }
-    // 3. Refresh every derived money view (Home/Calendar/Insight/Budget/…).
-    _txChanges.ping();
     emit(BackupState.restoreSuccess(result.getRight().toNullable()!));
     await loadMeta();
   }

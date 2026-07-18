@@ -17,11 +17,9 @@ void main() {
   setUpAll(registerFallbackValues);
 
   late MockSaveAccount saveAccount;
-  late MockTxChangeNotifier txChanges;
 
   setUp(() {
     saveAccount = MockSaveAccount();
-    txChanges = MockTxChangeNotifier();
   });
 
   Future<void> pumpForm(WidgetTester tester, AccountFormCubit cubit) =>
@@ -35,10 +33,7 @@ void main() {
 
   testWidgets('D1: Save stays enabled while invalid and an invalid tap never '
       'saves', (tester) async {
-    final cubit = AccountFormCubit(
-      saveAccount: saveAccount,
-      txChangeNotifier: txChanges,
-    );
+    final cubit = AccountFormCubit(saveAccount: saveAccount);
     addTearDown(cubit.close);
     await pumpForm(tester, cubit);
 
@@ -58,10 +53,7 @@ void main() {
   testWidgets('D2: a pristine form pops back with no confirm sheet', (
     tester,
   ) async {
-    final cubit = AccountFormCubit(
-      saveAccount: saveAccount,
-      txChangeNotifier: txChanges,
-    );
+    final cubit = AccountFormCubit(saveAccount: saveAccount);
     addTearDown(cubit.close);
     await pumpForm(tester, cubit);
 
@@ -75,10 +67,7 @@ void main() {
   testWidgets(
     'D2: an edited form prompts; keep-editing stays, discard leaves',
     (tester) async {
-      final cubit = AccountFormCubit(
-        saveAccount: saveAccount,
-        txChangeNotifier: txChanges,
-      );
+      final cubit = AccountFormCubit(saveAccount: saveAccount);
       addTearDown(cubit.close);
       await pumpForm(tester, cubit);
 
@@ -111,10 +100,7 @@ void main() {
     when(
       () => saveAccount(any()),
     ).thenAnswer((_) async => const Right<Failure, int>(1));
-    final cubit = AccountFormCubit(
-      saveAccount: saveAccount,
-      txChangeNotifier: txChanges,
-    );
+    final cubit = AccountFormCubit(saveAccount: saveAccount);
     addTearDown(cubit.close);
     await pumpForm(tester, cubit);
 

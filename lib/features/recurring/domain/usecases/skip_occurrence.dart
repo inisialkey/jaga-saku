@@ -7,7 +7,8 @@ import 'package:jaga_saku/features/recurring/domain/repositories/recurring_repos
 
 /// Skips one pending occurrence: advances the cursor to the next occurrence
 /// (`nextOccurrence(dueDate, …)`, NOT today) WITHOUT writing a transaction. The
-/// cubit still pings `TxChangeNotifier` afterwards so the Home badge drops.
+/// recurring repo's `advanceCursor` pings `TxChangeNotifier` (V4-M1), so the
+/// Home badge drops even though no tx was written.
 class SkipOccurrence extends UseCase<Unit, PendingOccurrence> {
   SkipOccurrence(this._repository);
 

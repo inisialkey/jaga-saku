@@ -17,7 +17,6 @@ void main() {
   late MockSaveBudget saveBudget;
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
-  late MockTxChangeNotifier txChanges;
   late AppSettingsCubit appSettings;
 
   const cat = Category(id: 1, name: 'Makan', type: CategoryType.expense);
@@ -26,7 +25,6 @@ void main() {
     saveBudget = MockSaveBudget();
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
-    txChanges = MockTxChangeNotifier();
     // Real cubit at the default start-day 1 → the resolved cycle is the exact
     // calendar month, so the pre-M1 period assertions reproduce.
     appSettings = AppSettingsCubit(
@@ -47,7 +45,6 @@ void main() {
     saveBudget: saveBudget,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
-    txChangeNotifier: txChanges,
     appSettings: appSettings,
     initial: initial,
     month: month,
@@ -142,7 +139,7 @@ void main() {
   });
 
   blocTest<BudgetFormCubit, BudgetFormState>(
-    'create with no existing budget inserts (id null) and pings',
+    'create with no existing budget inserts (id null)',
     setUp: () => when(
       () => saveBudget(any()),
     ).thenAnswer((_) async => const Right<Failure, int>(9)),
@@ -177,7 +174,6 @@ void main() {
       expect(budget.periodStart, DateTime(2026, 5).millisecondsSinceEpoch);
       expect(budget.periodEnd, DateTime(2026, 6).millisecondsSinceEpoch);
       expect(budget.limitAmount, 200000);
-      verify(() => txChanges.ping()).called(1);
     },
   );
 
@@ -247,7 +243,7 @@ void main() {
   );
 
   blocTest<BudgetFormCubit, BudgetFormState>(
-    'save failure emits failure with the error and does not ping',
+    'save failure emits failure with the error',
     setUp: () => when(
       () => saveBudget(any()),
     ).thenAnswer((_) async => const Left<Failure, int>(ConflictFailure())),
@@ -268,6 +264,5 @@ void main() {
           .having((s) => s.status, 'status', BudgetFormStatus.failure)
           .having((s) => s.error, 'error', isA<ConflictFailure>()),
     ],
-    verify: (_) => verifyNever(() => txChanges.ping()),
   );
 }

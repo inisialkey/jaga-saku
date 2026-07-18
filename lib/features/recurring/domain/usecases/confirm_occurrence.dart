@@ -13,8 +13,9 @@ import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction
 /// 3-overdue rule leaves 2 pending after one confirm (C1). The cursor advances
 /// ONLY after a successful write; a save `Left` leaves the occurrence pending.
 ///
-/// The cubit pings `TxChangeNotifier` after a Right (matching
-/// `home_cubit.applyFavorite`) — keeping this usecase off the core-service import.
+/// The write seam broadcasts now (V4-M1): both `SaveTransaction` and the
+/// recurring repo's `advanceCursor` ping `TxChangeNotifier` on a Right, so this
+/// usecase stays off the core-service import (domain rule 19).
 class ConfirmOccurrence extends UseCase<Unit, PendingOccurrence> {
   ConfirmOccurrence(this._saveTransaction, this._repository);
 

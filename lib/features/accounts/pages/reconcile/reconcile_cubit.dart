@@ -2,7 +2,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
-import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/categories/domain/usecases/get_system_category.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
@@ -22,18 +21,15 @@ class ReconcileCubit extends Cubit<ReconcileState> {
   ReconcileCubit({
     required GetSystemCategory getSystemCategory,
     required SaveTransaction saveTransaction,
-    required TxChangeNotifier txChangeNotifier,
     required int accountId,
     required int currentBalance,
   }) : _getSystemCategory = getSystemCategory,
        _saveTransaction = saveTransaction,
-       _txChanges = txChangeNotifier,
        _accountId = accountId,
        super(ReconcileState(currentBalance: currentBalance));
 
   final GetSystemCategory _getSystemCategory;
   final SaveTransaction _saveTransaction;
-  final TxChangeNotifier _txChanges;
   final int _accountId;
   int? _adjustmentInId;
   int? _adjustmentOutId;
@@ -90,10 +86,7 @@ class ReconcileCubit extends Cubit<ReconcileState> {
     result.fold(
       (failure) =>
           emit(state.copyWith(status: ReconcileStatus.failure, error: failure)),
-      (_) {
-        _txChanges.ping();
-        emit(state.copyWith(status: ReconcileStatus.success));
-      },
+      (_) => emit(state.copyWith(status: ReconcileStatus.success)),
     );
   }
 }

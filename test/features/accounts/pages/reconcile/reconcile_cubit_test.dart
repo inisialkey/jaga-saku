@@ -13,7 +13,6 @@ void main() {
 
   late MockGetSystemCategory getSystemCategory;
   late MockSaveTransaction saveTransaction;
-  late MockTxChangeNotifier txChanges;
 
   const adjIn = Category(
     id: 9,
@@ -38,7 +37,6 @@ void main() {
   setUp(() {
     getSystemCategory = MockGetSystemCategory();
     saveTransaction = MockSaveTransaction();
-    txChanges = MockTxChangeNotifier();
   });
 
   void stubPair({Category? inCat = adjIn, Category? outCat = adjOut}) {
@@ -53,7 +51,6 @@ void main() {
   ReconcileCubit build({required int currentBalance}) => ReconcileCubit(
     getSystemCategory: getSystemCategory,
     saveTransaction: saveTransaction,
-    txChangeNotifier: txChanges,
     accountId: 1,
     currentBalance: currentBalance,
   );
@@ -82,7 +79,6 @@ void main() {
       await cubit.confirm('Penyesuaian saldo');
 
       verifyNever(() => saveTransaction(any()));
-      verifyNever(() => txChanges.ping());
       await cubit.close();
     },
   );
@@ -113,7 +109,7 @@ void main() {
   });
 
   test(
-    'confirm with counted > current writes an income adjustment_in + pings',
+    'confirm with counted > current writes an income adjustment_in',
     () async {
       stubPair();
       when(
@@ -134,7 +130,6 @@ void main() {
       expect(tx.accountId, 1);
       expect(tx.date, todayMillis);
       expect(tx.note, 'Penyesuaian saldo');
-      verify(() => txChanges.ping()).called(1);
       expect(cubit.state.status, ReconcileStatus.success);
       await cubit.close();
     },
@@ -160,29 +155,24 @@ void main() {
       expect(tx.type, TransactionType.expense);
       expect(tx.amount, 30000); // positive magnitude; sign implied by type
       expect(tx.categoryId, 8); // adjustment_out
-      verify(() => txChanges.ping()).called(1);
       expect(cubit.state.status, ReconcileStatus.success);
       await cubit.close();
     },
   );
 
-  test(
-    'confirm with counted == current is a no-op (noChange, no ping)',
-    () async {
-      stubPair();
-      final cubit = build(currentBalance: 480000);
-      await cubit.load();
-      cubit.countedChanged(480000); // delta 0
-      await cubit.confirm('Penyesuaian saldo');
+  test('confirm with counted == current is a no-op (noChange)', () async {
+    stubPair();
+    final cubit = build(currentBalance: 480000);
+    await cubit.load();
+    cubit.countedChanged(480000); // delta 0
+    await cubit.confirm('Penyesuaian saldo');
 
-      verifyNever(() => saveTransaction(any()));
-      verifyNever(() => txChanges.ping());
-      expect(cubit.state.status, ReconcileStatus.noChange);
-      await cubit.close();
-    },
-  );
+    verifyNever(() => saveTransaction(any()));
+    expect(cubit.state.status, ReconcileStatus.noChange);
+    await cubit.close();
+  });
 
-  test('a save Left → failure status, no ping', () async {
+  test('a save Left → failure status', () async {
     stubPair();
     when(
       () => saveTransaction(any()),
@@ -195,7 +185,6 @@ void main() {
 
     expect(cubit.state.status, ReconcileStatus.failure);
     expect(cubit.state.error, isA<CacheFailure>());
-    verifyNever(() => txChanges.ping());
     await cubit.close();
   });
 }

@@ -324,9 +324,10 @@ class HomeCubit extends Cubit<HomeState> {
 
   /// Applies a favorite. A fixed-amount favorite instant-commits a transaction
   /// dated today (stamping `createdAt` at persist time — the pure helper is
-  /// clock-free) and pings [TxChangeNotifier] so the strip + cards + balances
-  /// refresh via the [_txSub] subscription; an amount-less favorite returns a
-  /// prefill signal instead (no save). The strip acts on the returned result.
+  /// clock-free); the transaction repo pings [TxChangeNotifier] on the save, so
+  /// the strip + cards + balances refresh via the [_txSub] subscription. An
+  /// amount-less favorite returns a prefill signal instead (no save). The strip
+  /// acts on the returned result.
   Future<ApplyFavoriteResult> applyFavorite(TxTemplate t) async {
     if (t.amount == null) return FavoriteNeedsPrefill(t);
     final now = DateTime.now();
@@ -337,17 +338,14 @@ class HomeCubit extends Cubit<HomeState> {
     ).copyWith(createdAt: now.millisecondsSinceEpoch);
     final result = await _saveTransaction(tx);
     if (isClosed) return FavoriteApplyFailed(const CacheFailure());
-    return result.fold(FavoriteApplyFailed.new, (id) {
-      _txChanges.ping();
-      return FavoriteCommitted(id);
-    });
+    return result.fold(FavoriteApplyFailed.new, FavoriteCommitted.new);
   }
 
-  /// Undoes a just-applied favorite by deleting its transaction and pinging so
-  /// Home refreshes. Best-effort — a failed delete leaves the tx in place.
+  /// Undoes a just-applied favorite by deleting its transaction; the repo pings
+  /// on the successful delete so Home refreshes via [_txSub]. Best-effort — a
+  /// failed delete leaves the tx in place.
   Future<void> undoApply(int txId) async {
-    final result = await _deleteTransaction(txId);
-    if (result.isRight()) _txChanges.ping();
+    await _deleteTransaction(txId);
   }
 
   @override
