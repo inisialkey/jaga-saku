@@ -25,7 +25,6 @@ void main() {
   late MockGetAccounts getAccounts;
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
-  late MockTxChangeNotifier txChangeNotifier;
   late MockReceiptStorageService receiptStorage;
   late AppSettingsCubit appSettings;
 
@@ -34,7 +33,6 @@ void main() {
     getAccounts = MockGetAccounts();
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
-    txChangeNotifier = MockTxChangeNotifier();
     receiptStorage = MockReceiptStorageService();
     appSettings = AppSettingsCubit(
       MockSettingsService(),
@@ -59,7 +57,6 @@ void main() {
     getAccounts: getAccounts,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
-    txChangeNotifier: txChangeNotifier,
     receiptStorage: receiptStorage,
     appSettings: appSettings,
     initial: initial,

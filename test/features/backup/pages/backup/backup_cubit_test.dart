@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
-import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_data.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_file.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_preview.dart';
@@ -22,9 +19,6 @@ void main() {
   late MockRestoreBackup restoreBackup;
   late MockBackupFileService fileService;
   late MockSettingsService settings;
-  late TxChangeNotifier txChanges;
-  late int pingCount;
-  late StreamSubscription<void> pingSub;
   const previewBackup = PreviewBackup();
 
   const file = BackupFile(
@@ -57,9 +51,6 @@ void main() {
     restoreBackup = MockRestoreBackup();
     fileService = MockBackupFileService();
     settings = MockSettingsService();
-    txChanges = TxChangeNotifier();
-    pingCount = 0;
-    pingSub = txChanges.changes.listen((_) => pingCount++);
     // Defaults so the happy paths (loadMeta, delivery) don't throw.
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
@@ -69,11 +60,6 @@ void main() {
     when(() => fileService.share(any())).thenAnswer((_) async {});
   });
 
-  tearDown(() async {
-    await pingSub.cancel();
-    txChanges.dispose();
-  });
-
   BackupCubit build() => BackupCubit(
     exportBackup: exportBackup,
     validateBackup: validateBackup,
@@ -81,7 +67,6 @@ void main() {
     restoreBackup: restoreBackup,
     backupFileService: fileService,
     settingsService: settings,
-    txChangeNotifier: txChanges,
   );
 
   // ── export ────────────────────────────────────────────────────────────────
@@ -174,7 +159,7 @@ void main() {
 
   // ── restore ─────────────────────────────────────────────────────────────────
   blocTest<BackupCubit, BackupState>(
-    'restore success: safety backup runs before restore; pings; [restoring, restoreSuccess, idle]',
+    'restore success: safety backup runs before restore; [restoring, restoreSuccess, idle]',
     setUp: () {
       when(
         () => exportBackup(any()),
@@ -194,12 +179,11 @@ void main() {
     verify: (_) {
       verifyInOrder([() => exportBackup(any()), () => restoreBackup(any())]);
       verify(() => fileService.write(any(), any())).called(1); // safety file
-      expect(pingCount, 1);
     },
   );
 
   blocTest<BackupCubit, BackupState>(
-    'restore aborts when the safety write fails: [restoring, failure], no restore, no ping',
+    'restore aborts when the safety write fails: [restoring, failure], no restore',
     setUp: () {
       when(
         () => exportBackup(any()),
@@ -217,12 +201,11 @@ void main() {
     ],
     verify: (_) {
       verifyNever(() => restoreBackup(any()));
-      expect(pingCount, 0);
     },
   );
 
   blocTest<BackupCubit, BackupState>(
-    'restore failure emits [restoring, failure] and does not ping',
+    'restore failure emits [restoring, failure]',
     setUp: () {
       when(
         () => exportBackup(any()),
@@ -238,6 +221,5 @@ void main() {
       BackupState.restoring(),
       BackupState.failure(CacheFailure()),
     ],
-    verify: (_) => expect(pingCount, 0),
   );
 }

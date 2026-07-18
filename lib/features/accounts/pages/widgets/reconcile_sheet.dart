@@ -36,7 +36,6 @@ class ReconcileSheet extends StatefulWidget {
       create: (_) => ReconcileCubit(
         getSystemCategory: sl(),
         saveTransaction: sl(),
-        txChangeNotifier: sl(),
         accountId: accountId,
         currentBalance: currentBalance,
       )..load(),

@@ -18,7 +18,6 @@ void main() {
 
   late MockGetSystemCategory getSystemCategory;
   late MockSaveTransaction saveTransaction;
-  late MockTxChangeNotifier txChanges;
 
   const adjIn = Category(
     id: 9,
@@ -36,7 +35,6 @@ void main() {
   setUp(() {
     getSystemCategory = MockGetSystemCategory();
     saveTransaction = MockSaveTransaction();
-    txChanges = MockTxChangeNotifier();
     when(
       () => getSystemCategory('adjustment_in'),
     ).thenAnswer((_) async => const Right<Failure, Category?>(adjIn));
@@ -48,7 +46,6 @@ void main() {
   ReconcileCubit buildCubit() => ReconcileCubit(
     getSystemCategory: getSystemCategory,
     saveTransaction: saveTransaction,
-    txChangeNotifier: txChanges,
     accountId: 1,
     currentBalance: 480000,
   );

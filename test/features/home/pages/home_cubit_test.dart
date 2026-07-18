@@ -391,6 +391,39 @@ void main() {
     },
   );
 
+  test(
+    'a notifier ping refreshes the favorites strip (template edit → Home)',
+    () async {
+      stubAll(accounts: const [], month: const [], recent: const []);
+
+      final cubit = build();
+      await cubit.load();
+      expect((cubit.state as HomeLoaded).dashboard.favorites, isEmpty);
+
+      // A template edit lands: getFavorites now returns the updated strip, and
+      // the TxTemplate repo pings on its save (V4-M1) — stood in for here by a
+      // direct notifier ping. The Home subscription reloads and re-projects.
+      const updatedFavorite = TxTemplate(
+        id: 1,
+        label: 'Coffee',
+        type: TransactionType.expense,
+        accountId: 1,
+        amount: 20000,
+        categoryId: 1,
+      );
+      when(() => getFavorites(any())).thenAnswer(
+        (_) async => const Right<Failure, List<TxTemplate>>([updatedFavorite]),
+      );
+      txChanges.ping();
+      await pumpEventQueue();
+
+      expect((cubit.state as HomeLoaded).dashboard.favorites, [
+        updatedFavorite,
+      ]);
+      await cubit.close();
+    },
+  );
+
   // ── Recurring badge (V2-M5) ─────────────────────────────────────────────────
 
   test('getDueOccurrences populates pendingRecurring with the count', () async {
@@ -441,14 +474,11 @@ void main() {
     },
   );
 
-  test('applyFavorite commits a fixed-amount favorite and pings', () async {
+  test('applyFavorite commits a fixed-amount favorite', () async {
     stubAll(accounts: const [], month: const [], recent: const []);
     when(
       () => saveTransaction(any()),
     ).thenAnswer((_) async => const Right<Failure, int>(42));
-
-    var pinged = false;
-    final sub = txChanges.changes.listen((_) => pinged = true);
 
     final cubit = build();
     final result = await cubit.applyFavorite(favorite);
@@ -456,10 +486,6 @@ void main() {
     expect(result, isA<FavoriteCommitted>());
     expect((result as FavoriteCommitted).txId, 42);
     verify(() => saveTransaction(any())).called(1);
-    await pumpEventQueue();
-    expect(pinged, isTrue);
-
-    await sub.cancel();
     await cubit.close();
   });
 

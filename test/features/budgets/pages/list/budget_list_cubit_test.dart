@@ -88,13 +88,10 @@ void main() {
     expect: () => [isA<BudgetListLoading>(), isA<BudgetListError>()],
   );
 
-  test('delete calls the usecase, pings the bus, and reloads', () async {
+  test('delete calls the usecase and reloads', () async {
     when(
       () => deleteBudget(1),
     ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
-    var pings = 0;
-    final sub = txChanges.changes.listen((_) => pings++);
-    addTearDown(sub.cancel);
 
     stubBudgets([budget]);
     final cubit = build();
@@ -107,7 +104,6 @@ void main() {
 
     expect((cubit.state as BudgetListLoaded).budgets, isEmpty);
     verify(() => deleteBudget(1)).called(1);
-    expect(pings, greaterThanOrEqualTo(1));
     await cubit.close();
   });
 

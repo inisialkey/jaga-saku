@@ -89,6 +89,9 @@ class AppSettingsCubit extends Cubit<AppSettingsState> {
     await _settings.setString(_cycleStartDayKey, '$clamped');
     if (isClosed) return;
     emit(state.copyWith(budgetCycleStartDay: clamped));
+    // ponytail: cycle-day ping stays cubit-side — SettingsService has no
+    // repository seam. Move behind a settings repo when the settings-owner
+    // refactor lands (review candidate #3).
     _txChanges.ping();
   }
 

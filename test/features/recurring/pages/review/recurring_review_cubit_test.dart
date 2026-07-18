@@ -2,7 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
-import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
 import 'package:jaga_saku/features/recurring/pages/review/recurring_review_cubit.dart';
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
@@ -17,7 +16,6 @@ void main() {
   late MockGetDueOccurrences getDueOccurrences;
   late MockConfirmOccurrence confirmOccurrence;
   late MockSkipOccurrence skipOccurrence;
-  late TxChangeNotifier txChanges;
 
   const template = TxTemplate(
     label: 'Rent',
@@ -39,16 +37,12 @@ void main() {
     getDueOccurrences = MockGetDueOccurrences();
     confirmOccurrence = MockConfirmOccurrence();
     skipOccurrence = MockSkipOccurrence();
-    txChanges = TxChangeNotifier();
   });
-
-  tearDown(() => txChanges.dispose());
 
   RecurringReviewCubit build() => RecurringReviewCubit(
     getDueOccurrences: getDueOccurrences,
     confirmOccurrence: confirmOccurrence,
     skipOccurrence: skipOccurrence,
-    txChangeNotifier: txChanges,
   );
 
   test('load emits loaded with the pending occurrences', () async {
@@ -89,7 +83,7 @@ void main() {
     await cubit.close();
   });
 
-  test('confirm one re-projects (leaves the rest) and pings', () async {
+  test('confirm one re-projects (leaves the rest)', () async {
     var loadCall = 0;
     when(() => getDueOccurrences(any())).thenAnswer((_) async {
       loadCall++;
@@ -103,9 +97,6 @@ void main() {
       () => confirmOccurrence(any()),
     ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
 
-    var pinged = 0;
-    final sub = txChanges.changes.listen((_) => pinged++);
-
     final cubit = build();
     await cubit.load();
     await cubit.confirm(occ(1));
@@ -113,10 +104,6 @@ void main() {
     final state = cubit.state;
     expect((state as RecurringReviewLoaded).pending, [occ(2)]);
     verify(() => confirmOccurrence(occ(1))).called(1);
-    await pumpEventQueue();
-    expect(pinged, 1);
-
-    await sub.cancel();
     await cubit.close();
   });
 

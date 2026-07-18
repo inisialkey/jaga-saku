@@ -21,9 +21,9 @@ part 'budget_list_cubit.freezed.dart';
 /// and deletes. The cycle window is derived from the global start-day in
 /// [AppSettingsCubit] (V2-M1) — at start-day 1 it is the calendar month.
 /// Subscribes to [TxChangeNotifier] so spent refreshes live when a transaction
-/// OR the start-day changes anywhere; its own delete also pings the bus so the
-/// Home guard recomputes (plan §6). The subscription is cancelled in [close]
-/// (rule 7) and every emit is guarded by [isClosed] (rule 5).
+/// OR the start-day changes anywhere; a budget write now pings from the repo
+/// seam (V4-M1), so the Home guard recomputes. The subscription is cancelled in
+/// [close] (rule 7) and every emit is guarded by [isClosed] (rule 5).
 class BudgetListCubit extends Cubit<BudgetListState> {
   BudgetListCubit({
     required GetBudgetsForPeriod getBudgetsForPeriod,
@@ -112,9 +112,8 @@ class BudgetListCubit extends Cubit<BudgetListState> {
       emit(BudgetListState.error(failure));
       return;
     }
-    // A budget change is a derived-money-view change: ping so the Home guard
-    // recomputes; then reload this list.
-    _txChanges.ping();
+    // V4-M1: the budget repo pings on the delete (its own subscription reloads
+    // too); this direct reload keeps the list correct without relying on it.
     await load();
   }
 

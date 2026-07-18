@@ -95,10 +95,9 @@ class CalendarCubit extends Cubit<CalendarState> {
       emit(state.copyWith(status: CalendarStatus.error, failure: failure));
       return;
     }
-    // W2 fix: pinging refreshes this calendar (via its own [changes]
-    // subscription) AND Home, so a delete here updates both — no direct
+    // V4-M1: the transaction repo pings on a successful delete, so this calendar
+    // refreshes via its own [changes] subscription (and Home too) — no direct
     // `_fetch()` needed.
-    _txChanges.ping();
   }
 
   /// Loads accounts + both category sets once and caches them as id lookups.
