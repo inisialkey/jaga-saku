@@ -99,14 +99,31 @@ class _CalendarCard extends StatelessWidget {
             color: context.colors.textSecondary,
           ),
         ),
+        daysOfWeekStyle: DaysOfWeekStyle(
+          weekdayStyle: theme.textTheme.labelMedium!.copyWith(
+            color: context.colors.textSecondary,
+          ),
+          weekendStyle: theme.textTheme.labelMedium!.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
         calendarStyle: CalendarStyle(
           outsideDaysVisible: false,
+          // Day numbers inherit the themed text color (near-white on dark)
+          // instead of table_calendar's hardcoded light-mode greys.
+          defaultTextStyle: theme.textTheme.bodyMedium!,
+          weekendTextStyle: theme.textTheme.bodyMedium!.copyWith(
+            color: context.colors.textSecondary,
+          ),
           todayDecoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          todayTextStyle: const TextStyle(
-            color: AppColors.primaryDark,
+          // Was hardcoded dark-green #15803D (~1.6:1 on the dark cell).
+          // context.colors.income is the brightness-safe green (light #15803D,
+          // dark #22C55E).
+          todayTextStyle: theme.textTheme.bodyMedium!.copyWith(
+            color: context.colors.income,
             fontWeight: FontWeight.w600,
           ),
           selectedDecoration: const BoxDecoration(
