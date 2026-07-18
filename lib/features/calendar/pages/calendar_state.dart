@@ -23,15 +23,27 @@ abstract class CalendarState with _$CalendarState {
 
   bool get isLoading => status == CalendarStatus.loading;
 
-  /// Total income on the selected day (positive rupiah).
-  int get dayIncome => _sumForType(TransactionType.income);
+  /// Reserved/adjustment category ids the day summary must skip — resolved from
+  /// the state's own [categoriesById] so the day totals align with every other
+  /// report surface (a reconcile correction moves balance, not the day summary).
+  Set<int> get _systemCategoryIds =>
+      TransactionAggregator.systemCategoryIds(categoriesById.values);
 
-  /// Total expense on the selected day (positive rupiah).
-  int get dayExpense => _sumForType(TransactionType.expense);
+  ({int income, int expense}) get _dayTotals =>
+      TransactionAggregator.incomeExpense(
+        selectedDayTransactions,
+        excludeCategoryIds: _systemCategoryIds,
+      );
 
-  /// Net for the day (income − expense). Transfers net to zero for a single
-  /// account view, so they are excluded from the day balance.
-  int get dayBalance => dayIncome - dayExpense;
+  /// Total income on the selected day (positive rupiah), adjustments excluded.
+  int get dayIncome => _dayTotals.income;
+
+  /// Total expense on the selected day (positive rupiah), adjustments excluded.
+  int get dayExpense => _dayTotals.expense;
+
+  /// Net for the day (income − expense). Transfers and reconcile adjustments are
+  /// excluded (transfers net to zero for a single-account view).
+  int get dayBalance => _dayTotals.income - _dayTotals.expense;
 
   /// The focused month's transactions that fall on [day].
   List<Transaction> transactionsOn(DateTime day) =>
@@ -55,8 +67,4 @@ abstract class CalendarState with _$CalendarState {
 
   Account? toAccountOf(Transaction t) =>
       t.toAccountId == null ? null : accountsById[t.toAccountId];
-
-  int _sumForType(TransactionType type) => selectedDayTransactions
-      .where((t) => t.type == type)
-      .fold(0, (sum, t) => sum + t.amount);
 }
