@@ -44,11 +44,16 @@ class ColorPickerSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
-                // High-contrast dark ring (was faint border-gray, invisible on
-                // many swatches) so the selection reads on light/medium colors;
-                // the haloed check carries it on dark swatches.
+                // High-contrast selection ring that adapts to the sheet
+                // surface: onSurface is navy on light, near-white on dark (the
+                // old AppColors.textPrimary #0F172A equalled surfaceDark, so the
+                // ring vanished on the dark sheet). The haloed check carries it
+                // on swatches close to the ring color.
                 border: isSelected
-                    ? Border.all(color: AppColors.textPrimary, width: 3)
+                    ? Border.all(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        width: 3,
+                      )
                     : null,
               ),
               child: isSelected

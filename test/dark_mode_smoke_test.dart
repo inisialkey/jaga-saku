@@ -4,15 +4,25 @@ import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/pages/widgets/budget_item_card.dart';
+import 'package:jaga_saku/features/budgets/pages/widgets/budget_status_badge.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/home/pages/home_cubit.dart';
 import 'package:jaga_saku/features/home/pages/widgets/budget_guard_card.dart';
 import 'package:jaga_saku/features/home/pages/widgets/daily_review_card.dart';
 import 'package:jaga_saku/features/home/pages/widgets/total_balance_card.dart';
+import 'package:jaga_saku/features/insight/pages/insight_cubit.dart';
 import 'package:jaga_saku/features/insight/pages/insight_rules.dart';
+import 'package:jaga_saku/features/insight/pages/widgets/asset_trend_chart.dart';
+import 'package:jaga_saku/features/insight/pages/widgets/category_legend.dart';
+import 'package:jaga_saku/features/insight/pages/widgets/expense_donut_chart.dart';
 import 'package:jaga_saku/features/insight/pages/widgets/insight_card.dart';
 import 'package:jaga_saku/features/insight/pages/widgets/monthly_overview_card.dart';
+import 'package:jaga_saku/features/security/pages/widgets/pin_pad.dart';
 import 'package:jaga_saku/features/settings/pages/widgets/setting_option_tile.dart';
+import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/search_transaction_params.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/pages/search/widgets/active_filter_chips.dart';
 
 import 'helpers/pump_app.dart';
 
@@ -23,6 +33,14 @@ import 'helpers/pump_app.dart';
 /// build with no exception — proving the dark palette extension resolves
 /// everywhere (no missing-color / null crash). A true VISUAL dark spot-check
 /// still needs the app run on a device/emulator (manual step).
+///
+/// V3-M6 extends the list with the previously-uncovered high-risk leaves
+/// (color-picker ring, donut wedges seeded with the low-luminance slate/violet
+/// swatches, legend, trend chart, amount field, segmented/chip controls, a
+/// critical budget badge) AND the new V3-M1..M5 feature leaves that render
+/// cleanly in isolation (the security PIN pad, the search active-filter chips) —
+/// dark render-safety evidence for the new features, whose page-level screens
+/// are covered by their own dark tests (calendar / lock screen).
 void main() {
   // Fixtures for the two budget cards (BudgetStatus is a runtime factory, so
   // these can't be const): one under-budget, one over-budget — the over case
@@ -40,6 +58,42 @@ void main() {
     periodEnd: periodEnd,
   );
   const category = Category(id: 1, name: 'Makan', type: CategoryType.expense);
+
+  // Donut/legend slices seeded with the two lowest-luminance category swatches
+  // (slate #64748B + violet #8B5CF6) — the F3 candidates — so the wedges + the
+  // legend avatars actually render those hues on the dark surface.
+  const donutSlices = [
+    CategorySlice(
+      categoryId: 1,
+      name: 'Slate',
+      amount: 300000,
+      pct: 0.6,
+      color: 0xFF64748B,
+    ),
+    CategorySlice(
+      categoryId: 2,
+      name: 'Violet',
+      amount: 200000,
+      pct: 0.4,
+      color: 0xFF8B5CF6,
+    ),
+  ];
+
+  // Two-point trend so the line (not just a dot) + area fill + axis labels draw.
+  final trendPoints = [
+    TrendPoint(
+      monthMillis: DateTime(2026, 6).millisecondsSinceEpoch,
+      netWorth: 5000000,
+    ),
+    TrendPoint(
+      monthMillis: DateTime(2026, 7).millisecondsSinceEpoch,
+      netWorth: 5250000,
+    ),
+  ];
+
+  // The amount field owns its controller; dispose it once after the run.
+  final amountController = TextEditingController(text: '25000');
+  tearDownAll(amountController.dispose);
 
   // A representative set of the theme-consuming widgets across M1–M5 + M6.
   final darkWidgets = <Widget>[
@@ -86,6 +140,8 @@ void main() {
       status: statusOf(1200000),
       category: category,
     ),
+    // Critical budget status pill (warning/critical tint on dark).
+    const BudgetStatusBadge(level: BudgetStatusLevel.critical),
     // Core ledger row (subtitle + badges hit surfaceSoft / textSecondary).
     const TransactionTile(
       title: 'Kopi',
@@ -109,6 +165,58 @@ void main() {
       income: 5000000,
       expense: 6000000,
       saved: -1000000,
+    ),
+    // Insight donut + legend seeded with the low-luminance slate/violet swatches
+    // (F3 candidates) — the center total + wedges + legend avatars on dark.
+    const ExpenseDonutChart(
+      slices: donutSlices,
+      totalExpense: 500000,
+      categoriesById: {},
+    ),
+    const CategoryLegend(slices: donutSlices, categoriesById: {}),
+    // Money Story trend chart — line + area fill in the income accent on dark.
+    AssetTrendChart(points: trendPoints),
+    // Amount entry pill (surface/border + Rp prefix on dark).
+    AmountInputField(controller: amountController),
+    // Segmented control + choice chips (selected primary pill / primaryLight
+    // chip on dark).
+    SegmentedControl<int>(
+      options: const [
+        SegmentOption(value: 0, label: 'Day'),
+        SegmentOption(value: 1, label: 'Week'),
+        SegmentOption(value: 2, label: 'Month'),
+      ],
+      selected: 0,
+      onChanged: (_) {},
+    ),
+    ChoiceChipGroup<int>(
+      options: const [
+        ChipOption(value: 0, label: 'Need'),
+        ChipOption(value: 1, label: 'Want'),
+      ],
+      selected: 0,
+      onChanged: (_) {},
+    ),
+    // The shared color-picker sheet — its selection ring (F2) on the dark sheet.
+    // Bounded height because AppBottomSheet roots a Flexible, which a Column
+    // under unbounded scroll height can't lay out.
+    const SizedBox(
+      height: 360,
+      child: ColorPickerSheet(title: 'Color', selected: 0xFF64748B),
+    ),
+    // ── New V3-M1..M5 feature leaves (dark render-safety evidence) ──────────
+    // Security (M4): the PIN pad dots + numeric keypad on dark.
+    PinPad(enteredCount: 3, onDigit: (_) {}, onBackspace: () {}),
+    // Search (M3): the active-filter chips — the classic dark-contrast trap.
+    ActiveFilterChips(
+      params: const SearchTransactionParams(
+        type: TransactionType.expense,
+        hasReceipt: true,
+      ),
+      accountName: (_) => null,
+      categoryName: (_) => null,
+      onRemove: (_) {},
+      onClearAll: () {},
     ),
     // Settings option rows (Appearance / language selectors).
     HairlineCard(
@@ -136,5 +244,45 @@ void main() {
     // Sanity: the tree actually built (takeException passes on an empty tree).
     expect(find.byType(InsightCard), findsNWidgets(4));
     expect(find.text('Rp 8.450.000'), findsOneWidget);
+    // The new-feature + high-risk leaves are present (not culled).
+    expect(find.byType(ExpenseDonutChart), findsOneWidget);
+    expect(find.byType(AssetTrendChart), findsOneWidget);
+    expect(find.byType(ColorPickerSheet), findsOneWidget);
+    expect(find.byType(PinPad), findsOneWidget);
+    expect(find.byType(ActiveFilterChips), findsOneWidget);
+  });
+
+  testWidgets('dark cards survive 1.3x Dynamic Type with no overflow', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      SingleChildScrollView(child: Column(children: darkWidgets)),
+      theme: AppTheme.dark,
+      textScaler: const TextScaler.linear(1.3),
+    );
+
+    // No RenderFlex overflow / layout throw at the 1.3× Dynamic-Type ceiling.
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('dark cards settle under reduced motion (no infinite animation)', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: SingleChildScrollView(child: Column(children: darkWidgets)),
+        ),
+      ),
+      theme: AppTheme.dark,
+    );
+
+    // Charts/shimmer honour disableAnimations → the frame settles (no infinite
+    // pump), and nothing threw building under dark + reduced motion.
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }
