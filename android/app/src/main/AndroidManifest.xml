@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Biometric unlock for the optional App Lock (V3-M4). local_auth's
+         BiometricPrompt requires USE_BIOMETRIC; androidx.biometric handles the
+         fingerprint fallback on older APIs, so no separate USE_FINGERPRINT. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- image_picker delegates to the system camera app via intent; declare the
          feature as optional (required=false) so camera-less devices can still
          install (Play Store filter). No CAMERA uses-permission — the intent-based

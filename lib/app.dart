@@ -6,6 +6,7 @@ import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/dependencies_injection.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
+import 'package:jaga_saku/features/security/app_lock_service.dart';
 import 'package:oktoast/oktoast.dart';
 
 /// Root widget: wires the theme, localization, responsive sizing and router.
@@ -13,8 +14,45 @@ import 'package:oktoast/oktoast.dart';
 /// before `runApp`, see `main.dart`) so both react to the Appearance / Settings
 /// screens instantly and survive a restart. Default theme is light (style guide
 /// §20); `locale == null` follows the device.
-class App extends StatelessWidget {
+///
+/// A [WidgetsBindingObserver] drives the app-lock auto-lock (V3-M4): on
+/// background (paused / hidden) it stamps the time, on resume it re-locks if the
+/// elapsed time passed the threshold. `inactive` is a no-op (transient — Control
+/// Center / incoming call) so it never false-locks.
+class App extends StatefulWidget {
   const App({super.key});
+
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final lock = sl<AppLockService>();
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        lock.markBackgrounded();
+      case AppLifecycleState.resumed:
+        lock.evaluateAutoLock();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) => OKToast(
