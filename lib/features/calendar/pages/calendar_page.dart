@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
@@ -21,7 +22,16 @@ class CalendarPage extends StatelessWidget {
     final s = Strings.of(context)!;
     return BlocBuilder<CalendarCubit, CalendarState>(
       builder: (context, state) => AppScaffold(
-        appBar: AppBar(title: Text(s.calendar)),
+        appBar: AppBar(
+          title: Text(s.calendar),
+          actions: [
+            IconButton(
+              icon: const Icon(Iconsax.search_normal),
+              tooltip: s.searchTransactions,
+              onPressed: () => context.push(AppRoute.searchTransactions),
+            ),
+          ],
+        ),
         body: state.status == CalendarStatus.error && state.failure != null
             ? ErrorStateView(
                 title: s.errorLoadTitle,

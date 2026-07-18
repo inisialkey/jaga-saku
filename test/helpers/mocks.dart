@@ -49,6 +49,7 @@ import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_trans
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_day.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/usecases/search_transactions.dart';
 import 'package:jaga_saku/features/recurring/data/datasources/recurring_local_datasource.dart';
 import 'package:jaga_saku/features/recurring/data/models/recurring_model.dart';
 import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
@@ -161,6 +162,8 @@ class MockGetTransactionsByMonth extends Mock
 class MockGetTransactionsByDay extends Mock implements GetTransactionsByDay {}
 
 class MockGetRecentTransactions extends Mock implements GetRecentTransactions {}
+
+class MockSearchTransactions extends Mock implements SearchTransactions {}
 
 class MockGetAssetTrend extends Mock implements GetAssetTrend {}
 

@@ -6,6 +6,7 @@ import 'package:jaga_saku/features/transactions/data/models/transaction_model.da
 import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/search_transaction_params.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/transaction_source.dart';
 import 'package:jaga_saku/features/transactions/domain/transaction_aggregator.dart';
 import 'package:mocktail/mocktail.dart';
 // sqflite_ffi re-exports sqflite's `Transaction`; hide it so it does not clash
@@ -671,6 +672,261 @@ void main() {
         await count('categories'),
       ];
       expect(after, before);
+    });
+  });
+
+  // ── search (V3-M3): typed reads + the search-only facets + sort ───────────
+
+  group('search', () {
+    Future<void> seedAdjustmentCategory() => db.insert('categories', {
+      'id': 8,
+      'name': 'Penyesuaian',
+      'type': 'expense',
+      'system_key': 'adjustment_out',
+      'created_at': 0,
+    });
+
+    Future<List<int>> amounts(SearchTransactionParams p) async =>
+        (await datasource.search(p)).map((t) => t.amount).toList();
+
+    test(
+      'SELECT t.* round-trips the transaction fields (no column bleed)',
+      () async {
+        await datasource.insert(
+          model(
+            amount: 35000,
+            categoryId: 1,
+            plannedStatus: PlannedStatus.planned,
+            spendingType: SpendingType.need,
+            date: millis(2026, 7, 8),
+            note: 'Lunch',
+            receiptPath: 'receipts/1.jpg',
+          ),
+        );
+
+        final rows = await datasource.search(const SearchTransactionParams());
+        expect(rows, hasLength(1));
+        final r = rows.single;
+        expect(r.type, TransactionType.expense);
+        expect(r.amount, 35000);
+        expect(r.accountId, 1);
+        expect(r.categoryId, 1);
+        expect(r.plannedStatus, PlannedStatus.planned);
+        expect(r.spendingType, SpendingType.need);
+        expect(r.note, 'Lunch');
+        expect(r.receiptPath, 'receipts/1.jpg');
+      },
+    );
+
+    test('keyword matches the note', () async {
+      await datasource.insert(
+        model(categoryId: 1, date: millis(2026, 7, 1), note: 'Dinner cafe'),
+      );
+      await datasource.insert(
+        model(amount: 2, categoryId: 1, date: millis(2026, 7, 2), note: 'x'),
+      );
+      expect(await amounts(const SearchTransactionParams(keyword: 'dinner')), [
+        1000,
+      ]);
+    });
+
+    test('keyword matches the source account name', () async {
+      await datasource.insert(model(categoryId: 1, date: millis(2026, 7, 1)));
+      await datasource.insert(
+        model(amount: 2, accountId: 2, categoryId: 1, date: millis(2026, 7, 2)),
+      );
+      // "cash" matches a.name for the Cash(1) row only.
+      expect(await amounts(const SearchTransactionParams(keyword: 'cash')), [
+        1000,
+      ]);
+    });
+
+    test('keyword matches a transfer target account name', () async {
+      await datasource.insert(
+        model(
+          type: TransactionType.transfer,
+          amount: 5,
+          toAccountId: 2,
+          date: millis(2026, 7, 1),
+        ),
+      );
+      // "bca" matches a2.name (the BCA target).
+      expect(await amounts(const SearchTransactionParams(keyword: 'bca')), [5]);
+    });
+
+    test('keyword matches the category name', () async {
+      await datasource.insert(model(categoryId: 1, date: millis(2026, 7, 1)));
+      await datasource.insert(
+        model(
+          type: TransactionType.income,
+          amount: 2,
+          categoryId: 7,
+          date: millis(2026, 7, 2),
+        ),
+      );
+      expect(await amounts(const SearchTransactionParams(keyword: 'makan')), [
+        1000,
+      ]);
+    });
+
+    test('amount range filters inclusively on both bounds', () async {
+      await datasource.insert(
+        model(amount: 100, categoryId: 1, date: millis(2026, 7, 1)),
+      );
+      await datasource.insert(
+        model(amount: 200, categoryId: 1, date: millis(2026, 7, 2)),
+      );
+      await datasource.insert(
+        model(amount: 300, categoryId: 1, date: millis(2026, 7, 3)),
+      );
+      expect(
+        (await amounts(const SearchTransactionParams(minAmount: 200))).toSet(),
+        {200, 300},
+      );
+      expect(
+        (await amounts(const SearchTransactionParams(maxAmount: 200))).toSet(),
+        {100, 200},
+      );
+      expect(
+        await amounts(
+          const SearchTransactionParams(minAmount: 150, maxAmount: 250),
+        ),
+        [200],
+      );
+    });
+
+    test('hasReceipt splits rows with and without a receipt', () async {
+      await datasource.insert(
+        model(
+          amount: 1,
+          categoryId: 1,
+          date: millis(2026, 7, 1),
+          receiptPath: 'receipts/a.jpg',
+        ),
+      );
+      await datasource.insert(
+        model(amount: 2, categoryId: 1, date: millis(2026, 7, 2)),
+      );
+      expect(await amounts(const SearchTransactionParams(hasReceipt: true)), [
+        1,
+      ]);
+      expect(await amounts(const SearchTransactionParams(hasReceipt: false)), [
+        2,
+      ]);
+    });
+
+    test(
+      'source reconciliation includes adjustments; manual excludes them',
+      () async {
+        await seedAdjustmentCategory();
+        // manual expense (Makan), manual transfer (null category), reconciliation.
+        await datasource.insert(
+          model(amount: 100, categoryId: 1, date: millis(2026, 7, 1)),
+        );
+        await datasource.insert(
+          model(
+            type: TransactionType.transfer,
+            amount: 200,
+            toAccountId: 2,
+            date: millis(2026, 7, 2),
+          ),
+        );
+        await datasource.insert(
+          model(amount: 300, categoryId: 8, date: millis(2026, 7, 3)),
+        );
+
+        expect(
+          await amounts(
+            const SearchTransactionParams(
+              source: TransactionSource.reconciliation,
+            ),
+          ),
+          [300],
+        );
+        expect(
+          (await amounts(
+            const SearchTransactionParams(source: TransactionSource.manual),
+          )).toSet(),
+          {100, 200},
+        );
+      },
+    );
+
+    test('sort orders the result set four ways', () async {
+      await datasource.insert(
+        model(amount: 300, categoryId: 1, date: millis(2026, 7, 1)),
+      );
+      await datasource.insert(
+        model(amount: 100, categoryId: 1, date: millis(2026, 7, 2)),
+      );
+      await datasource.insert(
+        model(amount: 200, categoryId: 1, date: millis(2026, 7, 3)),
+      );
+      expect(await amounts(const SearchTransactionParams()), [
+        200,
+        100,
+        300,
+      ]); // default newest = date DESC
+      expect(
+        await amounts(const SearchTransactionParams(sort: SortOption.oldest)),
+        [300, 100, 200],
+      );
+      expect(
+        await amounts(const SearchTransactionParams(sort: SortOption.highest)),
+        [300, 200, 100],
+      );
+      expect(
+        await amounts(const SearchTransactionParams(sort: SortOption.lowest)),
+        [100, 200, 300],
+      );
+    });
+
+    test('combined facets AND together', () async {
+      await datasource.insert(
+        model(
+          amount: 100,
+          categoryId: 1,
+          plannedStatus: PlannedStatus.planned,
+          date: millis(2026, 7, 10),
+          note: 'coffee',
+        ),
+      );
+      await datasource.insert(
+        model(
+          amount: 100,
+          categoryId: 1,
+          plannedStatus: PlannedStatus.unplanned,
+          date: millis(2026, 7, 11),
+          note: 'coffee',
+        ),
+      );
+      await datasource.insert(
+        model(
+          amount: 999,
+          categoryId: 1,
+          plannedStatus: PlannedStatus.planned,
+          date: millis(2026, 7, 12),
+          note: 'coffee',
+        ),
+      );
+
+      final rows = await datasource.search(
+        const SearchTransactionParams(
+          keyword: 'coffee',
+          plannedStatus: PlannedStatus.planned,
+          maxAmount: 500,
+        ),
+      );
+      // Only the planned "coffee" under 500 survives all three predicates.
+      expect(rows.map((t) => t.amount), [100]);
+    });
+
+    test('a no-match query returns an empty list', () async {
+      await datasource.insert(model(categoryId: 1, date: millis(2026, 7, 1)));
+      expect(
+        await datasource.search(const SearchTransactionParams(keyword: 'zzz')),
+        isEmpty,
+      );
     });
   });
 }

@@ -14,15 +14,26 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SearchTransactionParams {
 
-/// Inclusive lower bound (epoch millis); `null` = unbounded start.
+/// Trimmed free-text query; `null`/empty = no keyword. Matched
+/// case-insensitively against `note` + the joined account / target-account /
+/// category names (V3-M3 only — Export never sets it).
+ String? get keyword;/// Inclusive lower bound (epoch millis); `null` = unbounded start.
  int? get startDate;/// Exclusive upper bound (epoch millis); `null` = unbounded end.
  int? get endDate;/// Matches a transaction touching this wallet on either side (source or
 /// transfer target); `null` = every account.
  int? get accountId;/// Category filter; `null` = every category.
  int? get categoryId;/// Ledger-type filter; `null` = expense + income + transfer.
- TransactionType? get type;/// Planned/unplanned filter (expense-only column); `null` = all.
+ TransactionType? get type;/// Derived provenance filter (via the category `system_key` join); `null` =
+/// both manual + reconciliation. V3-M3 only — Export never sets it.
+ TransactionSource? get source;/// Inclusive lower amount bound (rupiah); `null` = no minimum.
+ int? get minAmount;/// Inclusive upper amount bound (rupiah); `null` = no maximum.
+ int? get maxAmount;/// Planned/unplanned filter (expense-only column); `null` = all.
  PlannedStatus? get plannedStatus;/// Spending-bucket filter (expense-only column); `null` = all.
- SpendingType? get spendingType;
+ SpendingType? get spendingType;/// Receipt filter: `true` = `receipt_path IS NOT NULL`, `false` = `IS NULL`,
+/// `null` = ignore. V3-M3 only — Export never sets it.
+ bool? get hasReceipt;/// Result ordering. Not a facet — it never widens/narrows the row set, so it
+/// is excluded from [hasQuery] and [activeFilterCount].
+ SortOption get sort;
 /// Create a copy of SearchTransactionParams
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -33,16 +44,16 @@ $SearchTransactionParamsCopyWith<SearchTransactionParams> get copyWith => _$Sear
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SearchTransactionParams&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.type, type) || other.type == type)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SearchTransactionParams&&(identical(other.keyword, keyword) || other.keyword == keyword)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.type, type) || other.type == type)&&(identical(other.source, source) || other.source == source)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.hasReceipt, hasReceipt) || other.hasReceipt == hasReceipt)&&(identical(other.sort, sort) || other.sort == sort));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,startDate,endDate,accountId,categoryId,type,plannedStatus,spendingType);
+int get hashCode => Object.hash(runtimeType,keyword,startDate,endDate,accountId,categoryId,type,source,minAmount,maxAmount,plannedStatus,spendingType,hasReceipt,sort);
 
 @override
 String toString() {
-  return 'SearchTransactionParams(startDate: $startDate, endDate: $endDate, accountId: $accountId, categoryId: $categoryId, type: $type, plannedStatus: $plannedStatus, spendingType: $spendingType)';
+  return 'SearchTransactionParams(keyword: $keyword, startDate: $startDate, endDate: $endDate, accountId: $accountId, categoryId: $categoryId, type: $type, source: $source, minAmount: $minAmount, maxAmount: $maxAmount, plannedStatus: $plannedStatus, spendingType: $spendingType, hasReceipt: $hasReceipt, sort: $sort)';
 }
 
 
@@ -53,7 +64,7 @@ abstract mixin class $SearchTransactionParamsCopyWith<$Res>  {
   factory $SearchTransactionParamsCopyWith(SearchTransactionParams value, $Res Function(SearchTransactionParams) _then) = _$SearchTransactionParamsCopyWithImpl;
 @useResult
 $Res call({
- int? startDate, int? endDate, int? accountId, int? categoryId, TransactionType? type, PlannedStatus? plannedStatus, SpendingType? spendingType
+ String? keyword, int? startDate, int? endDate, int? accountId, int? categoryId, TransactionType? type, TransactionSource? source, int? minAmount, int? maxAmount, PlannedStatus? plannedStatus, SpendingType? spendingType, bool? hasReceipt, SortOption sort
 });
 
 
@@ -70,16 +81,22 @@ class _$SearchTransactionParamsCopyWithImpl<$Res>
 
 /// Create a copy of SearchTransactionParams
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? startDate = freezed,Object? endDate = freezed,Object? accountId = freezed,Object? categoryId = freezed,Object? type = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? keyword = freezed,Object? startDate = freezed,Object? endDate = freezed,Object? accountId = freezed,Object? categoryId = freezed,Object? type = freezed,Object? source = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? hasReceipt = freezed,Object? sort = null,}) {
   return _then(_self.copyWith(
-startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+keyword: freezed == keyword ? _self.keyword : keyword // ignore: cast_nullable_to_non_nullable
+as String?,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
 as int?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
 as int?,accountId: freezed == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
 as int?,categoryId: freezed == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
 as int?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as TransactionType?,plannedStatus: freezed == plannedStatus ? _self.plannedStatus : plannedStatus // ignore: cast_nullable_to_non_nullable
+as TransactionType?,source: freezed == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as TransactionSource?,minAmount: freezed == minAmount ? _self.minAmount : minAmount // ignore: cast_nullable_to_non_nullable
+as int?,maxAmount: freezed == maxAmount ? _self.maxAmount : maxAmount // ignore: cast_nullable_to_non_nullable
+as int?,plannedStatus: freezed == plannedStatus ? _self.plannedStatus : plannedStatus // ignore: cast_nullable_to_non_nullable
 as PlannedStatus?,spendingType: freezed == spendingType ? _self.spendingType : spendingType // ignore: cast_nullable_to_non_nullable
-as SpendingType?,
+as SpendingType?,hasReceipt: freezed == hasReceipt ? _self.hasReceipt : hasReceipt // ignore: cast_nullable_to_non_nullable
+as bool?,sort: null == sort ? _self.sort : sort // ignore: cast_nullable_to_non_nullable
+as SortOption,
   ));
 }
 
@@ -164,10 +181,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int? startDate,  int? endDate,  int? accountId,  int? categoryId,  TransactionType? type,  PlannedStatus? plannedStatus,  SpendingType? spendingType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? keyword,  int? startDate,  int? endDate,  int? accountId,  int? categoryId,  TransactionType? type,  TransactionSource? source,  int? minAmount,  int? maxAmount,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  bool? hasReceipt,  SortOption sort)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SearchTransactionParams() when $default != null:
-return $default(_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_that.type,_that.plannedStatus,_that.spendingType);case _:
+return $default(_that.keyword,_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_that.type,_that.source,_that.minAmount,_that.maxAmount,_that.plannedStatus,_that.spendingType,_that.hasReceipt,_that.sort);case _:
   return orElse();
 
 }
@@ -185,10 +202,10 @@ return $default(_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int? startDate,  int? endDate,  int? accountId,  int? categoryId,  TransactionType? type,  PlannedStatus? plannedStatus,  SpendingType? spendingType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? keyword,  int? startDate,  int? endDate,  int? accountId,  int? categoryId,  TransactionType? type,  TransactionSource? source,  int? minAmount,  int? maxAmount,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  bool? hasReceipt,  SortOption sort)  $default,) {final _that = this;
 switch (_that) {
 case _SearchTransactionParams():
-return $default(_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_that.type,_that.plannedStatus,_that.spendingType);case _:
+return $default(_that.keyword,_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_that.type,_that.source,_that.minAmount,_that.maxAmount,_that.plannedStatus,_that.spendingType,_that.hasReceipt,_that.sort);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +222,10 @@ return $default(_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int? startDate,  int? endDate,  int? accountId,  int? categoryId,  TransactionType? type,  PlannedStatus? plannedStatus,  SpendingType? spendingType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? keyword,  int? startDate,  int? endDate,  int? accountId,  int? categoryId,  TransactionType? type,  TransactionSource? source,  int? minAmount,  int? maxAmount,  PlannedStatus? plannedStatus,  SpendingType? spendingType,  bool? hasReceipt,  SortOption sort)?  $default,) {final _that = this;
 switch (_that) {
 case _SearchTransactionParams() when $default != null:
-return $default(_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_that.type,_that.plannedStatus,_that.spendingType);case _:
+return $default(_that.keyword,_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_that.type,_that.source,_that.minAmount,_that.maxAmount,_that.plannedStatus,_that.spendingType,_that.hasReceipt,_that.sort);case _:
   return null;
 
 }
@@ -219,10 +236,14 @@ return $default(_that.startDate,_that.endDate,_that.accountId,_that.categoryId,_
 /// @nodoc
 
 
-class _SearchTransactionParams implements SearchTransactionParams {
-  const _SearchTransactionParams({this.startDate, this.endDate, this.accountId, this.categoryId, this.type, this.plannedStatus, this.spendingType});
+class _SearchTransactionParams extends SearchTransactionParams {
+  const _SearchTransactionParams({this.keyword, this.startDate, this.endDate, this.accountId, this.categoryId, this.type, this.source, this.minAmount, this.maxAmount, this.plannedStatus, this.spendingType, this.hasReceipt, this.sort = SortOption.newest}): super._();
   
 
+/// Trimmed free-text query; `null`/empty = no keyword. Matched
+/// case-insensitively against `note` + the joined account / target-account /
+/// category names (V3-M3 only — Export never sets it).
+@override final  String? keyword;
 /// Inclusive lower bound (epoch millis); `null` = unbounded start.
 @override final  int? startDate;
 /// Exclusive upper bound (epoch millis); `null` = unbounded end.
@@ -234,10 +255,23 @@ class _SearchTransactionParams implements SearchTransactionParams {
 @override final  int? categoryId;
 /// Ledger-type filter; `null` = expense + income + transfer.
 @override final  TransactionType? type;
+/// Derived provenance filter (via the category `system_key` join); `null` =
+/// both manual + reconciliation. V3-M3 only — Export never sets it.
+@override final  TransactionSource? source;
+/// Inclusive lower amount bound (rupiah); `null` = no minimum.
+@override final  int? minAmount;
+/// Inclusive upper amount bound (rupiah); `null` = no maximum.
+@override final  int? maxAmount;
 /// Planned/unplanned filter (expense-only column); `null` = all.
 @override final  PlannedStatus? plannedStatus;
 /// Spending-bucket filter (expense-only column); `null` = all.
 @override final  SpendingType? spendingType;
+/// Receipt filter: `true` = `receipt_path IS NOT NULL`, `false` = `IS NULL`,
+/// `null` = ignore. V3-M3 only — Export never sets it.
+@override final  bool? hasReceipt;
+/// Result ordering. Not a facet — it never widens/narrows the row set, so it
+/// is excluded from [hasQuery] and [activeFilterCount].
+@override@JsonKey() final  SortOption sort;
 
 /// Create a copy of SearchTransactionParams
 /// with the given fields replaced by the non-null parameter values.
@@ -249,16 +283,16 @@ _$SearchTransactionParamsCopyWith<_SearchTransactionParams> get copyWith => __$S
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SearchTransactionParams&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.type, type) || other.type == type)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SearchTransactionParams&&(identical(other.keyword, keyword) || other.keyword == keyword)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.type, type) || other.type == type)&&(identical(other.source, source) || other.source == source)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount)&&(identical(other.plannedStatus, plannedStatus) || other.plannedStatus == plannedStatus)&&(identical(other.spendingType, spendingType) || other.spendingType == spendingType)&&(identical(other.hasReceipt, hasReceipt) || other.hasReceipt == hasReceipt)&&(identical(other.sort, sort) || other.sort == sort));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,startDate,endDate,accountId,categoryId,type,plannedStatus,spendingType);
+int get hashCode => Object.hash(runtimeType,keyword,startDate,endDate,accountId,categoryId,type,source,minAmount,maxAmount,plannedStatus,spendingType,hasReceipt,sort);
 
 @override
 String toString() {
-  return 'SearchTransactionParams(startDate: $startDate, endDate: $endDate, accountId: $accountId, categoryId: $categoryId, type: $type, plannedStatus: $plannedStatus, spendingType: $spendingType)';
+  return 'SearchTransactionParams(keyword: $keyword, startDate: $startDate, endDate: $endDate, accountId: $accountId, categoryId: $categoryId, type: $type, source: $source, minAmount: $minAmount, maxAmount: $maxAmount, plannedStatus: $plannedStatus, spendingType: $spendingType, hasReceipt: $hasReceipt, sort: $sort)';
 }
 
 
@@ -269,7 +303,7 @@ abstract mixin class _$SearchTransactionParamsCopyWith<$Res> implements $SearchT
   factory _$SearchTransactionParamsCopyWith(_SearchTransactionParams value, $Res Function(_SearchTransactionParams) _then) = __$SearchTransactionParamsCopyWithImpl;
 @override @useResult
 $Res call({
- int? startDate, int? endDate, int? accountId, int? categoryId, TransactionType? type, PlannedStatus? plannedStatus, SpendingType? spendingType
+ String? keyword, int? startDate, int? endDate, int? accountId, int? categoryId, TransactionType? type, TransactionSource? source, int? minAmount, int? maxAmount, PlannedStatus? plannedStatus, SpendingType? spendingType, bool? hasReceipt, SortOption sort
 });
 
 
@@ -286,16 +320,22 @@ class __$SearchTransactionParamsCopyWithImpl<$Res>
 
 /// Create a copy of SearchTransactionParams
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? startDate = freezed,Object? endDate = freezed,Object? accountId = freezed,Object? categoryId = freezed,Object? type = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? keyword = freezed,Object? startDate = freezed,Object? endDate = freezed,Object? accountId = freezed,Object? categoryId = freezed,Object? type = freezed,Object? source = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,Object? plannedStatus = freezed,Object? spendingType = freezed,Object? hasReceipt = freezed,Object? sort = null,}) {
   return _then(_SearchTransactionParams(
-startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+keyword: freezed == keyword ? _self.keyword : keyword // ignore: cast_nullable_to_non_nullable
+as String?,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
 as int?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
 as int?,accountId: freezed == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
 as int?,categoryId: freezed == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
 as int?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as TransactionType?,plannedStatus: freezed == plannedStatus ? _self.plannedStatus : plannedStatus // ignore: cast_nullable_to_non_nullable
+as TransactionType?,source: freezed == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as TransactionSource?,minAmount: freezed == minAmount ? _self.minAmount : minAmount // ignore: cast_nullable_to_non_nullable
+as int?,maxAmount: freezed == maxAmount ? _self.maxAmount : maxAmount // ignore: cast_nullable_to_non_nullable
+as int?,plannedStatus: freezed == plannedStatus ? _self.plannedStatus : plannedStatus // ignore: cast_nullable_to_non_nullable
 as PlannedStatus?,spendingType: freezed == spendingType ? _self.spendingType : spendingType // ignore: cast_nullable_to_non_nullable
-as SpendingType?,
+as SpendingType?,hasReceipt: freezed == hasReceipt ? _self.hasReceipt : hasReceipt // ignore: cast_nullable_to_non_nullable
+as bool?,sort: null == sort ? _self.sort : sort // ignore: cast_nullable_to_non_nullable
+as SortOption,
   ));
 }
 

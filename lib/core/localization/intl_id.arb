@@ -615,5 +615,44 @@
         "type": "int"
       }
     }
-  }
+  },
+  "searchTransactions": "Cari Transaksi",
+  "searchHint": "Cari transaksi",
+  "searchPromptTitle": "Cari transaksimu",
+  "searchPromptBody": "Masukkan kata kunci atau terapkan filter.",
+  "searchResultCount": "{count, plural, =0{Tidak ada hasil} other{{count} hasil}}",
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchEmptyTitle": "Tidak ada transaksi yang cocok.",
+  "searchEmptyBody": "Coba ubah kata kunci atau filter.",
+  "searchFilters": "Filter",
+  "searchApply": "Terapkan",
+  "searchClearFilters": "Hapus filter",
+  "searchAny": "Semua",
+  "searchDateRange": "Rentang tanggal",
+  "searchAccount": "Akun",
+  "searchCategory": "Kategori",
+  "searchType": "Tipe",
+  "searchSource": "Sumber",
+  "searchSourceManual": "Manual",
+  "searchSourceReconciliation": "Rekonsiliasi",
+  "searchAmountRange": "Rentang jumlah",
+  "searchMinAmount": "Min",
+  "searchMaxAmount": "Maks",
+  "searchAmountRangeError": "Min harus kurang dari atau sama dengan Maks",
+  "searchPlanned": "Status rencana",
+  "searchSpendingType": "Jenis pengeluaran",
+  "searchReceipt": "Struk",
+  "searchReceiptWith": "Ada struk",
+  "searchReceiptWithout": "Tanpa struk",
+  "searchSort": "Urutkan",
+  "searchSortNewest": "Terbaru",
+  "searchSortOldest": "Terlama",
+  "searchSortHighest": "Jumlah tertinggi",
+  "searchSortLowest": "Jumlah terendah"
 }

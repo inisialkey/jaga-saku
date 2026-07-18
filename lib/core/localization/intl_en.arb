@@ -615,5 +615,44 @@
         "type": "int"
       }
     }
-  }
+  },
+  "searchTransactions": "Search Transactions",
+  "searchHint": "Search transactions",
+  "searchPromptTitle": "Search your transactions",
+  "searchPromptBody": "Enter a keyword or apply a filter.",
+  "searchResultCount": "{count, plural, =0{No results} =1{1 result} other{{count} results}}",
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchEmptyTitle": "No matching transactions.",
+  "searchEmptyBody": "Try changing the keyword or filters.",
+  "searchFilters": "Filters",
+  "searchApply": "Apply",
+  "searchClearFilters": "Clear filters",
+  "searchAny": "Any",
+  "searchDateRange": "Date range",
+  "searchAccount": "Account",
+  "searchCategory": "Category",
+  "searchType": "Type",
+  "searchSource": "Source",
+  "searchSourceManual": "Manual",
+  "searchSourceReconciliation": "Reconciliation",
+  "searchAmountRange": "Amount range",
+  "searchMinAmount": "Min",
+  "searchMaxAmount": "Max",
+  "searchAmountRangeError": "Min must be less than or equal to Max",
+  "searchPlanned": "Planned status",
+  "searchSpendingType": "Spending type",
+  "searchReceipt": "Receipt",
+  "searchReceiptWith": "With receipt",
+  "searchReceiptWithout": "Without receipt",
+  "searchSort": "Sort by",
+  "searchSortNewest": "Newest",
+  "searchSortOldest": "Oldest",
+  "searchSortHighest": "Highest amount",
+  "searchSortLowest": "Lowest amount"
 }
