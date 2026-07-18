@@ -43,6 +43,8 @@ import 'package:jaga_saku/features/templates/pages/list/favorites_list_cubit.dar
 import 'package:jaga_saku/features/templates/pages/list/favorites_list_page.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_cubit.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_page.dart';
+import 'package:jaga_saku/features/transactions/pages/search/search_transaction_cubit.dart';
+import 'package:jaga_saku/features/transactions/pages/search/search_transaction_page.dart';
 import 'package:jaga_saku/features/backup/pages/backup/backup_page.dart';
 import 'package:jaga_saku/features/backup/pages/backup/cubit/backup_cubit.dart';
 import 'package:jaga_saku/features/export/pages/export/cubit/export_cubit.dart';
@@ -86,6 +88,9 @@ class AppRoute {
 
   // Export Data (V3-M2) — full-screen, pushed on the root navigator.
   static const String exportData = '/export';
+
+  // Advanced Search (V3-M3) — full-screen, pushed on the root navigator.
+  static const String searchTransactions = '/search';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -404,6 +409,20 @@ final GoRouter appRouter = GoRouter(
           fileService: sl(),
         )..load(),
         child: const ExportPage(),
+      ),
+    ),
+    // ── Advanced Search (V3-M3) ──────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.searchTransactions,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => SearchTransactionCubit(
+          searchTransactions: sl(),
+          getAccounts: sl(),
+          getCategories: sl(),
+          txChangeNotifier: sl(),
+        )..loadOptions(),
+        child: const SearchTransactionPage(),
       ),
     ),
   ],

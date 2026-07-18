@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:jaga_saku/features/export/domain/entities/transaction_source.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/transaction_source.dart';
 
 part 'export_row.freezed.dart';
 

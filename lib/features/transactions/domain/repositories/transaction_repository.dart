@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/search_transaction_params.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 
 /// Contract for transaction persistence. Implemented in the data layer; every
@@ -18,6 +19,12 @@ abstract class TransactionRepository {
   /// The [limit] most recent transactions (by date), newest first. Reused by
   /// the Home recent-activity section (M3).
   Future<Either<Failure, List<Transaction>>> getRecentTransactions(int limit);
+
+  /// Transactions matching the multi-facet [params] (keyword + filters), ordered
+  /// by `params.sort`. Powers the Advanced Search screen (V3-M3).
+  Future<Either<Failure, List<Transaction>>> search(
+    SearchTransactionParams params,
+  );
 
   /// Inserts (when [Transaction.id] is null) or updates the entry. Returns the
   /// row id.

@@ -3,6 +3,7 @@ import 'package:jaga_saku/core/database/migrations.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
 import 'package:jaga_saku/features/transactions/data/repositories/transaction_repository_impl.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/search_transaction_params.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 // sqflite_ffi re-exports sqflite's `Transaction`; hide it to avoid clashing with
@@ -78,6 +79,32 @@ void main() {
       expect(result.getRight().toNullable()?.single.amount, 1000);
     },
   );
+
+  test('search success maps models to Right(entities)', () async {
+    when(() => datasource.search(any())).thenAnswer(
+      (_) async => [
+        const TransactionModel(
+          id: 1,
+          type: TransactionType.expense,
+          amount: 2500,
+          accountId: 1,
+        ),
+      ],
+    );
+
+    final result = await repository.search(const SearchTransactionParams());
+
+    expect(result.isRight(), isTrue);
+    expect(result.getRight().toNullable()?.single.amount, 2500);
+  });
+
+  test('search DB failure → Left(CacheFailure)', () async {
+    when(() => datasource.search(any())).thenThrow(genericError);
+
+    final result = await repository.search(const SearchTransactionParams());
+
+    expect(result.getLeft().toNullable(), isA<CacheFailure>());
+  });
 
   test('saveTransaction insert returns Right(new id)', () async {
     when(() => datasource.insert(any())).thenAnswer((_) async => 42);

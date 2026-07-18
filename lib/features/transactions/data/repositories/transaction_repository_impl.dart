@@ -5,6 +5,7 @@ import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
 import 'package:jaga_saku/features/transactions/data/datasources/transaction_local_datasource.dart';
 import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
 import 'package:jaga_saku/features/transactions/data/models/transaction_model.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/search_transaction_params.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/repositories/transaction_repository.dart';
 // sqflite exports its own `Transaction` (a DB txn handle) — hide it so it does
@@ -43,6 +44,14 @@ class TransactionRepositoryImpl implements TransactionRepository {
         final models = await _datasource.getRecent(limit);
         return models.map((m) => m.toEntity()).toList();
       });
+
+  @override
+  Future<Either<Failure, List<Transaction>>> search(
+    SearchTransactionParams params,
+  ) => _guard(() async {
+    final models = await _datasource.search(params);
+    return models.map((m) => m.toEntity()).toList();
+  });
 
   @override
   Future<Either<Failure, int>> saveTransaction(Transaction transaction) =>

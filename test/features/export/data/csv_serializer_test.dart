@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jaga_saku/features/export/data/csv_serializer.dart';
 import 'package:jaga_saku/features/export/domain/entities/export_row.dart';
-import 'package:jaga_saku/features/export/domain/entities/transaction_source.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/domain/entities/transaction_source.dart';
 
 /// RFC-4180 + formula-injection escaping is the #1 test target. Builds rows
 /// through [CsvSerializer.serialize] and asserts header shape, cell formatting,

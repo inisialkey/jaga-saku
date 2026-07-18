@@ -145,6 +145,31 @@ class TransactionLocalDatasource {
     ''', args);
   }
 
+  /// Filtered ledger read for Search (V3-M3): the `transactions` rows matching
+  /// [params], typed straight back to [TransactionModel]s. The dynamic `WHERE`
+  /// and `ORDER BY` are delegated to the pure [TransactionQuery] builder.
+  ///
+  /// `SELECT t.*` returns exactly the `transactions` columns (never `SELECT *` —
+  /// the joins carry same-named columns off `accounts` / `categories` that would
+  /// collide and break [TransactionModel.fromMap]). The three LEFT JOINs use the
+  /// exact aliases `a` / `a2` / `c` the keyword + source predicates resolve
+  /// against; each join is on a unique id (1:1) so there is no row duplication
+  /// (no `DISTINCT` needed).
+  Future<List<TransactionModel>> search(SearchTransactionParams params) async {
+    final (:where, :args) = TransactionQuery.buildWhere(params);
+    final whereClause = where.isEmpty ? '' : 'WHERE $where';
+    final rows = await _database.db.rawQuery('''
+      SELECT t.*
+      FROM $_table t
+      LEFT JOIN accounts   a  ON a.id  = t.account_id
+      LEFT JOIN accounts   a2 ON a2.id = t.to_account_id
+      LEFT JOIN categories c  ON c.id  = t.category_id
+      $whereClause
+      ORDER BY ${TransactionQuery.orderBy(params.sort)}
+    ''', args);
+    return rows.map(TransactionModel.fromMap).toList();
+  }
+
   Future<List<TransactionModel>> _range(int startMillis, int endMillis) async {
     final rows = await _database.db.query(
       _table,
