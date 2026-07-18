@@ -45,6 +45,7 @@ void main() {
 
   late MockTransactionLocalDatasource datasource;
   late MockReceiptStorageService receiptStorage;
+  late MockTxChangeNotifier notifier;
   late TransactionRepositoryImpl repository;
 
   const transaction = Transaction(
@@ -56,7 +57,12 @@ void main() {
   setUp(() {
     datasource = MockTransactionLocalDatasource();
     receiptStorage = MockReceiptStorageService();
-    repository = TransactionRepositoryImpl(datasource, receiptStorage);
+    notifier = MockTxChangeNotifier();
+    repository = TransactionRepositoryImpl(
+      datasource,
+      receiptStorage,
+      notifier,
+    );
   });
 
   test(
@@ -77,6 +83,8 @@ void main() {
 
       expect(result.isRight(), isTrue);
       expect(result.getRight().toNullable()?.single.amount, 1000);
+      // A read routes through `_guard`, never `_guardWrite` — so it never pings.
+      verifyNever(() => notifier.ping());
     },
   );
 
@@ -112,6 +120,8 @@ void main() {
     final result = await repository.saveTransaction(transaction);
 
     expect(result.getRight().toNullable(), 42);
+    // A successful write broadcasts via `_guardWrite` (V4-M1).
+    verify(() => notifier.ping()).called(1);
   });
 
   test('generic DatabaseException → Left(CacheFailure)', () async {
@@ -120,6 +130,8 @@ void main() {
     final result = await repository.saveTransaction(transaction);
 
     expect(result.getLeft().toNullable(), isA<CacheFailure>());
+    // A Left write never pings — `_guardWrite` gates on `isRight()`.
+    verifyNever(() => notifier.ping());
   });
 
   test('unexpected (non-DB) error → Left(CacheFailure)', () async {
@@ -143,6 +155,7 @@ void main() {
       expect(result.isRight(), isTrue);
       // No receipt on the row → no file delete attempted.
       verifyNever(() => receiptStorage.delete(any()));
+      verify(() => notifier.ping()).called(1);
     },
   );
 
@@ -162,6 +175,7 @@ void main() {
       expect(result.isRight(), isTrue);
       verify(() => datasource.delete(1)).called(1);
       verify(() => receiptStorage.delete('receipts/x.jpg')).called(1);
+      verify(() => notifier.ping()).called(1);
     },
   );
 }

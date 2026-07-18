@@ -147,7 +147,7 @@ void _registerAccounts() {
   sl
     ..registerLazySingleton(() => AccountLocalDatasource(sl<AppDatabase>()))
     ..registerLazySingleton<AccountRepository>(
-      () => AccountRepositoryImpl(sl()),
+      () => AccountRepositoryImpl(sl(), sl()),
     )
     ..registerLazySingleton(() => GetAccounts(sl()))
     ..registerLazySingleton(() => SaveAccount(sl()))
@@ -160,7 +160,7 @@ void _registerCategories() {
   sl
     ..registerLazySingleton(() => CategoryLocalDatasource(sl<AppDatabase>()))
     ..registerLazySingleton<CategoryRepository>(
-      () => CategoryRepositoryImpl(sl()),
+      () => CategoryRepositoryImpl(sl(), sl()),
     )
     ..registerLazySingleton(() => GetCategories(sl()))
     ..registerLazySingleton(() => GetSystemCategory(sl()))
@@ -173,7 +173,9 @@ void _registerCategories() {
 void _registerBudgets() {
   sl
     ..registerLazySingleton(() => BudgetLocalDatasource(sl<AppDatabase>()))
-    ..registerLazySingleton<BudgetRepository>(() => BudgetRepositoryImpl(sl()))
+    ..registerLazySingleton<BudgetRepository>(
+      () => BudgetRepositoryImpl(sl(), sl()),
+    )
     ..registerLazySingleton(() => GetBudgetsForPeriod(sl()))
     ..registerLazySingleton(() => SaveBudget(sl()))
     ..registerLazySingleton(() => DeleteBudget(sl()));
@@ -183,7 +185,7 @@ void _registerTemplates() {
   sl
     ..registerLazySingleton(() => TxTemplateLocalDatasource(sl<AppDatabase>()))
     ..registerLazySingleton<TxTemplateRepository>(
-      () => TxTemplateRepositoryImpl(sl()),
+      () => TxTemplateRepositoryImpl(sl(), sl()),
     )
     ..registerLazySingleton(() => GetFavorites(sl()))
     ..registerLazySingleton(() => SaveTxTemplate(sl()))
@@ -195,7 +197,7 @@ void _registerTransactions() {
   sl
     ..registerLazySingleton(() => TransactionLocalDatasource(sl<AppDatabase>()))
     ..registerLazySingleton<TransactionRepository>(
-      () => TransactionRepositoryImpl(sl(), sl()),
+      () => TransactionRepositoryImpl(sl(), sl(), sl()),
     )
     ..registerLazySingleton(() => GetTransactionsByMonth(sl()))
     ..registerLazySingleton(() => GetTransactionsByDay(sl()))
@@ -210,7 +212,7 @@ void _registerRecurring() {
   sl
     ..registerLazySingleton(() => RecurringLocalDatasource(sl<AppDatabase>()))
     ..registerLazySingleton<RecurringRepository>(
-      () => RecurringRepositoryImpl(sl()),
+      () => RecurringRepositoryImpl(sl(), sl()),
     )
     ..registerLazySingleton(() => GetRecurringRules(sl()))
     ..registerLazySingleton(() => SaveRecurringRule(sl()))
@@ -225,7 +227,9 @@ void _registerRecurring() {
 void _registerBackup() {
   sl
     ..registerLazySingleton(() => BackupLocalDatasource(sl<AppDatabase>()))
-    ..registerLazySingleton<BackupRepository>(() => BackupRepositoryImpl(sl()))
+    ..registerLazySingleton<BackupRepository>(
+      () => BackupRepositoryImpl(sl(), sl()),
+    )
     ..registerLazySingleton(() => ExportBackup(sl()))
     ..registerLazySingleton(() => ValidateBackup(sl()))
     ..registerLazySingleton(() => const PreviewBackup())

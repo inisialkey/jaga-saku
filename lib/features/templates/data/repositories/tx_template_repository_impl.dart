@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/templates/data/datasources/tx_template_local_datasource.dart';
 import 'package:jaga_saku/features/templates/data/models/tx_template_model.dart';
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
@@ -12,9 +13,10 @@ import 'package:sqflite/sqflite.dart';
 /// [DatabaseException] becomes [CacheFailure], a unique-constraint violation
 /// becomes [ConflictFailure].
 class TxTemplateRepositoryImpl implements TxTemplateRepository {
-  TxTemplateRepositoryImpl(this._datasource);
+  TxTemplateRepositoryImpl(this._datasource, this._txChanges);
 
   final TxTemplateLocalDatasource _datasource;
+  final TxChangeNotifier _txChanges;
 
   @override
   Future<Either<Failure, List<TxTemplate>>> getFavorites() => _guard(() async {
@@ -24,7 +26,7 @@ class TxTemplateRepositoryImpl implements TxTemplateRepository {
 
   @override
   Future<Either<Failure, int>> saveTemplate(TxTemplate template) =>
-      _guard(() async {
+      _guardWrite(() async {
         final model = TxTemplateModel.fromEntity(template);
         if (template.id == null) return _datasource.insert(model);
         await _datasource.update(model);
@@ -32,14 +34,14 @@ class TxTemplateRepositoryImpl implements TxTemplateRepository {
       });
 
   @override
-  Future<Either<Failure, Unit>> deleteTemplate(int id) => _guard(() async {
+  Future<Either<Failure, Unit>> deleteTemplate(int id) => _guardWrite(() async {
     await _datasource.delete(id);
     return unit;
   });
 
   @override
   Future<Either<Failure, Unit>> reorderTemplates(List<int> orderedIds) =>
-      _guard(() async {
+      _guardWrite(() async {
         await _datasource.reorder(orderedIds);
         return unit;
       });
@@ -60,5 +62,14 @@ class TxTemplateRepositoryImpl implements TxTemplateRepository {
       log.e('TxTemplate failure', error: e, stackTrace: s);
       return const Left(CacheFailure());
     }
+  }
+
+  /// Like [_guard], but pings [_txChanges] after a successful write so every
+  /// derived money view refreshes live (V4-M1 — the write-seam broadcast
+  /// invariant: a successful repository write broadcasts, structurally).
+  Future<Either<Failure, T>> _guardWrite<T>(Future<T> Function() action) async {
+    final result = await _guard(action);
+    if (result.isRight()) _txChanges.ping();
+    return result;
   }
 }

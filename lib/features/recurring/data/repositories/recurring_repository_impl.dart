@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/recurring/data/datasources/recurring_local_datasource.dart';
 import 'package:jaga_saku/features/recurring/data/models/recurring_model.dart';
 import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
@@ -14,9 +15,10 @@ import 'package:sqflite/sqflite.dart';
 /// [DatabaseException] becomes [CacheFailure], a unique-constraint violation
 /// becomes [ConflictFailure]. Entity→model conversion happens inside [_guard].
 class RecurringRepositoryImpl implements RecurringRepository {
-  RecurringRepositoryImpl(this._datasource);
+  RecurringRepositoryImpl(this._datasource, this._txChanges);
 
   final RecurringLocalDatasource _datasource;
+  final TxChangeNotifier _txChanges;
 
   @override
   Future<Either<Failure, List<RecurringRule>>> getRules() =>
@@ -26,7 +28,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
   Future<Either<Failure, int>> insertRuleWithTemplate(
     TxTemplate template,
     RecurringRule rule,
-  ) => _guard(
+  ) => _guardWrite(
     () => _datasource.insertRuleWithTemplate(
       TxTemplateModel.fromEntity(template),
       RecurringModel.fromEntity(rule),
@@ -37,7 +39,7 @@ class RecurringRepositoryImpl implements RecurringRepository {
   Future<Either<Failure, Unit>> updateRule(
     TxTemplate template,
     RecurringRule rule,
-  ) => _guard(() async {
+  ) => _guardWrite(() async {
     await _datasource.updateRule(
       TxTemplateModel.fromEntity(template),
       RecurringModel.fromEntity(rule),
@@ -46,14 +48,15 @@ class RecurringRepositoryImpl implements RecurringRepository {
   });
 
   @override
-  Future<Either<Failure, Unit>> deleteRule(int templateId) => _guard(() async {
-    await _datasource.deleteRule(templateId);
-    return unit;
-  });
+  Future<Either<Failure, Unit>> deleteRule(int templateId) =>
+      _guardWrite(() async {
+        await _datasource.deleteRule(templateId);
+        return unit;
+      });
 
   @override
   Future<Either<Failure, Unit>> advanceCursor(int ruleId, int nextDue) =>
-      _guard(() async {
+      _guardWrite(() async {
         await _datasource.advanceCursor(ruleId, nextDue);
         return unit;
       });
@@ -74,5 +77,14 @@ class RecurringRepositoryImpl implements RecurringRepository {
       log.e('Recurring failure', error: e, stackTrace: s);
       return const Left(CacheFailure());
     }
+  }
+
+  /// Like [_guard], but pings [_txChanges] after a successful write so every
+  /// derived money view refreshes live (V4-M1 — the write-seam broadcast
+  /// invariant: a successful repository write broadcasts, structurally).
+  Future<Either<Failure, T>> _guardWrite<T>(Future<T> Function() action) async {
+    final result = await _guard(action);
+    if (result.isRight()) _txChanges.ping();
+    return result;
   }
 }

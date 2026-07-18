@@ -59,13 +59,15 @@ void main() {
   });
 
   late MockBudgetLocalDatasource datasource;
+  late MockTxChangeNotifier notifier;
   late BudgetRepositoryImpl repository;
 
   const budget = Budget(categoryId: 1, period: '2026-01', limitAmount: 1000);
 
   setUp(() {
     datasource = MockBudgetLocalDatasource();
-    repository = BudgetRepositoryImpl(datasource);
+    notifier = MockTxChangeNotifier();
+    repository = BudgetRepositoryImpl(datasource, notifier);
   });
 
   test('getBudgetsForPeriod success maps models to Right(entities)', () async {
@@ -86,6 +88,8 @@ void main() {
     final b = result.getRight().toNullable()!.single;
     expect(b.limitAmount, 1000);
     expect(b.spent, 250);
+    // A read routes through `_guard`, never `_guardWrite` — so it never pings.
+    verifyNever(() => notifier.ping());
   });
 
   test('saveBudget insert returns Right(new id)', () async {
@@ -94,6 +98,8 @@ void main() {
     final result = await repository.saveBudget(budget);
 
     expect(result.getRight().toNullable(), 7);
+    // A successful write broadcasts via `_guardWrite` (V4-M1).
+    verify(() => notifier.ping()).called(1);
   });
 
   test('saveBudget update returns Right(existing id)', () async {
@@ -103,6 +109,7 @@ void main() {
 
     expect(result.getRight().toNullable(), 3);
     verify(() => datasource.update(any())).called(1);
+    verify(() => notifier.ping()).called(1);
   });
 
   test('UNIQUE(category, period) violation → Left(ConflictFailure)', () async {
@@ -119,6 +126,8 @@ void main() {
     final result = await repository.saveBudget(budget);
 
     expect(result.getLeft().toNullable(), isA<CacheFailure>());
+    // A Left write never pings — `_guardWrite` gates on `isRight()`.
+    verifyNever(() => notifier.ping());
   });
 
   test('unexpected (non-DB) error → Left(CacheFailure)', () async {
@@ -135,5 +144,6 @@ void main() {
     final result = await repository.deleteBudget(1);
 
     expect(result.isRight(), isTrue);
+    verify(() => notifier.ping()).called(1);
   });
 }

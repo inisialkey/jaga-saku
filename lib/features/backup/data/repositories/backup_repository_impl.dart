@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:jaga_saku/core/database/migrations.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
+import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/backup/data/datasources/backup_local_datasource.dart';
 import 'package:jaga_saku/features/backup/data/models/backup_serializer.dart';
 import 'package:jaga_saku/features/backup/data/models/backup_validator.dart';
@@ -18,9 +19,10 @@ import 'package:sqflite/sqflite.dart';
 /// localize a friendly message (rule 17); `schemaVersion` binds to
 /// `Migrations.latestVersion`, never a literal.
 class BackupRepositoryImpl implements BackupRepository {
-  BackupRepositoryImpl(this._datasource);
+  BackupRepositoryImpl(this._datasource, this._txChanges);
 
   final BackupLocalDatasource _datasource;
+  final TxChangeNotifier _txChanges;
   final BackupSerializer _serializer = const BackupSerializer();
   final BackupValidator _validator = const BackupValidator();
 
@@ -70,7 +72,7 @@ class BackupRepositoryImpl implements BackupRepository {
 
   @override
   Future<Either<Failure, BackupPreview>> restore(BackupData data) =>
-      _guard(() async {
+      _guardWrite(() async {
         await _datasource.restore(data);
         return _previewOf(data);
       });
@@ -106,5 +108,14 @@ class BackupRepositoryImpl implements BackupRepository {
       log.e('Backup failure', error: e, stackTrace: s);
       return const Left(CacheFailure());
     }
+  }
+
+  /// Like [_guard], but pings [_txChanges] after a successful write so every
+  /// derived money view refreshes live (V4-M1 — the write-seam broadcast
+  /// invariant: a successful repository write broadcasts, structurally).
+  Future<Either<Failure, T>> _guardWrite<T>(Future<T> Function() action) async {
+    final result = await _guard(action);
+    if (result.isRight()) _txChanges.ping();
+    return result;
   }
 }

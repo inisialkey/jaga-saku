@@ -54,13 +54,15 @@ void main() {
   });
 
   late MockAccountLocalDatasource datasource;
+  late MockTxChangeNotifier notifier;
   late AccountRepositoryImpl repository;
 
   const account = Account(name: 'Cash', type: AccountType.cash);
 
   setUp(() {
     datasource = MockAccountLocalDatasource();
-    repository = AccountRepositoryImpl(datasource);
+    notifier = MockTxChangeNotifier();
+    repository = AccountRepositoryImpl(datasource, notifier);
   });
 
   test('getAccounts success maps models to Right(entities)', () async {
@@ -72,6 +74,8 @@ void main() {
 
     expect(result.isRight(), isTrue);
     expect(result.getRight().toNullable()?.single.name, 'Cash');
+    // A read routes through `_guard`, never `_guardWrite` — so it never pings.
+    verifyNever(() => notifier.ping());
   });
 
   test('saveAccount insert returns Right(new id)', () async {
@@ -80,6 +84,8 @@ void main() {
     final result = await repository.saveAccount(account);
 
     expect(result.getRight().toNullable(), 42);
+    // A successful write broadcasts via `_guardWrite` (V4-M1).
+    verify(() => notifier.ping()).called(1);
   });
 
   test('saveAccount unique violation → Left(ConflictFailure)', () async {
@@ -88,6 +94,8 @@ void main() {
     final result = await repository.saveAccount(account);
 
     expect(result.getLeft().toNullable(), isA<ConflictFailure>());
+    // A Left write never pings — `_guardWrite` gates on `isRight()`.
+    verifyNever(() => notifier.ping());
   });
 
   test('generic DatabaseException → Left(CacheFailure)', () async {
@@ -112,5 +120,27 @@ void main() {
     final result = await repository.deleteAccount(1);
 
     expect(result.isRight(), isTrue);
+    verify(() => notifier.ping()).called(1);
+  });
+
+  test('archiveAccount success → Right(unit) and pings', () async {
+    when(
+      () => datasource.setArchived(1, archived: true),
+    ).thenAnswer((_) async {});
+
+    final result = await repository.archiveAccount(1, archived: true);
+
+    expect(result.isRight(), isTrue);
+    verify(() => notifier.ping()).called(1);
+  });
+
+  test('reorderAccounts success → Right(unit) and pings', () async {
+    when(() => datasource.reorder(any())).thenAnswer((_) async {});
+
+    final result = await repository.reorderAccounts([3, 1, 2]);
+
+    expect(result.isRight(), isTrue);
+    verify(() => datasource.reorder([3, 1, 2])).called(1);
+    verify(() => notifier.ping()).called(1);
   });
 }
