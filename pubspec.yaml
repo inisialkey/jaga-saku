@@ -108,6 +108,20 @@ dependencies:
   # `package:crypto/crypto.dart` directly (was only pulled in transitively).
   crypto: ^3.0.7
 
+  # Local reminder notifications (V3-M5): daily check-in, recurring-due and
+  # budget-warning nudges. No server push / FCM (Firebase is fully removed).
+  # 22.0.1 (latest) co-resolves on win32 5.15.0 — its Windows impl
+  # (flutter_local_notifications_windows 3.1.1) does NOT pull win32 6.x, so the
+  # win32 5.x camp (file_picker / share_plus, see the package_info_plus note
+  # above) holds and this ADD did NOT bump win32 (confirmed via
+  # `pub add --dry-run`). No manual pin needed. Uses inexact allowWhileIdle
+  # scheduling (no SCHEDULE_EXACT_ALARM) + app-open reconcile; v22's desugaring
+  # requirement is met by the existing desugar_jdk_libs:2.1.4 (build.gradle.kts).
+  flutter_local_notifications: ^22.0.1
+  # Timezone-aware scheduling for the above (zonedSchedule). Pure Dart, no
+  # native code — hardcoded to Asia/Jakarta (WIB, no DST) at bootstrap.
+  timezone: ^0.11.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

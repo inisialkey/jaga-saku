@@ -685,5 +685,30 @@
   "autoLockImmediately": "Segera",
   "autoLockOneMinute": "Setelah 1 menit",
   "autoLockFiveMinutes": "Setelah 5 menit",
-  "autoLockFifteenMinutes": "Setelah 15 menit"
+  "autoLockFifteenMinutes": "Setelah 15 menit",
+  "reminders": "Pengingat",
+  "reminderDaily": "Pengingat harian",
+  "reminderDailyTime": "Waktu pengingat",
+  "reminderRecurringDue": "Pengingat transaksi berulang",
+  "reminderBudgetWarning": "Peringatan anggaran",
+  "reminderPermissionRequired": "Aktifkan notifikasi di pengaturan sistem untuk menerima pengingat.",
+  "reminderNotifTitle": "Jaga Saku",
+  "reminderDailyNotifBody": "Jangan lupa catat pengeluaran hari ini.",
+  "reminderRecurringNotifBody": "Ada transaksi berulang yang perlu dikonfirmasi.",
+  "reminderBudgetNearNotifBody": "Budget {name} sudah mendekati batas.",
+  "@reminderBudgetNearNotifBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderBudgetOverNotifBody": "Budget {name} sudah melewati batas.",
+  "@reminderBudgetOverNotifBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }
