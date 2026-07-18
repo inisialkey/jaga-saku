@@ -51,6 +51,8 @@
 	<string>Jaga Saku memerlukan akses kamera untuk memotret struk transaksi.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Jaga Saku memerlukan akses galeri untuk melampirkan foto struk.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Jaga Saku menggunakan Face ID untuk membuka kunci aplikasi.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

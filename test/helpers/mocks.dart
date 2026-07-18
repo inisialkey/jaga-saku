@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:jaga_saku/core/database/app_database.dart';
+import 'package:jaga_saku/core/utils/services/secure_storage/secure_storage_service.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
 import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
@@ -73,6 +75,22 @@ import 'package:jaga_saku/features/backup/domain/repositories/backup_repository.
 import 'package:jaga_saku/features/backup/domain/usecases/export_backup.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/restore_backup.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/validate_backup.dart';
+import 'package:jaga_saku/features/security/app_lock_service.dart';
+import 'package:jaga_saku/features/security/data/datasources/biometric_auth_datasource.dart';
+import 'package:jaga_saku/features/security/data/datasources/pin_secure_datasource.dart';
+import 'package:jaga_saku/features/security/domain/entities/auto_lock_duration.dart';
+import 'package:jaga_saku/features/security/domain/entities/lock_config.dart';
+import 'package:jaga_saku/features/security/domain/entities/pin_check.dart';
+import 'package:jaga_saku/features/security/domain/repositories/security_repository.dart';
+import 'package:jaga_saku/features/security/domain/usecases/authenticate_biometric.dart';
+import 'package:jaga_saku/features/security/domain/usecases/change_pin.dart';
+import 'package:jaga_saku/features/security/domain/usecases/disable_pin.dart';
+import 'package:jaga_saku/features/security/domain/usecases/get_lock_config.dart';
+import 'package:jaga_saku/features/security/domain/usecases/is_biometric_available.dart';
+import 'package:jaga_saku/features/security/domain/usecases/set_auto_lock_duration.dart';
+import 'package:jaga_saku/features/security/domain/usecases/set_biometric_enabled.dart';
+import 'package:jaga_saku/features/security/domain/usecases/set_pin.dart';
+import 'package:jaga_saku/features/security/domain/usecases/verify_pin.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// Shared mocktail declarations + fallback registration for the test suite.
@@ -90,6 +108,38 @@ class MockTxChangeNotifier extends Mock implements TxChangeNotifier {}
 class MockReceiptStorageService extends Mock implements ReceiptStorageService {}
 
 class MockImagePicker extends Mock implements ImagePicker {}
+
+// ── Security (V3-M4) — secure-storage seam ────────────────────────────────────
+class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
+
+class MockSecureStorageService extends Mock implements SecureStorageService {}
+
+class MockPinSecureDatasource extends Mock implements PinSecureDatasource {}
+
+class MockBiometricAuthDatasource extends Mock
+    implements BiometricAuthDatasource {}
+
+class MockSecurityRepository extends Mock implements SecurityRepository {}
+
+class MockGetLockConfig extends Mock implements GetLockConfig {}
+
+class MockSetPin extends Mock implements SetPin {}
+
+class MockVerifyPin extends Mock implements VerifyPin {}
+
+class MockChangePin extends Mock implements ChangePin {}
+
+class MockDisablePin extends Mock implements DisablePin {}
+
+class MockSetBiometricEnabled extends Mock implements SetBiometricEnabled {}
+
+class MockIsBiometricAvailable extends Mock implements IsBiometricAvailable {}
+
+class MockAuthenticateBiometric extends Mock implements AuthenticateBiometric {}
+
+class MockSetAutoLockDuration extends Mock implements SetAutoLockDuration {}
+
+class MockAppLockService extends Mock implements AppLockService {}
 
 // ── Accounts ────────────────────────────────────────────────────────────────
 class MockAccountLocalDatasource extends Mock
@@ -300,4 +350,9 @@ void registerFallbackValues() {
   registerFallbackValue(const BackupPreview());
   // ── Export (V3-M2) ──
   registerFallbackValue(const SearchTransactionParams());
+  // ── Security (V3-M4) ──
+  registerFallbackValue(const LockConfig());
+  registerFallbackValue(const PinCheck.ok());
+  registerFallbackValue(AutoLockDuration.immediately);
+  registerFallbackValue(const SetBiometricParams(enabled: false, reason: ''));
 }

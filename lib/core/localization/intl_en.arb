@@ -654,5 +654,36 @@
   "searchSortNewest": "Newest",
   "searchSortOldest": "Oldest",
   "searchSortHighest": "Highest amount",
-  "searchSortLowest": "Lowest amount"
+  "searchSortLowest": "Lowest amount",
+  "securitySubtitle": "Use a PIN to protect your financial data.",
+  "securityEnablePin": "App Lock (PIN)",
+  "securityEnableBiometric": "Unlock with biometrics",
+  "securityAutoLock": "Auto-lock",
+  "securityChangePin": "Change PIN",
+  "securityEnterPin": "Enter your PIN",
+  "securityEnterNewPin": "Create a 6-digit PIN",
+  "securityConfirmPin": "Re-enter your PIN",
+  "securityEnterCurrentPin": "Enter your current PIN",
+  "securityPinMismatch": "PINs don't match. Try again.",
+  "securityWrongPin": "Wrong PIN",
+  "securityUseBiometric": "Use biometrics",
+  "securityBiometricUnavailable": "Biometrics aren't set up on this device.",
+  "securityBiometricNotConfirmed": "Biometric wasn't confirmed.",
+  "securityLockedTitle": "Jaga Saku is locked",
+  "securityTryAgainIn": "Try again in {seconds}s",
+  "@securityTryAgainIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "securityPinCreated": "PIN set",
+  "securityPinChanged": "PIN changed",
+  "securityPinDisabled": "App lock turned off",
+  "securityBiometricEnabled": "Biometric unlock on",
+  "autoLockImmediately": "Immediately",
+  "autoLockOneMinute": "After 1 minute",
+  "autoLockFiveMinutes": "After 5 minutes",
+  "autoLockFifteenMinutes": "After 15 minutes"
 }

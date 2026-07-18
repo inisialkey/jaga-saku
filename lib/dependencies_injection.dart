@@ -61,6 +61,20 @@ import 'package:jaga_saku/features/backup/domain/usecases/validate_backup.dart';
 import 'package:jaga_saku/features/export/data/repositories/export_repository_impl.dart';
 import 'package:jaga_saku/features/export/domain/repositories/export_repository.dart';
 import 'package:jaga_saku/features/export/domain/usecases/export_transactions_csv.dart';
+import 'package:jaga_saku/features/security/app_lock_service.dart';
+import 'package:jaga_saku/features/security/data/datasources/biometric_auth_datasource.dart';
+import 'package:jaga_saku/features/security/data/datasources/pin_secure_datasource.dart';
+import 'package:jaga_saku/features/security/data/repositories/security_repository_impl.dart';
+import 'package:jaga_saku/features/security/domain/repositories/security_repository.dart';
+import 'package:jaga_saku/features/security/domain/usecases/authenticate_biometric.dart';
+import 'package:jaga_saku/features/security/domain/usecases/change_pin.dart';
+import 'package:jaga_saku/features/security/domain/usecases/disable_pin.dart';
+import 'package:jaga_saku/features/security/domain/usecases/get_lock_config.dart';
+import 'package:jaga_saku/features/security/domain/usecases/is_biometric_available.dart';
+import 'package:jaga_saku/features/security/domain/usecases/set_auto_lock_duration.dart';
+import 'package:jaga_saku/features/security/domain/usecases/set_biometric_enabled.dart';
+import 'package:jaga_saku/features/security/domain/usecases/set_pin.dart';
+import 'package:jaga_saku/features/security/domain/usecases/verify_pin.dart';
 
 GetIt sl = GetIt.instance;
 
@@ -106,6 +120,10 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   sl.registerLazySingleton<ExportFileService>(
     () => ExportFileService(tempDirProvider: getTemporaryDirectory),
   );
+  // Single secure-storage seam (V3-M4). Holds the salted PIN hash + salt at
+  // rest; PinSecureDatasource reads/writes through it. Top-level so any future
+  // secret reuses one tested surface.
+  sl.registerLazySingleton<SecureStorageService>(() => SecureStorageService());
 
   _registerAccounts();
   _registerCategories();
@@ -115,6 +133,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   _registerRecurring();
   _registerBackup();
   _registerExport();
+  _registerSecurity();
 }
 
 void _registerAccounts() {
@@ -215,4 +234,35 @@ void _registerExport() {
       () => ExportRepositoryImpl(sl<TransactionLocalDatasource>()),
     )
     ..registerLazySingleton(() => ExportTransactionsCsv(sl()));
+}
+
+void _registerSecurity() {
+  // Datasource -> repository -> usecases, then the app-global AppLockService.
+  // SecureStorageService + SettingsService are already registered above. Cubits
+  // are built at each route (codebase convention), not here.
+  sl
+    ..registerLazySingleton(
+      () => PinSecureDatasource(secure: sl(), settings: sl()),
+    )
+    ..registerLazySingleton(BiometricAuthDatasource.new)
+    ..registerLazySingleton<SecurityRepository>(
+      () => SecurityRepositoryImpl(
+        sl<PinSecureDatasource>(),
+        sl<BiometricAuthDatasource>(),
+      ),
+    )
+    ..registerLazySingleton(() => GetLockConfig(sl()))
+    ..registerLazySingleton(() => SetPin(sl()))
+    ..registerLazySingleton(() => VerifyPin(sl()))
+    ..registerLazySingleton(() => ChangePin(sl()))
+    ..registerLazySingleton(() => DisablePin(sl()))
+    ..registerLazySingleton(() => SetBiometricEnabled(sl()))
+    ..registerLazySingleton(() => IsBiometricAvailable(sl()))
+    ..registerLazySingleton(() => AuthenticateBiometric(sl()))
+    ..registerLazySingleton(() => SetAutoLockDuration(sl()))
+    // App-global lock controller — `main()` load()s it before runApp, and it is
+    // the go_router refreshListenable. Clock wired to the real DateTime.now.
+    ..registerLazySingleton(
+      () => AppLockService(getLockConfig: sl(), now: DateTime.now),
+    );
 }

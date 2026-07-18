@@ -94,6 +94,20 @@ dependencies:
   # same SharePlus.instance.share(ShareParams(...)) API as 13.x.
   share_plus: ^11.1.0
 
+  # Salted SHA-256 PIN hash at rest (V3-M4 App Lock). 10.3.1 pulls
+  # flutter_secure_storage_windows 4.1.0, which co-resolves with win32 5.x —
+  # pub holds it there instead of 4.2.2 (needs win32 6.x) because file_picker /
+  # share_plus above pin the win32 5.x camp. So this ADD did NOT bump win32
+  # (stayed 5.15.0); no manual pin needed as long as those two pins hold.
+  flutter_secure_storage: ^10.3.1
+  # Biometric accelerator for the App Lock (Face ID / fingerprint). PIN stays
+  # the base unlock — biometric is opt-in and falls back to PIN silently.
+  # local_auth_windows carries no win32 dep, so it doesn't touch the camp.
+  local_auth: ^3.0.2
+  # Promoted transitive -> direct: the salted SHA-256 PinHasher imports
+  # `package:crypto/crypto.dart` directly (was only pulled in transitively).
+  crypto: ^3.0.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

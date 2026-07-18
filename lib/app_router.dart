@@ -49,6 +49,15 @@ import 'package:jaga_saku/features/backup/pages/backup/backup_page.dart';
 import 'package:jaga_saku/features/backup/pages/backup/cubit/backup_cubit.dart';
 import 'package:jaga_saku/features/export/pages/export/cubit/export_cubit.dart';
 import 'package:jaga_saku/features/export/pages/export/export_page.dart';
+import 'package:jaga_saku/core/localization/localization.dart';
+import 'package:jaga_saku/features/security/app_lock_service.dart';
+import 'package:jaga_saku/features/security/lock_gate.dart';
+import 'package:jaga_saku/features/security/pages/lock/lock_cubit.dart';
+import 'package:jaga_saku/features/security/pages/lock/lock_screen.dart';
+import 'package:jaga_saku/features/security/pages/pin/pin_entry_cubit.dart';
+import 'package:jaga_saku/features/security/pages/pin/pin_entry_page.dart';
+import 'package:jaga_saku/features/security/pages/security/security_cubit.dart';
+import 'package:jaga_saku/features/security/pages/security/security_page.dart';
 
 /// App route locations. Add is not a tab — it is a full-screen route pushed on
 /// the root navigator by the shell FAB.
@@ -91,6 +100,13 @@ class AppRoute {
 
   // Advanced Search (V3-M3) — full-screen, pushed on the root navigator.
   static const String searchTransactions = '/search';
+
+  // App Lock (V3-M4) — root-navigator routes. `lock` is the full-screen gate
+  // the redirect sends every route to while locked; `security` is the settings
+  // page; `pinEntry` is the create/change/verify PIN flow.
+  static const String lock = '/lock';
+  static const String security = '/security';
+  static const String pinEntry = '/pin-entry';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -103,6 +119,15 @@ final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: AppRoute.home,
   debugLogDiagnostics: kDebugMode,
+  // App-lock gate (V3-M4). The AppLockService (loaded pre-runApp in main.dart)
+  // is the refreshListenable, so every lock/unlock re-runs the pure redirect
+  // instantly. lockRedirect is a no-op when no PIN is set (fresh install).
+  refreshListenable: sl<AppLockService>(),
+  redirect: (context, state) => lockRedirect(
+    isPinEnabled: sl<AppLockService>().isPinEnabled,
+    isLocked: sl<AppLockService>().isLocked,
+    location: state.matchedLocation,
+  ),
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
@@ -424,6 +449,53 @@ final GoRouter appRouter = GoRouter(
         )..loadOptions(),
         child: const SearchTransactionPage(),
       ),
+    ),
+    // ── App Lock (V3-M4) ─────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.lock,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, _) => BlocProvider(
+        create: (_) => LockCubit(
+          verifyPin: sl(),
+          authenticateBiometric: sl(),
+          appLock: sl(),
+          config: sl<AppLockService>().config,
+          biometricReason: Strings.of(context)!.securityUseBiometric,
+        ),
+        child: const LockScreen(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.security,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => SecurityCubit(
+          getLockConfig: sl(),
+          isBiometricAvailable: sl(),
+          setBiometricEnabled: sl(),
+          setAutoLockDuration: sl(),
+          appLock: sl(),
+        )..load(),
+        child: const SecurityPage(),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.pinEntry,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) {
+        final args = state.extra! as PinEntryArgs;
+        return BlocProvider(
+          create: (_) => PinEntryCubit(
+            purpose: args.purpose,
+            setPin: sl(),
+            changePin: sl(),
+            disablePin: sl(),
+            verifyPin: sl(),
+            appLock: sl(),
+          ),
+          child: PinEntryPage(purpose: args.purpose, title: args.title),
+        );
+      },
     ),
   ],
 );

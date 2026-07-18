@@ -654,5 +654,36 @@
   "searchSortNewest": "Terbaru",
   "searchSortOldest": "Terlama",
   "searchSortHighest": "Jumlah tertinggi",
-  "searchSortLowest": "Jumlah terendah"
+  "searchSortLowest": "Jumlah terendah",
+  "securitySubtitle": "Gunakan PIN untuk melindungi data keuanganmu.",
+  "securityEnablePin": "Kunci Aplikasi (PIN)",
+  "securityEnableBiometric": "Buka dengan biometrik",
+  "securityAutoLock": "Kunci otomatis",
+  "securityChangePin": "Ubah PIN",
+  "securityEnterPin": "Masukkan PIN",
+  "securityEnterNewPin": "Buat PIN 6 digit",
+  "securityConfirmPin": "Masukkan ulang PIN",
+  "securityEnterCurrentPin": "Masukkan PIN saat ini",
+  "securityPinMismatch": "PIN tidak cocok. Coba lagi.",
+  "securityWrongPin": "PIN salah",
+  "securityUseBiometric": "Gunakan biometrik",
+  "securityBiometricUnavailable": "Biometrik belum diatur di perangkat ini.",
+  "securityBiometricNotConfirmed": "Biometrik tidak dikonfirmasi.",
+  "securityLockedTitle": "Jaga Saku terkunci",
+  "securityTryAgainIn": "Coba lagi dalam {seconds}d",
+  "@securityTryAgainIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "securityPinCreated": "PIN disetel",
+  "securityPinChanged": "PIN diubah",
+  "securityPinDisabled": "Kunci aplikasi dimatikan",
+  "securityBiometricEnabled": "Buka biometrik aktif",
+  "autoLockImmediately": "Segera",
+  "autoLockOneMinute": "Setelah 1 menit",
+  "autoLockFiveMinutes": "Setelah 5 menit",
+  "autoLockFifteenMinutes": "Setelah 15 menit"
 }
