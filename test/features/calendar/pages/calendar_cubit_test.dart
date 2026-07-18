@@ -8,6 +8,7 @@ import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../helpers/ledger_fixtures.dart';
 import '../../../helpers/mocks.dart';
 
 void main() {
@@ -172,11 +173,13 @@ void main() {
       required TransactionType type,
       required int amount,
       int? toAccountId,
+      int? categoryId,
     }) => Transaction(
       type: type,
       amount: amount,
       accountId: 1,
       toAccountId: toAccountId,
+      categoryId: categoryId,
       date: DateTime(2026, 7, 8).millisecondsSinceEpoch,
     );
 
@@ -210,5 +213,27 @@ void main() {
       expect(state.dayExpense, 0);
       expect(state.dayBalance, 0);
     });
+
+    test(
+      'a reconcile adjustment on the day is excluded from expense + balance',
+      () {
+        final state = CalendarState(
+          focusedMonth: DateTime(2026, 7),
+          selectedDay: DateTime(2026, 7, 8),
+          selectedDayTransactions: [
+            txOf(type: TransactionType.expense, amount: 35000, categoryId: 1),
+            // A reconcile correction tagged the reserved adjustment_out category.
+            txOf(type: TransactionType.expense, amount: 20000, categoryId: 8),
+          ],
+          categoriesById: const {8: penyesuaianOut},
+        );
+
+        // V4-M0 fix: the 20k adjustment drops out — only the real 35k expense
+        // counts, so the day summary aligns with every other report surface.
+        expect(state.dayExpense, 35000);
+        expect(state.dayBalance, -35000);
+        expect(state.dayIncome, 0);
+      },
+    );
   });
 }

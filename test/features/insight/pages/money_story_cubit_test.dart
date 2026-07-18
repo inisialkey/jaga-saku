@@ -9,6 +9,7 @@ import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.da
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../helpers/ledger_fixtures.dart';
 import '../../../helpers/mocks.dart';
 
 /// [MoneyStoryCubit] mirrors [InsightCubit] — month focus + `TxChangeNotifier`
@@ -173,18 +174,12 @@ void main() {
   test(
     'excludes system categories from the cards (trend proven elsewhere)',
     () async {
-      const systemCat = Category(
-        id: 8,
-        name: 'Penyesuaian',
-        type: CategoryType.expense,
-        systemKey: 'adjustment_out',
-      );
       stub(
         current: [
           tx(amount: 100000, categoryId: 1), // Makan — a real expense
           tx(amount: 300000, categoryId: 8), // bigger reconcile adjustment
         ],
-        expenseCats: const [...expenseCats, systemCat],
+        expenseCats: const [...expenseCats, penyesuaianOut],
       );
 
       final cubit = build();

@@ -15,3 +15,15 @@ sealed class AccountListState with _$AccountListState {
 
   const factory AccountListState.error(Failure failure) = AccountListError;
 }
+
+/// Total-asset fold over the loaded account set, kept out of the widget (rule 5)
+/// and off the transactions module (D3 — accounts carry no adjustment-exclusion
+/// semantics; balances include reconcile corrections by design).
+extension AccountListTotals on AccountListState {
+  /// Σ balance over non-archived accounts; 0 for any non-loaded state.
+  int get totalBalance => switch (this) {
+    AccountListLoaded(:final items) =>
+      items.where((a) => !a.archived).fold<int>(0, (sum, a) => sum + a.balance),
+    _ => 0,
+  };
+}

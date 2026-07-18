@@ -131,10 +131,9 @@ class InsightCubit extends Cubit<InsightState> {
 
     // V2-M6: reserved/adjustment category ids every report fold must skip (a
     // reconcile correction moves balance, not income/expense).
-    final excludeCategoryIds = <int>{
-      for (final c in categories)
-        if (c.isSystem && c.id != null) c.id!,
-    };
+    final excludeCategoryIds = TransactionAggregator.systemCategoryIds(
+      categories,
+    );
 
     // ── Overview ──────────────────────────────────────────────────────────
     final (:income, :expense) = TransactionAggregator.incomeExpense(
@@ -173,10 +172,10 @@ class InsightCubit extends Cubit<InsightState> {
     ];
 
     // ── Planned vs. unplanned (typed subset) ──────────────────────────────
-    final plannedSplit = _plannedSplit(currentTx);
+    final plannedSplit = _plannedSplit(currentTx, excludeCategoryIds);
 
     // ── Need vs. want (typed subset) ──────────────────────────────────────
-    final needVsWant = _needVsWant(currentTx);
+    final needVsWant = _needVsWant(currentTx, excludeCategoryIds);
 
     // ── Spending insights (pure engine) ───────────────────────────────────
     final insights = _computeInsights(
@@ -201,20 +200,13 @@ class InsightCubit extends Cubit<InsightState> {
     );
   }
 
-  PlannedSplit _plannedSplit(List<Transaction> txs) {
-    var planned = 0;
-    var unplanned = 0;
-    for (final t in txs) {
-      if (t.type != TransactionType.expense) continue;
-      switch (t.plannedStatus) {
-        case PlannedStatus.planned:
-          planned += t.amount;
-        case PlannedStatus.unplanned:
-          unplanned += t.amount;
-        case null:
-          break; // excluded from the split
-      }
-    }
+  /// Shapes [TransactionAggregator.plannedSplit] into the view type — the fold
+  /// is delegated; only the 0..1 pcts (÷0-guarded) are computed here.
+  PlannedSplit _plannedSplit(List<Transaction> txs, Set<int> exclude) {
+    final (:planned, :unplanned) = TransactionAggregator.plannedSplit(
+      txs,
+      excludeCategoryIds: exclude,
+    );
     final total = planned + unplanned;
     return PlannedSplit(
       planned: planned,
@@ -224,14 +216,16 @@ class InsightCubit extends Cubit<InsightState> {
     );
   }
 
-  Map<SpendingType, SpendingSlice> _needVsWant(List<Transaction> txs) {
-    final byType = <SpendingType, int>{};
-    for (final t in txs) {
-      if (t.type != TransactionType.expense) continue;
-      final type = t.spendingType;
-      if (type == null) continue; // excluded from the split
-      byType[type] = (byType[type] ?? 0) + t.amount;
-    }
+  /// Shapes [TransactionAggregator.needVsWant] into the view type — the fold is
+  /// delegated; only the 0..1 pcts (÷0-guarded) are computed here.
+  Map<SpendingType, SpendingSlice> _needVsWant(
+    List<Transaction> txs,
+    Set<int> exclude,
+  ) {
+    final byType = TransactionAggregator.needVsWant(
+      txs,
+      excludeCategoryIds: exclude,
+    );
     final total = byType.values.fold(0, (sum, v) => sum + v);
     return {
       for (final e in byType.entries)
@@ -284,13 +278,10 @@ class InsightCubit extends Cubit<InsightState> {
         ),
     ];
 
-    var previousUnplanned = 0;
-    for (final t in previousTx) {
-      if (t.type == TransactionType.expense &&
-          t.plannedStatus == PlannedStatus.unplanned) {
-        previousUnplanned += t.amount;
-      }
-    }
+    final previousUnplanned = TransactionAggregator.plannedSplit(
+      previousTx,
+      excludeCategoryIds: excludeCategoryIds,
+    ).unplanned;
 
     return computeInsights(
       budgets: gauges,

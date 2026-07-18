@@ -13,6 +13,7 @@ import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../helpers/ledger_fixtures.dart';
 import '../../../helpers/mocks.dart';
 
 void main() {
@@ -523,12 +524,7 @@ void main() {
         recent: const [],
         expenseCats: const [
           Category(id: 1, name: 'Makan', type: CategoryType.expense),
-          Category(
-            id: 8,
-            name: 'Penyesuaian',
-            type: CategoryType.expense,
-            systemKey: 'adjustment_out',
-          ),
+          penyesuaianOut,
         ],
       );
 

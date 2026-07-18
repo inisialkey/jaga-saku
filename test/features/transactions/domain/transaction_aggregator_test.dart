@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jaga_saku/features/categories/domain/entities/category.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/transaction_aggregator.dart';
+
+import '../../../helpers/ledger_fixtures.dart';
 
 /// The W2 pure aggregation helper (blueprint §6): no Flutter, no DB. Mirrors the
 /// `budget_status_test` style — a local [tx] builder + grouped numeric asserts.
@@ -13,11 +16,15 @@ void main() {
     required TransactionType type,
     required int amount,
     int? categoryId,
+    PlannedStatus? plannedStatus,
+    SpendingType? spendingType,
   }) => Transaction(
     type: type,
     amount: amount,
     accountId: 1,
     categoryId: categoryId,
+    plannedStatus: plannedStatus,
+    spendingType: spendingType,
   );
 
   group('incomeExpense', () {
@@ -104,6 +111,271 @@ void main() {
         excludeCategoryIds: {8},
       );
       expect(byCategory, {2: 40});
+    });
+  });
+
+  group('systemCategoryIds', () {
+    test('resolves the isSystem ids from a mixed category list', () {
+      const normal = Category(id: 1, name: 'Makan', type: CategoryType.expense);
+      expect(
+        TransactionAggregator.systemCategoryIds([
+          normal,
+          penyesuaianOut,
+          penyesuaianIn,
+        ]),
+        {8, 9},
+      );
+    });
+
+    test('skips a system category with a null id', () {
+      const unsavedSystem = Category(
+        name: 'Penyesuaian',
+        type: CategoryType.expense,
+        systemKey: 'adjustment_out',
+      );
+      expect(TransactionAggregator.systemCategoryIds([unsavedSystem]), isEmpty);
+    });
+
+    test('a list with no system categories resolves empty', () {
+      const normal = Category(id: 1, name: 'Makan', type: CategoryType.expense);
+      expect(TransactionAggregator.systemCategoryIds([normal]), isEmpty);
+    });
+
+    test('an empty list resolves empty', () {
+      expect(
+        TransactionAggregator.systemCategoryIds(const <Category>[]),
+        isEmpty,
+      );
+    });
+  });
+
+  group('spentAndUnplanned', () {
+    test('sums expense as spent and the unplanned subset', () {
+      final result = TransactionAggregator.spentAndUnplanned([
+        tx(
+          type: TransactionType.expense,
+          amount: 50000,
+          plannedStatus: PlannedStatus.planned,
+        ),
+        tx(
+          type: TransactionType.expense,
+          amount: 30000,
+          plannedStatus: PlannedStatus.unplanned,
+        ),
+        // A null-status expense still counts toward spent (not an adjustment).
+        tx(type: TransactionType.expense, amount: 18000),
+      ]);
+      expect(result.spent, 98000);
+      expect(result.unplanned, 30000);
+    });
+
+    test('a null-category expense counts toward spent', () {
+      final result = TransactionAggregator.spentAndUnplanned([
+        tx(type: TransactionType.expense, amount: 12000),
+      ]);
+      expect(result.spent, 12000);
+      expect(result.unplanned, 0);
+    });
+
+    test('income and transfers are skipped', () {
+      final result = TransactionAggregator.spentAndUnplanned([
+        tx(type: TransactionType.income, amount: 7000000, categoryId: 3),
+        tx(type: TransactionType.transfer, amount: 999999),
+        tx(type: TransactionType.expense, amount: 20000, categoryId: 1),
+      ]);
+      expect(result.spent, 20000);
+      expect(result.unplanned, 0);
+    });
+
+    test('excludeCategoryIds drops an adjustment from spent', () {
+      final result = TransactionAggregator.spentAndUnplanned(
+        [
+          tx(type: TransactionType.expense, amount: 40, categoryId: 1),
+          tx(
+            type: TransactionType.expense,
+            amount: 30,
+            categoryId: 8,
+            plannedStatus: PlannedStatus.unplanned,
+          ),
+        ],
+        excludeCategoryIds: {8},
+      );
+      expect(result.spent, 40);
+      expect(result.unplanned, 0);
+    });
+
+    test('an empty list totals zero', () {
+      final result = TransactionAggregator.spentAndUnplanned(const []);
+      expect(result.spent, 0);
+      expect(result.unplanned, 0);
+    });
+  });
+
+  group('plannedSplit', () {
+    test('sums planned and unplanned over the typed subset', () {
+      final result = TransactionAggregator.plannedSplit([
+        tx(
+          type: TransactionType.expense,
+          amount: 1600000,
+          plannedStatus: PlannedStatus.planned,
+        ),
+        tx(
+          type: TransactionType.expense,
+          amount: 400000,
+          plannedStatus: PlannedStatus.unplanned,
+        ),
+      ]);
+      expect(result.planned, 1600000);
+      expect(result.unplanned, 400000);
+    });
+
+    test('null-status expenses are excluded from the split', () {
+      final result = TransactionAggregator.plannedSplit([
+        tx(
+          type: TransactionType.expense,
+          amount: 500000,
+          plannedStatus: PlannedStatus.planned,
+        ),
+        tx(type: TransactionType.expense, amount: 250000),
+      ]);
+      expect(result.planned, 500000);
+      expect(result.unplanned, 0);
+    });
+
+    test('excludeCategoryIds drops an adjustment', () {
+      final result = TransactionAggregator.plannedSplit(
+        [
+          tx(
+            type: TransactionType.expense,
+            amount: 100,
+            categoryId: 1,
+            plannedStatus: PlannedStatus.planned,
+          ),
+          tx(
+            type: TransactionType.expense,
+            amount: 30,
+            categoryId: 8,
+            plannedStatus: PlannedStatus.planned,
+          ),
+        ],
+        excludeCategoryIds: {8},
+      );
+      expect(result.planned, 100);
+      expect(result.unplanned, 0);
+    });
+
+    test('an empty list totals zero', () {
+      final result = TransactionAggregator.plannedSplit(const []);
+      expect(result.planned, 0);
+      expect(result.unplanned, 0);
+    });
+  });
+
+  group('needVsWant', () {
+    test('groups typed expense by spending type', () {
+      final byType = TransactionAggregator.needVsWant([
+        tx(
+          type: TransactionType.expense,
+          amount: 1000000,
+          spendingType: SpendingType.need,
+        ),
+        tx(
+          type: TransactionType.expense,
+          amount: 600000,
+          spendingType: SpendingType.need,
+        ),
+        tx(
+          type: TransactionType.expense,
+          amount: 400000,
+          spendingType: SpendingType.want,
+        ),
+      ]);
+      expect(byType, {SpendingType.need: 1600000, SpendingType.want: 400000});
+    });
+
+    test('null-type expenses are excluded', () {
+      final byType = TransactionAggregator.needVsWant([
+        tx(
+          type: TransactionType.expense,
+          amount: 500000,
+          spendingType: SpendingType.need,
+        ),
+        tx(type: TransactionType.expense, amount: 250000),
+      ]);
+      expect(byType, {SpendingType.need: 500000});
+    });
+
+    test('excludeCategoryIds drops an adjustment', () {
+      final byType = TransactionAggregator.needVsWant(
+        [
+          tx(
+            type: TransactionType.expense,
+            amount: 100,
+            categoryId: 1,
+            spendingType: SpendingType.need,
+          ),
+          tx(
+            type: TransactionType.expense,
+            amount: 30,
+            categoryId: 8,
+            spendingType: SpendingType.need,
+          ),
+        ],
+        excludeCategoryIds: {8},
+      );
+      expect(byType, {SpendingType.need: 100});
+    });
+
+    test('an empty list yields an empty map', () {
+      expect(TransactionAggregator.needVsWant(const []), isEmpty);
+    });
+  });
+
+  group('biggestExpense', () {
+    test('returns the largest expense', () {
+      final biggest = TransactionAggregator.biggestExpense([
+        tx(type: TransactionType.expense, amount: 100000, categoryId: 1),
+        tx(type: TransactionType.expense, amount: 1000000, categoryId: 2),
+        tx(type: TransactionType.expense, amount: 50000, categoryId: 3),
+      ]);
+      expect(biggest?.amount, 1000000);
+      expect(biggest?.categoryId, 2);
+    });
+
+    test('the first row wins a tie on equal amount', () {
+      final biggest = TransactionAggregator.biggestExpense([
+        tx(type: TransactionType.expense, amount: 500000, categoryId: 1),
+        tx(type: TransactionType.expense, amount: 500000, categoryId: 2),
+      ]);
+      expect(biggest?.categoryId, 1);
+    });
+
+    test('excludeCategoryIds skips a bigger adjustment', () {
+      final biggest = TransactionAggregator.biggestExpense(
+        [
+          tx(type: TransactionType.expense, amount: 100000, categoryId: 1),
+          tx(type: TransactionType.expense, amount: 300000, categoryId: 8),
+        ],
+        excludeCategoryIds: {8},
+      );
+      expect(biggest?.amount, 100000);
+      expect(biggest?.categoryId, 1);
+    });
+
+    test('income and transfers are ignored', () {
+      final biggest = TransactionAggregator.biggestExpense([
+        tx(type: TransactionType.income, amount: 9000000, categoryId: 3),
+        tx(type: TransactionType.transfer, amount: 8000000),
+        tx(type: TransactionType.expense, amount: 20000, categoryId: 1),
+      ]);
+      expect(biggest?.amount, 20000);
+    });
+
+    test('a list with no expense returns null', () {
+      final biggest = TransactionAggregator.biggestExpense([
+        tx(type: TransactionType.income, amount: 100, categoryId: 3),
+      ]);
+      expect(biggest, isNull);
     });
   });
 }

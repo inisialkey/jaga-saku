@@ -47,7 +47,11 @@ class AccountListPage extends StatelessWidget {
               onRetry: () => context.read<AccountListCubit>().load(),
             ),
             AccountListLoaded(:final items, :final showArchived) =>
-              _AccountListBody(items: items, showArchived: showArchived),
+              _AccountListBody(
+                items: items,
+                showArchived: showArchived,
+                total: state.totalBalance,
+              ),
           },
         );
       },
@@ -56,10 +60,17 @@ class AccountListPage extends StatelessWidget {
 }
 
 class _AccountListBody extends StatelessWidget {
-  const _AccountListBody({required this.items, required this.showArchived});
+  const _AccountListBody({
+    required this.items,
+    required this.showArchived,
+    required this.total,
+  });
 
   final List<Account> items;
   final bool showArchived;
+
+  /// Σ balance over non-archived accounts (resolved by `AccountListState`).
+  final int total;
 
   @override
   Widget build(BuildContext context) {
@@ -78,14 +89,9 @@ class _AccountListBody extends StatelessWidget {
       );
     }
 
-    // Total asset always reflects active (non-archived) accounts.
-    final totalAsset = items
-        .where((a) => !a.archived)
-        .fold<int>(0, (sum, a) => sum + a.balance);
-
     return Column(
       children: [
-        _TotalAssetHeader(total: totalAsset),
+        _TotalAssetHeader(total: total),
         Expanded(
           child: ReorderableListView.builder(
             buildDefaultDragHandles: false,

@@ -164,10 +164,7 @@ class MoneyStoryCubit extends Cubit<MoneyStoryState> {
         if (a.id != null) a.id!: a,
     };
     // Reserved/adjustment category ids every card fold must skip.
-    final systemIds = <int>{
-      for (final c in categories)
-        if (c.isSystem && c.id != null) c.id!,
-    };
+    final systemIds = TransactionAggregator.systemCategoryIds(categories);
 
     final (:income, :expense) = TransactionAggregator.incomeExpense(
       currentTx,
@@ -193,13 +190,10 @@ class MoneyStoryCubit extends Cubit<MoneyStoryState> {
     // Biggest single real expense — the fold that replaces the dropped
     // `GetBiggestExpense` SQL (C-B): `currentTx` is already loaded, and it must
     // exclude system categories (a plain `ORDER BY amount DESC` can't).
-    Transaction? biggestExpense;
-    for (final t in currentTx) {
-      if (t.type != TransactionType.expense) continue;
-      if (t.categoryId != null && systemIds.contains(t.categoryId)) continue;
-      final current = biggestExpense;
-      if (current == null || t.amount > current.amount) biggestExpense = t;
-    }
+    final biggestExpense = TransactionAggregator.biggestExpense(
+      currentTx,
+      excludeCategoryIds: systemIds,
+    );
 
     final (
       income: prevIncome,
@@ -232,21 +226,17 @@ class MoneyStoryCubit extends Cubit<MoneyStoryState> {
     );
   }
 
-  /// Need vs. want over the typed expense subset — a re-inline of
-  /// `InsightCubit._needVsWant` (private there, can't import) with the added
-  /// [systemIds] guard so a reconcile adjustment never enters the split.
+  /// Need vs. want over the typed expense subset — shapes the shared
+  /// [TransactionAggregator.needVsWant] fold (system categories excluded via
+  /// [systemIds]) into the story's [SpendingSlice] view type.
   Map<SpendingType, SpendingSlice> _needVsWant(
     List<Transaction> txs,
     Set<int> systemIds,
   ) {
-    final byType = <SpendingType, int>{};
-    for (final t in txs) {
-      if (t.type != TransactionType.expense) continue;
-      if (t.categoryId != null && systemIds.contains(t.categoryId)) continue;
-      final type = t.spendingType;
-      if (type == null) continue; // excluded from the split
-      byType[type] = (byType[type] ?? 0) + t.amount;
-    }
+    final byType = TransactionAggregator.needVsWant(
+      txs,
+      excludeCategoryIds: systemIds,
+    );
     final total = byType.values.fold(0, (sum, v) => sum + v);
     return {
       for (final e in byType.entries)

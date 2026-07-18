@@ -10,6 +10,7 @@ import 'package:jaga_saku/features/insight/pages/insight_rules.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../../helpers/ledger_fixtures.dart';
 import '../../../helpers/mocks.dart';
 
 void main() {
@@ -265,12 +266,6 @@ void main() {
   test(
     'reconcile adjustments are excluded from overview, donut slices and trends',
     () async {
-      const systemCat = Category(
-        id: 8,
-        name: 'Penyesuaian',
-        type: CategoryType.expense,
-        systemKey: 'adjustment_out',
-      );
       stub(
         current: [
           tx(amount: 100000, categoryId: 1), // Makan — a real expense
@@ -280,7 +275,7 @@ void main() {
           tx(amount: 80000, categoryId: 1), // Makan last month
           tx(amount: 20000, categoryId: 8), // reconcile adjustment (previous)
         ],
-        expenseCats: const [...expenseCats, systemCat],
+        expenseCats: const [...expenseCats, penyesuaianOut],
         incomeCats: incomeCats,
       );
 
