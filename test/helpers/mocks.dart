@@ -91,6 +91,9 @@ import 'package:jaga_saku/features/security/domain/usecases/set_auto_lock_durati
 import 'package:jaga_saku/features/security/domain/usecases/set_biometric_enabled.dart';
 import 'package:jaga_saku/features/security/domain/usecases/set_pin.dart';
 import 'package:jaga_saku/features/security/domain/usecases/verify_pin.dart';
+import 'package:jaga_saku/features/reminders/data/reminder_local_datasource.dart';
+import 'package:jaga_saku/features/reminders/data/reminder_service.dart';
+import 'package:jaga_saku/features/reminders/domain/entities/reminder_config.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// Shared mocktail declarations + fallback registration for the test suite.
@@ -257,6 +260,12 @@ class MockExportRepository extends Mock implements ExportRepository {}
 
 class MockExportTransactionsCsv extends Mock implements ExportTransactionsCsv {}
 
+// ── Reminders (V3-M5) ─────────────────────────────────────────────────────────
+class MockReminderLocalDatasource extends Mock
+    implements ReminderLocalDatasource {}
+
+class MockReminderService extends Mock implements ReminderService {}
+
 class MockExportFileService extends Mock implements ExportFileService {}
 
 /// Registers fallback sentinels for custom (non-nullable) types used with
@@ -355,4 +364,6 @@ void registerFallbackValues() {
   registerFallbackValue(const PinCheck.ok());
   registerFallbackValue(AutoLockDuration.immediately);
   registerFallbackValue(const SetBiometricParams(enabled: false, reason: ''));
+  // ── Reminders (V3-M5) ──
+  registerFallbackValue(const ReminderConfig());
 }

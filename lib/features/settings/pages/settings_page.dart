@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/features/settings/pages/widgets/setting_option_tile.dart';
@@ -146,6 +148,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               );
             },
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Reminders (V3-M5): local notification settings on their own screen
+          // (decision 5 — a Settings row, not a top-level More tile).
+          MenuSection(
+            title: s.reminders,
+            tiles: [
+              MenuTile(
+                icon: Iconsax.notification,
+                title: s.reminders,
+                onTap: () => context.push(AppRoute.reminders),
+              ),
+            ],
           ),
         ],
       ),

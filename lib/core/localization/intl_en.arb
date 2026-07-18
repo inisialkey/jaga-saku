@@ -685,5 +685,30 @@
   "autoLockImmediately": "Immediately",
   "autoLockOneMinute": "After 1 minute",
   "autoLockFiveMinutes": "After 5 minutes",
-  "autoLockFifteenMinutes": "After 15 minutes"
+  "autoLockFifteenMinutes": "After 15 minutes",
+  "reminders": "Reminders",
+  "reminderDaily": "Daily reminder",
+  "reminderDailyTime": "Reminder time",
+  "reminderRecurringDue": "Recurring transaction reminder",
+  "reminderBudgetWarning": "Budget warning",
+  "reminderPermissionRequired": "Enable notifications in system settings to receive reminders.",
+  "reminderNotifTitle": "Jaga Saku",
+  "reminderDailyNotifBody": "Don't forget to log today's spending.",
+  "reminderRecurringNotifBody": "You have recurring transactions to confirm.",
+  "reminderBudgetNearNotifBody": "Budget {name} is approaching its limit.",
+  "@reminderBudgetNearNotifBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderBudgetOverNotifBody": "Budget {name} is over its limit.",
+  "@reminderBudgetOverNotifBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

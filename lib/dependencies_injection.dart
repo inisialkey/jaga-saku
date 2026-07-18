@@ -75,6 +75,12 @@ import 'package:jaga_saku/features/security/domain/usecases/set_auto_lock_durati
 import 'package:jaga_saku/features/security/domain/usecases/set_biometric_enabled.dart';
 import 'package:jaga_saku/features/security/domain/usecases/set_pin.dart';
 import 'package:jaga_saku/features/security/domain/usecases/verify_pin.dart';
+import 'package:jaga_saku/features/reminders/data/reminder_local_datasource.dart';
+import 'package:jaga_saku/features/reminders/data/reminder_service.dart';
+import 'package:jaga_saku/features/reminders/domain/usecases/check_budget_warnings.dart';
+import 'package:jaga_saku/features/reminders/domain/usecases/reconcile_reminders.dart';
+import 'package:jaga_saku/features/reminders/domain/usecases/schedule_daily_reminder.dart';
+import 'package:jaga_saku/features/reminders/domain/usecases/sync_recurring_reminders.dart';
 
 GetIt sl = GetIt.instance;
 
@@ -134,6 +140,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   _registerBackup();
   _registerExport();
   _registerSecurity();
+  _registerReminders();
 }
 
 void _registerAccounts() {
@@ -264,5 +271,31 @@ void _registerSecurity() {
     // the go_router refreshListenable. Clock wired to the real DateTime.now.
     ..registerLazySingleton(
       () => AppLockService(getLockConfig: sl(), now: DateTime.now),
+    );
+}
+
+void _registerReminders() {
+  // Datasource -> pure decision usecases -> the edge service (V3-M5).
+  // GetCategories / GetDueOccurrences / GetBudgetsForPeriod are already
+  // registered above (all lazy, so cross-feature resolution is
+  // order-independent). ReminderService is an app-lifetime singleton — `main()`
+  // init()s it before runApp and it subscribes to TxChangeNotifier for the live
+  // budget-warning path. The cubit is built at the route, not here.
+  sl
+    ..registerLazySingleton(() => ReminderLocalDatasource(sl()))
+    ..registerLazySingleton(() => const ScheduleDailyReminder())
+    ..registerLazySingleton(() => const SyncRecurringReminders())
+    ..registerLazySingleton(() => const CheckBudgetWarnings())
+    ..registerLazySingleton(() => ReconcileReminders(sl(), sl(), sl()))
+    ..registerLazySingleton(
+      () => ReminderService(
+        datasource: sl(),
+        reconcileReminders: sl(),
+        checkBudgetWarnings: sl(),
+        getDueOccurrences: sl(),
+        getBudgetsForPeriod: sl(),
+        getCategories: sl(),
+        txChanges: sl(),
+      ),
     );
 }

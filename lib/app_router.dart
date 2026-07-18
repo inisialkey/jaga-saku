@@ -58,6 +58,8 @@ import 'package:jaga_saku/features/security/pages/pin/pin_entry_cubit.dart';
 import 'package:jaga_saku/features/security/pages/pin/pin_entry_page.dart';
 import 'package:jaga_saku/features/security/pages/security/security_cubit.dart';
 import 'package:jaga_saku/features/security/pages/security/security_page.dart';
+import 'package:jaga_saku/features/reminders/pages/reminder_cubit.dart';
+import 'package:jaga_saku/features/reminders/pages/reminders_page.dart';
 
 /// App route locations. Add is not a tab — it is a full-screen route pushed on
 /// the root navigator by the shell FAB.
@@ -107,6 +109,10 @@ class AppRoute {
   static const String lock = '/lock';
   static const String security = '/security';
   static const String pinEntry = '/pin-entry';
+
+  // Reminders (V3-M5) — local notification settings; root-navigator route
+  // reached from Settings → Reminders (also the daily-tap deep-link is via /add).
+  static const String reminders = '/reminders';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -496,6 +502,17 @@ final GoRouter appRouter = GoRouter(
           child: PinEntryPage(purpose: args.purpose, title: args.title),
         );
       },
+    ),
+    // ── Reminders (V3-M5) ────────────────────────────────────────────────
+    GoRoute(
+      path: AppRoute.reminders,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) =>
+            ReminderCubit(reminderDatasource: sl(), reminderService: sl())
+              ..load(),
+        child: const RemindersPage(),
+      ),
     ),
   ],
 );
