@@ -165,4 +165,27 @@ void main() {
       expect(captured.single, [2, 1]);
     },
   );
+
+  test('totalBalance sums non-archived balances; 0 for non-loaded states', () {
+    const active = Account(
+      id: 1,
+      name: 'A',
+      type: AccountType.cash,
+      balance: 100000,
+    );
+    const archived = Account(
+      id: 2,
+      name: 'B',
+      type: AccountType.cash,
+      balance: 50000,
+      archived: true,
+    );
+    const loaded = AccountListState.loaded(items: [active, archived]);
+
+    // Only the active account's balance counts (the archived 50k is dropped).
+    expect(loaded.totalBalance, 100000);
+    // Non-loaded states fold to zero (no items to sum).
+    expect(const AccountListState.initial().totalBalance, 0);
+    expect(const AccountListState.loading().totalBalance, 0);
+  });
 }

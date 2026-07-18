@@ -201,12 +201,11 @@ class HomeCubit extends Cubit<HomeState> {
         .fold<int>(0, (sum, a) => sum + a.balance);
 
     // V2-M6: reserved/adjustment category ids the reports must skip (a reconcile
-    // correction moves balance, not income/expense). Balance already includes
-    // it via the unchanged SQL; here we keep the reports clean.
-    final excludeCategoryIds = <int>{
-      for (final c in categories)
-        if (c.isSystem && c.id != null) c.id!,
-    };
+    // correction moves balance, not income/expense). Balance already includes it
+    // via the unchanged SQL; the resolver is the single home of the rule.
+    final excludeCategoryIds = TransactionAggregator.systemCategoryIds(
+      categories,
+    );
 
     final (
       income: monthIncome,
@@ -224,18 +223,15 @@ class HomeCubit extends Cubit<HomeState> {
           d.day == today.day;
     }).toList();
 
-    var todaySpent = 0;
-    var todayUnplanned = 0;
-    for (final t in todayTx) {
-      if (t.type != TransactionType.expense) continue;
-      // C2: a reconcile adjustment dated today is not "spent today". This manual
-      // loop sums outside the aggregator, so it needs the same exclusion.
-      if (excludeCategoryIds.contains(t.categoryId)) continue;
-      todaySpent += t.amount;
-      if (t.plannedStatus == PlannedStatus.unplanned) {
-        todayUnplanned += t.amount;
-      }
-    }
+    // C2: a reconcile adjustment dated today is not "spent today" — the fold
+    // applies the same exclusion as the month totals.
+    final (
+      spent: todaySpent,
+      unplanned: todayUnplanned,
+    ) = TransactionAggregator.spentAndUnplanned(
+      todayTx,
+      excludeCategoryIds: excludeCategoryIds,
+    );
     final expenseByCategory = TransactionAggregator.expenseByCategory(
       todayTx,
       excludeCategoryIds: excludeCategoryIds,
