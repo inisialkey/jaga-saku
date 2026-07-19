@@ -33,6 +33,7 @@ void main() {
     setAutoLockDuration = MockSetAutoLockDuration();
     appLock = MockAppLockService();
     when(() => appLock.refreshConfig()).thenAnswer((_) async {});
+    stubDuringAuthPrompt(appLock);
   });
 
   test('load reads config + biometric availability', () async {

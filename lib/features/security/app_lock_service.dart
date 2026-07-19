@@ -24,6 +24,7 @@ class AppLockService extends ChangeNotifier {
   LockConfig _config = const LockConfig();
   bool _isLocked = false;
   int? _backgroundedAtMs;
+  bool _authPromptActive = false;
 
   bool get isPinEnabled => _config.isPinEnabled;
   bool get isLocked => _isLocked;
@@ -45,25 +46,57 @@ class AppLockService extends ChangeNotifier {
   /// Reloads config after a settings write (enable / disable / biometric /
   /// duration). Leaves [isLocked] as-is — enabling a PIN does not lock the
   /// already-open session.
+  ///
+  /// Deliberately does NOT notify: only [isLocked] transitions need the router
+  /// to re-run the gate, and `redirect` reads [isPinEnabled] live on every
+  /// navigation anyway. A spurious refresh makes go_router re-parse the stack
+  /// from the *encoded* route state, which drops any non-JSON `extra` (no
+  /// `extraCodec` is configured) — that is how enabling a PIN used to null out
+  /// `/pin-entry`'s own `PinEntryArgs` mid-flow and crash on `state.extra!`.
   Future<void> refreshConfig() async {
     final result = await _getLockConfig(NoParams());
     result.match((_) {}, (config) => _config = config);
-    notifyListeners();
   }
 
-  /// Stamps the moment the app was backgrounded (paused / hidden).
-  void markBackgrounded() => _backgroundedAtMs = _now().millisecondsSinceEpoch;
+  /// Stamps the moment the app was backgrounded (paused / hidden). A system
+  /// auth sheet is not a real background — see [duringAuthPrompt].
+  void markBackgrounded() {
+    if (_authPromptActive) return;
+    _backgroundedAtMs = _now().millisecondsSinceEpoch;
+  }
+
+  /// Runs [action] — anything that shows a system auth sheet (the biometric
+  /// prompt) — with the auto-lock suppressed. Android can drive the app through
+  /// `paused`/`resumed` to show that sheet, and reading it as a real background
+  /// re-locks the app the instant biometric unlocked it. Clearing the stamp in
+  /// the `finally` makes both event orders (resume before / after the future
+  /// completes) fall into the no-stamp branch of [evaluateAutoLock].
+  Future<T> duringAuthPrompt<T>(Future<T> Function() action) async {
+    _authPromptActive = true;
+    try {
+      return await action();
+    } finally {
+      _authPromptActive = false;
+      _backgroundedAtMs = null;
+    }
+  }
 
   /// On resume: re-lock when a PIN is set AND the elapsed background time
   /// reached the threshold. `immediately` (Duration.zero) locks on any
   /// background. No PIN ⇒ never locks.
+  ///
+  /// A resume consumes its stamp. With no stamp this resume had no matching
+  /// background, so it never locks — the old `?? nowMs` fallback made `elapsed`
+  /// 0, which satisfies `>= 0` under `immediately` and re-locked on any stray
+  /// resume.
   void evaluateAutoLock() {
     if (!isPinEnabled) return;
-    final nowMs = _now().millisecondsSinceEpoch;
-    final elapsed = nowMs - (_backgroundedAtMs ?? nowMs);
+    final backgroundedAtMs = _backgroundedAtMs;
+    _backgroundedAtMs = null;
+    if (backgroundedAtMs == null) return;
+    final elapsed = _now().millisecondsSinceEpoch - backgroundedAtMs;
     if (elapsed >= _config.autoLockDuration.duration.inMilliseconds) {
       _isLocked = true;
-      _backgroundedAtMs = null;
       notifyListeners();
     }
   }

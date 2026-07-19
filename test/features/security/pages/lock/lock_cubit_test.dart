@@ -36,6 +36,7 @@ void main() {
     appLock = MockAppLockService();
     clockNow = DateTime.fromMillisecondsSinceEpoch(1000000);
     when(() => appLock.unlock()).thenReturn(null);
+    stubDuringAuthPrompt(appLock);
   });
 
   Future<void> enter(LockCubit cubit, String pin) async {
