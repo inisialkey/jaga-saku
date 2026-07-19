@@ -109,6 +109,9 @@ class MockSettingsService extends Mock implements SettingsService {}
 
 class MockTxChangeNotifier extends Mock implements TxChangeNotifier {}
 
+/// Only `load()` is stubbed by its users; `.state` / `.stream` are left
+/// unstubbed because the seeded `onCycleStartDayChanged` extension needs a REAL
+/// cubit — mock one and it throws.
 class MockAppSettingsCubit extends Mock implements AppSettingsCubit {}
 
 class MockReceiptStorageService extends Mock implements ReceiptStorageService {}

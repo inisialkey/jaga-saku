@@ -177,11 +177,31 @@ class BackupCubit extends Cubit<BackupState> {
     // act on the app-global singletons, so BackupCubit's own lifecycle doesn't
     // gate them. `_appSettings.load()` also re-emits the restored cycle
     // start-day, which re-windows Home / BudgetList through their subscription.
-    await _appSettings.load();
-    await _appLock.refreshConfig();
-    await _reminderService.reconcile();
+    // Each is isolated: they are independent holders, so one failing must not
+    // cost the other two their refresh (that would be the staleness this fix
+    // exists to remove).
+    await _reloadAfterRestore('app settings', _appSettings.load);
+    await _reloadAfterRestore('lock config', _appLock.refreshConfig);
+    await _reloadAfterRestore('reminder schedules', _reminderService.reconcile);
 
     await loadMeta();
+  }
+
+  /// Runs one post-restore reload, logging rather than rethrowing. The restore
+  /// has already committed and `restoreSuccess` is already emitted, so a failed
+  /// reload costs freshness in ONE holder — never data. It must not take the
+  /// other reloads or [loadMeta] down with it, and it must not escape: the page
+  /// calls [restore] un-awaited, so a throw would surface as an unhandled async
+  /// error. The realistic thrower is `reconcile()`'s MethodChannel / `tz` seam.
+  Future<void> _reloadAfterRestore(
+    String what,
+    Future<void> Function() reload,
+  ) async {
+    try {
+      await reload();
+    } catch (e, s) {
+      log.e('Post-restore reload failed: $what', error: e, stackTrace: s);
+    }
   }
 
   String _exportFileName(int millis) =>

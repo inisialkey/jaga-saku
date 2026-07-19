@@ -202,6 +202,37 @@ void main() {
   );
 
   blocTest<BackupCubit, BackupState>(
+    'a throwing reload neither escapes restore() nor blocks the other reloads '
+    'or loadMeta',
+    setUp: () {
+      when(
+        () => exportBackup(any()),
+      ).thenAnswer((_) async => const Right<Failure, BackupFile>(file));
+      when(
+        () => restoreBackup(any()),
+      ).thenAnswer((_) async => Right<Failure, BackupPreview>(preview));
+      // The FIRST reload throws — the strictest case, the one that would
+      // cascade. `restore()` is called un-awaited by the page, so an escaping
+      // throw would be an unhandled async error.
+      when(appSettings.load).thenThrow(Exception('reload boom'));
+    },
+    build: build,
+    seed: () => BackupState.previewReady(preview: preview, data: data),
+    act: (cubit) => cubit.restore(),
+    // The trailing idle is loadMeta()'s emit — proof the throw didn't skip it.
+    expect: () => [
+      const BackupState.restoring(),
+      BackupState.restoreSuccess(preview),
+      isA<BackupIdle>(),
+    ],
+    verify: (_) {
+      // Isolation: the failed reload didn't take the other two with it.
+      verify(appLock.refreshConfig).called(1);
+      verify(reminderService.reconcile).called(1);
+    },
+  );
+
+  blocTest<BackupCubit, BackupState>(
     'restore aborts when the safety write fails: [restoring, failure], no restore',
     setUp: () {
       when(
