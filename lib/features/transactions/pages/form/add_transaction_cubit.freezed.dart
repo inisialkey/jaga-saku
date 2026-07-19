@@ -20,9 +20,8 @@ mixin _$AddTransactionState {
  List<Category> get categories; AddTxStatus get status; AddTxValidation get validation; Failure? get error; bool get isEditing;/// The category's safe-daily allowance, set when [status] is
 /// [AddTxStatus.needsBudgetConfirm]; drives the warning sheet.
  int get safeDaily;/// Relative receipt path being edited. Non-nullable with a `''` sentinel (=
-/// "no receipt") so `copyWith` handles pick/remove — freezed's copyWith can't
-/// set a field back to null (see [AddTransactionCubit.typeChanged]). `_commit`
-/// maps `''`→null. Mirrors how `amount` (0) and `note` ('') model "empty".
+/// "no receipt"); `_commit` maps `''`→null. Mirrors how `amount` (0) and
+/// `note` ('') model "empty".
  String get receiptPath;
 /// Create a copy of AddTransactionState
 /// with the given fields replaced by the non-null parameter values.
@@ -270,9 +269,8 @@ class _AddTransactionState extends AddTransactionState {
 /// [AddTxStatus.needsBudgetConfirm]; drives the warning sheet.
 @override@JsonKey() final  int safeDaily;
 /// Relative receipt path being edited. Non-nullable with a `''` sentinel (=
-/// "no receipt") so `copyWith` handles pick/remove — freezed's copyWith can't
-/// set a field back to null (see [AddTransactionCubit.typeChanged]). `_commit`
-/// maps `''`→null. Mirrors how `amount` (0) and `note` ('') model "empty".
+/// "no receipt"); `_commit` maps `''`→null. Mirrors how `amount` (0) and
+/// `note` ('') model "empty".
 @override@JsonKey() final  String receiptPath;
 
 /// Create a copy of AddTransactionState

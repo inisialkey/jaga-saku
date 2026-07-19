@@ -51,9 +51,8 @@ abstract class AddTransactionState with _$AddTransactionState, TxFormFields {
     @Default(0) int safeDaily,
 
     /// Relative receipt path being edited. Non-nullable with a `''` sentinel (=
-    /// "no receipt") so `copyWith` handles pick/remove — freezed's copyWith can't
-    /// set a field back to null (see [AddTransactionCubit.typeChanged]). `_commit`
-    /// maps `''`→null. Mirrors how `amount` (0) and `note` ('') model "empty".
+    /// "no receipt"); `_commit` maps `''`→null. Mirrors how `amount` (0) and
+    /// `note` ('') model "empty".
     @Default('') String receiptPath,
   }) = _AddTransactionState;
 
