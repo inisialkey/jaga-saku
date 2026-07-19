@@ -8,6 +8,13 @@
 -keep class io.flutter.plugins.**  { *; }
 -dontwarn io.flutter.embedding.**
 
+## Release stack-trace readability
+# SourceFile/LineNumberTable are stripped by R8, not obfuscated — no mapping
+# file can recover them. Keep them so obfuscated release traces (Play Console
+# / Android vitals) retain line numbers. R8 runs on release: see
+# app/build.gradle.kts isMinifyEnabled/isShrinkResources.
+-keepattributes SourceFile,LineNumberTable
+
 ## Gson rules
 # Gson uses generic type information stored in a class file when working with fields. Proguard
 # removes such information by default, so configure it to keep all of it.
@@ -31,10 +38,6 @@
 -keepclassmembers,allowobfuscation class * {
   @com.google.gson.annotations.SerializedName <fields>;
 }
-
-## Firebase Crashlytics
--keepattributes SourceFile,LineNumberTable
--keep public class * extends java.lang.Exception
 
 ## OkHttp / Dio native
 -dontwarn okhttp3.**
