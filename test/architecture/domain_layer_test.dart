@@ -4,10 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Guards the Clean Architecture dependency rule at the import-graph level:
 /// the domain layer must not depend on Flutter, the data layer, or the
-/// kitchen-sink `core/core.dart` barrel (which transitively pulls in Flutter,
-/// dio and go_router). If this fails, a domain file imported something it
-/// shouldn't — import the specific `core/error`, `core/usecase`, `core/models`
-/// barrel or the relevant `domain/...` file instead.
+/// kitchen-sink `core/core.dart` barrel (which transitively pulls in Flutter).
+/// If this fails, a domain file imported something it shouldn't — import the
+/// specific `core/error` or `core/usecase` barrel, or the relevant
+/// `domain/...` file instead.
 void main() {
   test('domain layer stays free of Flutter / data / kitchen-sink imports', () {
     final domainFiles = Directory('lib/features')

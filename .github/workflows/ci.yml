@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Code generation (freezed / json / hive / mocks)
+      - name: Code generation (freezed)
         run: dart run build_runner build --delete-conflicting-outputs
 
       # Fail fast if intl_en.arb / intl_id.arb drift out of key parity (Rule 11).
@@ -96,44 +96,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Code generation (freezed / json / hive / mocks)
+      - name: Code generation (freezed)
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Localization
         run: flutter gen-l10n
-
-      # The dev flavor applies the google-services Gradle plugin, which refuses
-      # to build without a google-services.json. The real one is git-ignored, so
-      # write a structurally-valid PLACEHOLDER matching the dev applicationId —
-      # enough to compile; no real Firebase credentials needed (the app is not
-      # run here, only built).
-      - name: Write placeholder google-services.json
-        run: |
-          cat > android/app/google-services.json <<'JSON'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "ci-placeholder",
-              "storage_bucket": "ci-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
-                  "android_client_info": {
-                    "package_name": "com.example.cleanstarter.dev"
-                  }
-                },
-                "oauth_client": [],
-                "api_key": [
-                  { "current_key": "AIzaSyA0000000000000000000000000000000000" }
-                ],
-                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-              }
-            ],
-            "configuration_version": "1"
-          }
-          JSON
 
       # Catches Gradle / manifest / flavor / plugin breakage that the Dart-only
       # analyze-test job can't (e.g. the build.gradle.kts + desugaring fixes).
@@ -161,42 +128,16 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Code generation (freezed / json / hive / mocks)
+      - name: Code generation (freezed)
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Localization
         run: flutter gen-l10n
 
-      # The dev flavor's Xcode "Copy GoogleService-Info.plist" build phase reads
-      # ios/config/dev/GoogleService-Info.plist and hard-fails if it's missing.
-      # The real plist is git-ignored, so write a structurally-valid PLACEHOLDER
-      # — enough to compile (the app is not run here, only built).
-      - name: Write placeholder GoogleService-Info.plist
-        run: |
-          mkdir -p ios/config/dev
-          cat > ios/config/dev/GoogleService-Info.plist <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>API_KEY</key><string>AIzaSyA0000000000000000000000000000000000</string>
-            <key>GCM_SENDER_ID</key><string>000000000000</string>
-            <key>BUNDLE_ID</key><string>com.example.cleanstarter.dev</string>
-            <key>PROJECT_ID</key><string>ci-placeholder</string>
-            <key>STORAGE_BUCKET</key><string>ci-placeholder.appspot.com</string>
-            <key>IS_ADS_ENABLED</key><false/>
-            <key>IS_ANALYTICS_ENABLED</key><false/>
-            <key>IS_APPINVITE_ENABLED</key><true/>
-            <key>IS_GCM_ENABLED</key><true/>
-            <key>IS_SIGNIN_ENABLED</key><true/>
-            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
-          </dict>
-          </plist>
-          PLIST
-
-      # Flutter 3.44 enables Swift Package Manager by default, but this project
-      # uses CocoaPods — Firebase Crashlytics' Xcode run-script references the
-      # Pods path, which SPM resolution breaks. Keep iOS on CocoaPods.
+      # Flutter 3.44 enables Swift Package Manager by default, but this
+      # project's plugins are integrated via CocoaPods. Keep SPM disabled so
+      # `pod install` resolves them (removing this risks an SPM-vs-CocoaPods
+      # break in the iOS build, unrelated to app code).
       - name: Use CocoaPods (disable Swift Package Manager)
         run: flutter config --no-enable-swift-package-manager
 
