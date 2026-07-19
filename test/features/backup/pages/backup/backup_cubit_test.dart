@@ -19,6 +19,9 @@ void main() {
   late MockRestoreBackup restoreBackup;
   late MockBackupFileService fileService;
   late MockSettingsService settings;
+  late MockAppSettingsCubit appSettings;
+  late MockAppLockService appLock;
+  late MockReminderService reminderService;
   const previewBackup = PreviewBackup();
 
   const file = BackupFile(
@@ -51,6 +54,9 @@ void main() {
     restoreBackup = MockRestoreBackup();
     fileService = MockBackupFileService();
     settings = MockSettingsService();
+    appSettings = MockAppSettingsCubit();
+    appLock = MockAppLockService();
+    reminderService = MockReminderService();
     // Defaults so the happy paths (loadMeta, delivery) don't throw.
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
@@ -58,6 +64,10 @@ void main() {
       () => fileService.write(any(), any()),
     ).thenAnswer((_) async => '/tmp/backup.json');
     when(() => fileService.share(any())).thenAnswer((_) async {});
+    // The three in-memory holders a successful restore reloads (V4-M2).
+    when(appSettings.load).thenAnswer((_) async {});
+    when(appLock.refreshConfig).thenAnswer((_) async {});
+    when(reminderService.reconcile).thenAnswer((_) async {});
   });
 
   BackupCubit build() => BackupCubit(
@@ -67,6 +77,9 @@ void main() {
     restoreBackup: restoreBackup,
     backupFileService: fileService,
     settingsService: settings,
+    appSettings: appSettings,
+    appLock: appLock,
+    reminderService: reminderService,
   );
 
   // ── export ────────────────────────────────────────────────────────────────
@@ -179,6 +192,12 @@ void main() {
     verify: (_) {
       verifyInOrder([() => exportBackup(any()), () => restoreBackup(any())]);
       verify(() => fileService.write(any(), any())).called(1); // safety file
+      // V4-M2: the restore rewrote the settings table, so every in-memory
+      // holder is reloaded live — no relaunch needed for theme/locale/name,
+      // the lock gate, or the scheduled reminders.
+      verify(appSettings.load).called(1);
+      verify(appLock.refreshConfig).called(1);
+      verify(reminderService.reconcile).called(1);
     },
   );
 
@@ -201,6 +220,10 @@ void main() {
     ],
     verify: (_) {
       verifyNever(() => restoreBackup(any()));
+      // Nothing was destroyed, so nothing may be reloaded.
+      verifyNever(appSettings.load);
+      verifyNever(appLock.refreshConfig);
+      verifyNever(reminderService.reconcile);
     },
   );
 
@@ -221,5 +244,12 @@ void main() {
       BackupState.restoring(),
       BackupState.failure(CacheFailure()),
     ],
+    verify: (_) {
+      // A failed restore left the DB untouched — the in-memory holders are
+      // still correct and must NOT be reloaded.
+      verifyNever(appSettings.load);
+      verifyNever(appLock.refreshConfig);
+      verifyNever(reminderService.reconcile);
+    },
   );
 }

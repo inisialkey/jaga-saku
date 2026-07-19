@@ -156,6 +156,37 @@ void main() {
     },
   );
 
+  // V4-M2: the restored backup is the source of truth for the lock flag. These
+  // pin the direction the fail-safe test above does NOT cover — a restore that
+  // turns the PIN OFF while the device keystore still holds a live hash.
+  test('loadConfig flag-wins: disabled flag + a live stored hash → disabled '
+      '(restore is source of truth)', () async {
+    settingsStore['lock_pin_enabled'] = '0'; // restored backup says OFF...
+    secureStore['pin_hash'] = 'live-hash'; // ...keystore hash survived restore
+    secureStore['pin_salt'] = 'live-salt';
+
+    final config = await build().loadConfig();
+
+    expect(config.isPinEnabled, isFalse);
+    expect(config.isBiometricEnabled, isFalse);
+  });
+
+  test(
+    'a later setPin overwrites the orphaned hash (no stale secret survives)',
+    () async {
+      secureStore['pin_hash'] = 'orphan-hash';
+      secureStore['pin_salt'] = 'orphan-salt';
+      settingsStore['lock_pin_enabled'] = '0';
+
+      final ds = build();
+      await ds.setPin('654321');
+
+      expect(secureStore['pin_hash'], isNot('orphan-hash'));
+      expect(settingsStore['lock_pin_enabled'], '1');
+      expect(await ds.verify('654321'), const PinCheck.ok());
+    },
+  );
+
   test('disable clears the secret and all flags', () async {
     final ds = build();
     await ds.setPin('123456');
