@@ -9,7 +9,7 @@ enum RecurringFormStatus { editing, saving, success, failure }
 /// auto-generation needs it) and it adds the schedule: [freq] / [interval] /
 /// [startDate] / optional [endDate].
 @freezed
-abstract class RecurringFormState with _$RecurringFormState {
+abstract class RecurringFormState with _$RecurringFormState, TxFormFields {
   const factory RecurringFormState({
     @Default('') String label,
     @Default(TransactionType.expense) TransactionType type,
@@ -46,29 +46,6 @@ abstract class RecurringFormState with _$RecurringFormState {
   const RecurringFormState._();
 
   bool get isSaving => status == RecurringFormStatus.saving;
-
-  bool get isTransfer => type == TransactionType.transfer;
-
-  bool get isExpense => type == TransactionType.expense;
-
-  /// Active (non-archived) accounts offered by the account pickers.
-  List<Account> get selectableAccounts =>
-      accounts.where((a) => !a.archived).toList();
-
-  /// Non-archived categories matching the current [type] for the category picker.
-  List<Category> get categoriesForType =>
-      categories.where((c) => !c.archived && _typeMatches(c)).toList();
-
-  Account? get selectedAccount => _accountById(accountId);
-
-  Account? get selectedToAccount => _accountById(toAccountId);
-
-  Category? get selectedCategory {
-    for (final c in categories) {
-      if (c.id == categoryId) return c;
-    }
-    return null;
-  }
 
   /// First failing field for the invalid-submit toast (D1), in the same order as
   /// [isValid].
@@ -127,17 +104,4 @@ abstract class RecurringFormState with _$RecurringFormState {
     startDate,
     endDate,
   );
-
-  bool _typeMatches(Category c) => switch (type) {
-    TransactionType.income => c.type == CategoryType.income,
-    _ => c.type == CategoryType.expense,
-  };
-
-  Account? _accountById(int? id) {
-    if (id == null) return null;
-    for (final a in accounts) {
-      if (a.id == id) return a;
-    }
-    return null;
-  }
 }

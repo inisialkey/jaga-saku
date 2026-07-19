@@ -12,6 +12,7 @@ export 'choice_chip_group.dart';
 export 'color_picker_sheet.dart';
 export 'coming_soon_badge.dart';
 export 'confirm_sheet.dart';
+export 'form_field.dart';
 export 'form_validation_x.dart';
 export 'hairline_card.dart';
 export 'icon_picker_sheet.dart';

@@ -1,8 +1,7 @@
 part of 'account_form_cubit.dart';
 
 /// Lifecycle of a form submission. A status enum (rather than a nullable flag)
-/// gives the page clean one-shot transitions to listen on — freezed `copyWith`
-/// cannot reset a nullable field back to null.
+/// gives the page clean one-shot transitions to listen on.
 enum AccountFormStatus { editing, saving, success, failure }
 
 /// Editable form fields + submission status. `id` / `sortOrder` / `createdAt`

@@ -100,6 +100,36 @@ void main() {
     await cubit.close();
   });
 
+  test('categoriesForType hides reserved system categories', () async {
+    when(
+      () => getAccounts(any()),
+    ).thenAnswer((_) async => const Right<Failure, List<Account>>([]));
+    when(() => getCategories(CategoryType.expense)).thenAnswer(
+      (_) async => const Right<Failure, List<Category>>([
+        Category(id: 1, name: 'Makan', type: CategoryType.expense),
+        Category(
+          id: 8,
+          name: 'Penyesuaian',
+          type: CategoryType.expense,
+          systemKey: 'adjustment_out',
+        ),
+      ]),
+    );
+    when(
+      () => getCategories(CategoryType.income),
+    ).thenAnswer((_) async => const Right<Failure, List<Category>>([]));
+
+    final cubit = build();
+    await cubit.load();
+
+    // V4-M3: kept in state (selectedCategory still resolves an edited
+    // adjustment's label) but hidden from the picker source — a favorite must
+    // not be able to target the reserved reconcile pair.
+    expect(cubit.state.categories.map((c) => c.id), [1, 8]);
+    expect(cubit.state.categoriesForType.map((c) => c.id), [1]);
+    await cubit.close();
+  });
+
   blocTest<FavoriteFormCubit, FavoriteFormState>(
     'submit insert emits [saving, success]',
     setUp: () => when(
@@ -284,6 +314,31 @@ void main() {
       categoryId: 1,
       plannedStatus: PlannedStatus.planned,
       spendingType: SpendingType.need,
+    ),
+    act: (cubit) => cubit.typeChanged(TransactionType.transfer),
+    expect: () => const [
+      FavoriteFormState(
+        label: 'X',
+        type: TransactionType.transfer,
+        amount: 1000,
+        accountId: 1,
+      ),
+    ],
+  );
+
+  // W2: the failed-submit → switch-type path. Seeds a non-default status/error
+  // so the copyWith resets are load-bearing (a stale failure would otherwise
+  // survive the switch and re-fire the page's failure listener).
+  blocTest<FavoriteFormCubit, FavoriteFormState>(
+    'typeChanged clears a failed submit (status / error)',
+    build: build,
+    seed: () => const FavoriteFormState(
+      label: 'X',
+      amount: 1000,
+      accountId: 1,
+      categoryId: 1,
+      status: FavoriteFormStatus.failure,
+      error: CacheFailure(),
     ),
     act: (cubit) => cubit.typeChanged(TransactionType.transfer),
     expect: () => const [

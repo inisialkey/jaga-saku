@@ -88,13 +88,13 @@ class _ReconcileSheetState extends State<ReconcileSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _FieldLabel(s.reconcileCurrent),
+              FieldLabel(s.reconcileCurrent),
               MoneyText(
                 amount: state.currentBalance,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: AppSpacing.lg),
-              _FieldLabel(s.reconcileCounted),
+              FieldLabel(s.reconcileCounted),
               AmountInputField(
                 controller: _countedController,
                 autofocus: true,
@@ -144,21 +144,4 @@ class _DeltaPreview extends StatelessWidget {
       ),
     );
   }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-    child: Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.bodySmall?.copyWith(color: context.colors.textSecondary),
-    ),
-  );
 }

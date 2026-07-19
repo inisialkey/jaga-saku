@@ -227,6 +227,31 @@ void main() {
     ],
   );
 
+  // W2: the failed-submit → switch-type path. Seeds a state that is NOT at the
+  // defaults so the copyWith resets are actually load-bearing — without them
+  // the stale failure/validation/error/safeDaily would survive the switch.
+  blocTest<AddTransactionCubit, AddTransactionState>(
+    'typeChanged clears a failed submit (status / validation / error / safeDaily)',
+    build: build,
+    seed: () => const AddTransactionState(
+      amount: 1000,
+      accountId: 1,
+      categoryId: 1,
+      status: AddTxStatus.failure,
+      validation: AddTxValidation.categoryRequired,
+      error: CacheFailure(),
+      safeDaily: 50000,
+    ),
+    act: (cubit) => cubit.typeChanged(TransactionType.transfer),
+    expect: () => const [
+      AddTransactionState(
+        type: TransactionType.transfer,
+        amount: 1000,
+        accountId: 1,
+      ),
+    ],
+  );
+
   blocTest<AddTransactionCubit, AddTransactionState>(
     'submit with amount 0 rejects with amountRequired and never saves',
     build: build,

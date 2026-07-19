@@ -91,15 +91,18 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.favoriteLabel),
+                FieldLabel(s.favoriteLabel),
                 TextField(
                   controller: _labelController,
                   onChanged: cubit.labelChanged,
                   textCapitalization: TextCapitalization.words,
-                  decoration: _inputDecoration(context, hint: s.favoriteLabel),
+                  decoration: appInputDecoration(
+                    context,
+                    hint: s.favoriteLabel,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.amount),
+                FieldLabel(s.amount),
                 AmountInputField(
                   controller: _amountController,
                   hint: s.favoriteAmountOptional,
@@ -107,7 +110,7 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
                       cubit.amountChanged(int.tryParse(value) ?? 0),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(state.isTransfer ? s.fromAccount : s.account),
+                FieldLabel(state.isTransfer ? s.fromAccount : s.account),
                 SelectorField(
                   label: state.selectedAccount?.name ?? s.selectAccount,
                   icon: state.selectedAccount == null
@@ -117,7 +120,7 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
                 ),
                 if (state.isTransfer) ...[
                   const SizedBox(height: AppSpacing.xl),
-                  _FieldLabel(s.toAccount),
+                  FieldLabel(s.toAccount),
                   SelectorField(
                     label: state.selectedToAccount?.name ?? s.selectAccount,
                     icon: state.selectedToAccount == null
@@ -128,7 +131,7 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
                 ],
                 if (!state.isTransfer) ...[
                   const SizedBox(height: AppSpacing.xl),
-                  _FieldLabel(s.category),
+                  FieldLabel(s.category),
                   SelectorField(
                     label: state.selectedCategory?.name ?? s.selectCategory,
                     icon: state.selectedCategory == null
@@ -139,7 +142,7 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
                 ],
                 if (state.isExpense) ...[
                   const SizedBox(height: AppSpacing.xl),
-                  _FieldLabel(s.plannedStatus),
+                  FieldLabel(s.plannedStatus),
                   ChoiceChipGroup<PlannedStatus>(
                     selected: state.plannedStatus,
                     onChanged: cubit.plannedStatusChanged,
@@ -155,7 +158,7 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  _FieldLabel(s.spendingType),
+                  FieldLabel(s.spendingType),
                   ChoiceChipGroup<SpendingType>(
                     selected: state.spendingType,
                     onChanged: cubit.spendingTypeChanged,
@@ -174,7 +177,7 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
                   ),
                 ],
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.note),
+                FieldLabel(s.note),
                 TextField(
                   controller: _noteController,
                   onChanged: cubit.noteChanged,
@@ -183,7 +186,7 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
                   minLines: 1,
                   maxLines: 3,
                   textInputAction: TextInputAction.newline,
-                  decoration: _inputDecoration(context, hint: s.noteHint),
+                  decoration: appInputDecoration(context, hint: s.noteHint),
                 ),
               ],
             ),
@@ -236,43 +239,4 @@ class _FavoriteFormPageState extends State<FavoriteFormPage> {
     );
     if (category?.id != null) cubit.categoryChanged(category!.id!);
   }
-}
-
-InputDecoration _inputDecoration(BuildContext context, {required String hint}) {
-  final border = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(14),
-    borderSide: BorderSide(color: context.colors.border),
-  );
-  return InputDecoration(
-    hintText: hint,
-    filled: true,
-    fillColor: Theme.of(context).cardColor,
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.lg,
-      vertical: 14,
-    ),
-    border: border,
-    enabledBorder: border,
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.primary),
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-    child: Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.bodySmall?.copyWith(color: context.colors.textSecondary),
-    ),
-  );
 }

@@ -2,7 +2,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/form/form_validation.dart';
-import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/accounts/domain/usecases/get_accounts.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -12,6 +11,7 @@ import 'package:jaga_saku/features/recurring/domain/recurrence_schedule.dart';
 import 'package:jaga_saku/features/recurring/domain/usecases/save_recurring_rule.dart';
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
+import 'package:jaga_saku/features/transactions/pages/form/tx_form_fields.dart';
 
 part 'recurring_form_state.dart';
 part 'recurring_form_cubit.freezed.dart';
@@ -74,17 +74,12 @@ class RecurringFormCubit extends Cubit<RecurringFormState> {
   /// Loads active accounts + both category sets for the pickers. Read failures
   /// leave the lists empty rather than blocking the form.
   Future<void> load() async {
-    final accountsResult = await _getAccounts(NoParams());
-    final expenseResult = await _getCategories(CategoryType.expense);
-    final incomeResult = await _getCategories(CategoryType.income);
-    if (isClosed) return;
-    final accounts =
-        accountsResult.getRight().toNullable() ?? const <Account>[];
-    final expense = expenseResult.getRight().toNullable() ?? const <Category>[];
-    final income = incomeResult.getRight().toNullable() ?? const <Category>[];
-    emit(
-      state.copyWith(accounts: accounts, categories: [...expense, ...income]),
+    final (accounts, categories) = await loadTxFormLookups(
+      _getAccounts,
+      _getCategories,
     );
+    if (isClosed) return;
+    emit(state.copyWith(accounts: accounts, categories: categories));
   }
 
   void labelChanged(String label) => emit(state.copyWith(label: label));
@@ -93,22 +88,17 @@ class RecurringFormCubit extends Cubit<RecurringFormState> {
 
   void typeChanged(TransactionType type) {
     if (type == state.type) return;
-    // Rebuild (not copyWith) so category / toAccount / planned / spending clear
-    // to null; the schedule fields carry over unchanged.
+    // Switching type clears category / toAccount / planned / spending; the
+    // schedule carries over (copyWith keeps every field not listed here).
     emit(
-      RecurringFormState(
-        label: state.label,
+      state.copyWith(
         type: type,
-        amount: state.amount,
-        accountId: state.accountId,
-        note: state.note,
-        accounts: state.accounts,
-        categories: state.categories,
-        isEditing: state.isEditing,
-        freq: state.freq,
-        interval: state.interval,
-        startDate: state.startDate,
-        endDate: state.endDate,
+        toAccountId: null,
+        categoryId: null,
+        plannedStatus: null,
+        spendingType: null,
+        status: RecurringFormStatus.editing,
+        error: null,
       ),
     );
   }
@@ -139,30 +129,8 @@ class RecurringFormCubit extends Cubit<RecurringFormState> {
   void startDateChanged(int startDate) =>
       emit(state.copyWith(startDate: startDate));
 
-  /// Sets or clears (`null`) the optional end date. Rebuilds so `null` genuinely
-  /// clears (freezed copyWith cannot set a field to null).
-  void endDateChanged(int? endDate) => emit(
-    RecurringFormState(
-      label: state.label,
-      type: state.type,
-      amount: state.amount,
-      accountId: state.accountId,
-      toAccountId: state.toAccountId,
-      categoryId: state.categoryId,
-      plannedStatus: state.plannedStatus,
-      spendingType: state.spendingType,
-      note: state.note,
-      accounts: state.accounts,
-      categories: state.categories,
-      status: state.status,
-      error: state.error,
-      isEditing: state.isEditing,
-      freq: state.freq,
-      interval: state.interval,
-      startDate: state.startDate,
-      endDate: endDate,
-    ),
-  );
+  /// Sets or clears (`null`) the optional end date.
+  void endDateChanged(int? endDate) => emit(state.copyWith(endDate: endDate));
 
   Future<void> submit() async {
     if (state.isSaving) return;
