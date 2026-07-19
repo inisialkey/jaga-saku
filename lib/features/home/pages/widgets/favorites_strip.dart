@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:jaga_saku/app_router.dart';
 import 'package:jaga_saku/core/core.dart';
@@ -8,12 +7,15 @@ import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/pages/form/add_transaction_page.dart';
 
-/// Home quick-tap favorites strip: a horizontal row of favorite chips. Tapping a
-/// fixed-amount favorite instant-commits it (with an Undo SnackBar); an
-/// amount-less favorite opens the add-form prefilled as a **new** tx. Hidden
-/// entirely when there are no favorites (no clutter). The chip icon reuses the
-/// referenced category's icon/color (from the dashboard lookups), falling back
-/// to the transfer glyph for transfers / uncategorized favorites.
+/// Home quick-tap favorites strip: a horizontal row of favorite chips. Tapping
+/// any favorite opens the add-form prefilled from it as a **new** tx — the user
+/// commits by saving. It used to instant-commit a fixed-amount favorite, but the
+/// Undo that made that safe died with the SnackBar, leaving a mis-tap as a
+/// silent write; a prefilled form is the same two taps and is reversible by
+/// simply backing out. Hidden entirely when there are no favorites (no clutter).
+/// The chip icon reuses the referenced category's icon/color (from the dashboard
+/// lookups), falling back to the transfer glyph for transfers / uncategorized
+/// favorites.
 class FavoritesStrip extends StatelessWidget {
   const FavoritesStrip({
     required this.favorites,
@@ -71,7 +73,8 @@ class _FavoriteChip extends StatelessWidget {
     final color = isTransfer ? AppColors.transfer.toARGB32() : category?.color;
 
     return InkWell(
-      onTap: () => _apply(context),
+      onTap: () =>
+          context.push(AppRoute.add, extra: AddTransactionArgs(prefill: t)),
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Container(
         // Wide enough that a three-word favorite ("Uang Makan Mingguan") wraps
@@ -118,29 +121,5 @@ class _FavoriteChip extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// Applies the favorite and reacts to the cubit's [ApplyFavoriteResult]:
-  /// commit → a success toast; amount-less → open the prefilled add-form;
-  /// failure → a localized error toast.
-  Future<void> _apply(BuildContext context) async {
-    final s = Strings.of(context)!;
-    final cubit = context.read<HomeCubit>();
-    final result = await cubit.applyFavorite(template);
-    if (!context.mounted) return;
-    switch (result) {
-      case FavoriteCommitted():
-        // The app's standard top toast (oktoast, 3s) auto-dismisses — the old
-        // inline SnackBar could linger on screen; every other action already
-        // uses this toast, so favorites now match.
-        s.favoriteApplied.toToastSuccess(context);
-      case FavoriteNeedsPrefill(:final template):
-        context.push(
-          AppRoute.add,
-          extra: AddTransactionArgs(prefill: template),
-        );
-      case FavoriteApplyFailed(:final failure):
-        failure.localize(context).toToastError(context);
-    }
   }
 }

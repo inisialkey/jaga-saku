@@ -26,8 +26,6 @@ void main() {
   late MockGetBudgetsForPeriod getBudgets;
   late MockGetFavorites getFavorites;
   late MockGetDueOccurrences getDueOccurrences;
-  late MockSaveTransaction saveTransaction;
-  late MockDeleteTransaction deleteTransaction;
   late TxChangeNotifier txChanges;
   late AppSettingsCubit appSettings;
 
@@ -59,8 +57,6 @@ void main() {
     getBudgets = MockGetBudgetsForPeriod();
     getFavorites = MockGetFavorites();
     getDueOccurrences = MockGetDueOccurrences();
-    saveTransaction = MockSaveTransaction();
-    deleteTransaction = MockDeleteTransaction();
     txChanges = TxChangeNotifier();
     // Default start-day 1 → the Home guard looks up the calendar-month cycle,
     // so every pre-M1 assertion here reproduces unchanged. The store is stubbed
@@ -84,8 +80,6 @@ void main() {
     getBudgetsForPeriod: getBudgets,
     getFavorites: getFavorites,
     getDueOccurrences: getDueOccurrences,
-    saveTransaction: saveTransaction,
-    deleteTransaction: deleteTransaction,
     txChangeNotifier: txChanges,
     appSettings: appSettings,
   );
@@ -502,54 +496,6 @@ void main() {
       await cubit.close();
     },
   );
-
-  test('applyFavorite commits a fixed-amount favorite', () async {
-    stubAll(accounts: const [], month: const [], recent: const []);
-    when(
-      () => saveTransaction(any()),
-    ).thenAnswer((_) async => const Right<Failure, int>(42));
-
-    final cubit = build();
-    final result = await cubit.applyFavorite(favorite);
-
-    expect(result, isA<FavoriteCommitted>());
-    expect((result as FavoriteCommitted).txId, 42);
-    verify(() => saveTransaction(any())).called(1);
-    await cubit.close();
-  });
-
-  test(
-    'applyFavorite on an amount-less favorite needs a prefill, no save',
-    () async {
-      stubAll(accounts: const [], month: const [], recent: const []);
-      const amountLess = TxTemplate(
-        label: 'Ask each time',
-        type: TransactionType.expense,
-        accountId: 1,
-        categoryId: 1,
-      );
-
-      final cubit = build();
-      final result = await cubit.applyFavorite(amountLess);
-
-      expect(result, isA<FavoriteNeedsPrefill>());
-      expect((result as FavoriteNeedsPrefill).template, amountLess);
-      verifyNever(() => saveTransaction(any()));
-      await cubit.close();
-    },
-  );
-
-  test('undoApply deletes the transaction', () async {
-    when(
-      () => deleteTransaction(any()),
-    ).thenAnswer((_) async => const Right<Failure, Unit>(unit));
-
-    final cubit = build();
-    await cubit.undoApply(42);
-
-    verify(() => deleteTransaction(42)).called(1);
-    await cubit.close();
-  });
 
   // ── Reserved-category exclusion (V2-M6) ─────────────────────────────────────
 

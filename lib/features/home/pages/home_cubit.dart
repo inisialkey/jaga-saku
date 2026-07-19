@@ -17,44 +17,14 @@ import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dar
 import 'package:jaga_saku/features/recurring/domain/entities/recurring_rule.dart';
 import 'package:jaga_saku/features/recurring/domain/usecases/get_due_occurrences.dart';
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
-import 'package:jaga_saku/features/templates/domain/template_to_transaction.dart';
 import 'package:jaga_saku/features/templates/domain/usecases/get_favorites.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/transaction_aggregator.dart';
-import 'package:jaga_saku/features/transactions/domain/usecases/delete_transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_recent_transactions.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/get_transactions_by_month.dart';
-import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
 
 part 'home_state.dart';
 part 'home_cubit.freezed.dart';
-
-/// The outcome of [HomeCubit.applyFavorite] the strip acts on — a plain sealed
-/// class (no codegen) mirroring `AccountListCubit.delete`'s `DeleteOutcome`. The
-/// widget switches on it: SnackBar-with-undo / navigate-to-prefill / error toast.
-sealed class ApplyFavoriteResult {}
-
-/// A fixed-amount favorite committed a transaction with id [txId] (undoable).
-class FavoriteCommitted extends ApplyFavoriteResult {
-  FavoriteCommitted(this.txId);
-
-  final int txId;
-}
-
-/// An amount-less favorite: open the add-form pre-filled from [template]
-/// (a **new** tx, never an edit).
-class FavoriteNeedsPrefill extends ApplyFavoriteResult {
-  FavoriteNeedsPrefill(this.template);
-
-  final TxTemplate template;
-}
-
-/// The instant commit failed; [failure] is localized by the widget (rule 17).
-class FavoriteApplyFailed extends ApplyFavoriteResult {
-  FavoriteApplyFailed(this.failure);
-
-  final Failure failure;
-}
 
 /// Presentation-only orchestrator for the Home dashboard (M3). Owns no domain /
 /// data layer — it composes the accounts + this-month transactions + recent
@@ -73,8 +43,6 @@ class HomeCubit extends Cubit<HomeState> {
     required GetBudgetsForPeriod getBudgetsForPeriod,
     required GetFavorites getFavorites,
     required GetDueOccurrences getDueOccurrences,
-    required SaveTransaction saveTransaction,
-    required DeleteTransaction deleteTransaction,
     required TxChangeNotifier txChangeNotifier,
     required AppSettingsCubit appSettings,
   }) : _getAccounts = getAccounts,
@@ -84,8 +52,6 @@ class HomeCubit extends Cubit<HomeState> {
        _getBudgetsForPeriod = getBudgetsForPeriod,
        _getFavorites = getFavorites,
        _getDueOccurrences = getDueOccurrences,
-       _saveTransaction = saveTransaction,
-       _deleteTransaction = deleteTransaction,
        _txChanges = txChangeNotifier,
        _appSettings = appSettings,
        super(const HomeState.initial()) {
@@ -102,8 +68,6 @@ class HomeCubit extends Cubit<HomeState> {
   final GetBudgetsForPeriod _getBudgetsForPeriod;
   final GetFavorites _getFavorites;
   final GetDueOccurrences _getDueOccurrences;
-  final SaveTransaction _saveTransaction;
-  final DeleteTransaction _deleteTransaction;
   final TxChangeNotifier _txChanges;
   final AppSettingsCubit _appSettings;
   late final StreamSubscription<void> _txSub;
@@ -325,32 +289,6 @@ class HomeCubit extends Cubit<HomeState> {
       }
     });
     return categoriesById[topId]?.name;
-  }
-
-  /// Applies a favorite. A fixed-amount favorite instant-commits a transaction
-  /// dated today (stamping `createdAt` at persist time — the pure helper is
-  /// clock-free); the transaction repo pings [TxChangeNotifier] on the save, so
-  /// the strip + cards + balances refresh via the [_txSub] subscription. An
-  /// amount-less favorite returns a prefill signal instead (no save). The strip
-  /// acts on the returned result.
-  Future<ApplyFavoriteResult> applyFavorite(TxTemplate t) async {
-    if (t.amount == null) return FavoriteNeedsPrefill(t);
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-    final tx = templateToTransaction(
-      t,
-      date: today,
-    ).copyWith(createdAt: now.millisecondsSinceEpoch);
-    final result = await _saveTransaction(tx);
-    if (isClosed) return FavoriteApplyFailed(const CacheFailure());
-    return result.fold(FavoriteApplyFailed.new, FavoriteCommitted.new);
-  }
-
-  /// Undoes a just-applied favorite by deleting its transaction; the repo pings
-  /// on the successful delete so Home refreshes via [_txSub]. Best-effort — a
-  /// failed delete leaves the tx in place.
-  Future<void> undoApply(int txId) async {
-    await _deleteTransaction(txId);
   }
 
   @override

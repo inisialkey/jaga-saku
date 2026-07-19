@@ -152,8 +152,6 @@ final GoRouter appRouter = GoRouter(
                   getBudgetsForPeriod: sl(),
                   getFavorites: sl(),
                   getDueOccurrences: sl(),
-                  saveTransaction: sl(),
-                  deleteTransaction: sl(),
                   txChangeNotifier: sl(),
                   appSettings: sl(),
                 )..load(),
