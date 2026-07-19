@@ -31,8 +31,6 @@ void main() {
   late MockGetBudgetsForPeriod getBudgets;
   late MockGetFavorites getFavorites;
   late MockGetDueOccurrences getDueOccurrences;
-  late MockSaveTransaction saveTransaction;
-  late MockDeleteTransaction deleteTransaction;
   late MockSettingsService settings;
   late AppSettingsCubit appSettings;
   late TxChangeNotifier txChanges;
@@ -48,8 +46,6 @@ void main() {
     getBudgets = MockGetBudgetsForPeriod();
     getFavorites = MockGetFavorites();
     getDueOccurrences = MockGetDueOccurrences();
-    saveTransaction = MockSaveTransaction();
-    deleteTransaction = MockDeleteTransaction();
     // The greeting name now flows from the app-global AppSettingsCubit (M6),
     // backed by a mocked SettingsService.
     settings = MockSettingsService();
@@ -81,8 +77,6 @@ void main() {
     getBudgetsForPeriod: getBudgets,
     getFavorites: getFavorites,
     getDueOccurrences: getDueOccurrences,
-    saveTransaction: saveTransaction,
-    deleteTransaction: deleteTransaction,
     txChangeNotifier: txChanges,
     appSettings: appSettings,
   );
