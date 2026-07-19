@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/database/app_database.dart';
+import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/utils/services/secure_storage/secure_storage_service.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
@@ -150,6 +152,23 @@ class MockSetAutoLockDuration extends Mock implements SetAutoLockDuration {}
 
 class MockAppLockService extends Mock implements AppLockService {}
 
+/// The `any()` fallback for [AppLockService.duringAuthPrompt]'s action — both
+/// call sites (lock-screen biometric, Security-page biometric enable) wrap a
+/// `Future<Either<Failure, bool>>`.
+Future<Either<Failure, bool>> fallbackAuthPromptAction() async =>
+    const Right(true);
+
+/// Stubs [AppLockService.duringAuthPrompt] as the pass-through it is — the real
+/// one only brackets the action with auto-lock suppression.
+void stubDuringAuthPrompt(MockAppLockService appLock) =>
+    when(
+      () => appLock.duringAuthPrompt<Either<Failure, bool>>(any()),
+    ).thenAnswer(
+      (i) =>
+          (i.positionalArguments.first
+              as Future<Either<Failure, bool>> Function())(),
+    );
+
 // ── Accounts ────────────────────────────────────────────────────────────────
 class MockAccountLocalDatasource extends Mock
     implements AccountLocalDatasource {}
@@ -278,6 +297,7 @@ class MockExportFileService extends Mock implements ExportFileService {}
 /// `any()` / `captureAny()` matchers. Idempotent — safe to call repeatedly.
 void registerFallbackValues() {
   registerFallbackValue(NoParams());
+  registerFallbackValue(fallbackAuthPromptAction);
   registerFallbackValue(const Account(name: '', type: AccountType.cash));
   registerFallbackValue(const AccountModel(name: '', type: AccountType.cash));
   registerFallbackValue(const ArchiveAccountParams(id: 0, archived: true));

@@ -40,6 +40,24 @@ void main() {
     expect(notified, 1);
   });
 
+  // Regression: refreshConfig notifying made go_router re-parse the stack from
+  // the encoded route state, dropping the non-JSON `extra` — enabling a PIN
+  // nulled out /pin-entry's own PinEntryArgs and crashed on `state.extra!`.
+  test('refreshConfig updates config without notifying the router', () async {
+    stubConfig(const LockConfig());
+    final service = build();
+    await service.load();
+    var notified = 0;
+    service.addListener(() => notified++);
+
+    stubConfig(const LockConfig(isPinEnabled: true));
+    await service.refreshConfig();
+
+    expect(service.isPinEnabled, isTrue);
+    expect(service.isLocked, isFalse);
+    expect(notified, 0);
+  });
+
   test('load with no PIN stays unlocked', () async {
     stubConfig(const LockConfig());
     final service = build();
@@ -86,15 +104,94 @@ void main() {
       final service = build();
       await service.load();
       service.unlock();
-      service.markBackgrounded();
 
+      // One background cycle under the threshold.
+      service.markBackgrounded();
       clockNow = clockNow.add(const Duration(seconds: 30));
       service.evaluateAutoLock();
       expect(service.isLocked, isFalse); // still under a minute
 
-      clockNow = clockNow.add(const Duration(seconds: 31));
+      // A second, longer one.
+      service.markBackgrounded();
+      clockNow = clockNow.add(const Duration(seconds: 61));
       service.evaluateAutoLock();
       expect(service.isLocked, isTrue); // past a minute
+    },
+  );
+
+  // Regression: `elapsed` fell back to 0 when nothing had stamped a background,
+  // and 0 >= Duration.zero (`immediately`) re-locked on any stray resume — the
+  // biometric prompt dismissing re-locked the app it had just unlocked.
+  test('a resume with no matching background never locks', () async {
+    stubConfig(const LockConfig(isPinEnabled: true));
+    final service = build();
+    await service.load();
+    service.unlock();
+
+    service.evaluateAutoLock();
+
+    expect(service.isLocked, isFalse);
+  });
+
+  test(
+    'a resume consumes its stamp — the next stray resume is inert',
+    () async {
+      stubConfig(
+        const LockConfig(
+          isPinEnabled: true,
+          autoLockDuration: AutoLockDuration.fiveMinutes,
+        ),
+      );
+      final service = build();
+      await service.load();
+      service.unlock();
+      service.markBackgrounded();
+
+      clockNow = clockNow.add(const Duration(seconds: 10));
+      service.evaluateAutoLock();
+      expect(service.isLocked, isFalse); // under five minutes
+
+      clockNow = clockNow.add(const Duration(minutes: 10));
+      service.evaluateAutoLock(); // stray resume, no background in between
+      expect(service.isLocked, isFalse);
+    },
+  );
+
+  test('duringAuthPrompt suppresses the background the sheet causes', () async {
+    stubConfig(const LockConfig(isPinEnabled: true));
+    final service = build();
+    await service.load();
+    service.unlock();
+
+    // Android backgrounds the app to show the biometric sheet, then resumes.
+    await service.duringAuthPrompt(() async {
+      service.markBackgrounded();
+      clockNow = clockNow.add(const Duration(seconds: 3));
+    });
+    service.evaluateAutoLock();
+
+    expect(service.isLocked, isFalse);
+  });
+
+  test(
+    'duringAuthPrompt still clears the stamp when the action throws',
+    () async {
+      stubConfig(const LockConfig(isPinEnabled: true));
+      final service = build();
+      await service.load();
+      service.unlock();
+
+      await expectLater(
+        service.duringAuthPrompt(() async => throw const CacheFailure()),
+        throwsA(isA<CacheFailure>()),
+      );
+      service.markBackgrounded();
+      service.evaluateAutoLock();
+
+      expect(
+        service.isLocked,
+        isTrue,
+      ); // suppression lifted, auto-lock works again
     },
   );
 

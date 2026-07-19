@@ -63,8 +63,12 @@ class SecurityCubit extends Cubit<SecurityState> {
     required String reason,
   }) async {
     emit(state.copyWith(busy: true));
-    final result = await _setBiometricEnabled(
-      SetBiometricParams(enabled: enabled, reason: reason),
+    // Enabling runs a live biometric prompt inside the repo — suppress the
+    // auto-lock across it, or the app locks itself the moment it succeeds.
+    final result = await _appLock.duringAuthPrompt(
+      () => _setBiometricEnabled(
+        SetBiometricParams(enabled: enabled, reason: reason),
+      ),
     );
     await _appLock.refreshConfig();
     if (isClosed) return BiometricToggleResult.failure;

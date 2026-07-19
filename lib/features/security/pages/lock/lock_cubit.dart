@@ -52,7 +52,9 @@ class LockCubit extends Cubit<LockState> {
   /// Runs the biometric prompt. Success unlocks; any cancel / failure is a
   /// silent PIN fallback (stays on the current state).
   Future<void> authenticateWithBiometric() async {
-    final result = await _authenticateBiometric(_biometricReason);
+    final result = await _appLock.duringAuthPrompt(
+      () => _authenticateBiometric(_biometricReason),
+    );
     if (isClosed) return;
     result.match((_) {}, (ok) {
       if (ok) _unlock();
