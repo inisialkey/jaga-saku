@@ -40,9 +40,10 @@ void main() {
     settings = MockSettingsService();
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
-    // A real AppSettingsCubit (default start-day 1) sharing the SAME notifier,
-    // so a start-day change pings the list cubit's subscription (plan §5).
-    appSettings = AppSettingsCubit(settings, txChanges);
+    // A real AppSettingsCubit (default start-day 1). V4-M2: a start-day change
+    // now reaches the list cubit over THIS cubit's own state stream, not the
+    // shared tx notifier — which stays wired for actual money writes.
+    appSettings = AppSettingsCubit(settings);
     when(
       () => getCategories(CategoryType.expense),
     ).thenAnswer((_) async => const Right<Failure, List<Category>>([cat]));
@@ -158,18 +159,33 @@ void main() {
     await cubit.close();
   });
 
-  test('changing the start-day pings and reloads with the new cycle', () async {
+  test('changing the start-day reloads with the new cycle', () async {
     stubBudgets(const []);
     final cubit = build();
     await cubit.load();
     clearInteractions(getBudgets);
 
-    await appSettings.setBudgetCycleStartDay(25); // pings the shared notifier
+    // V4-M2: this is the cubit's OWN stream now. It is also the first emission
+    // AppSettingsCubit ever makes here — the case a `.skip(1)` would swallow.
+    await appSettings.setBudgetCycleStartDay(25);
     await pumpEventQueue();
 
     verify(() => getBudgets(any())).called(1); // the reload re-read the new day
     final expected = BudgetCycle.range(startDay: 25, reference: DateTime.now());
     expect((cubit.state as BudgetListLoaded).cycleStart, expected.start);
     await cubit.close();
+  });
+
+  test('close cancels the cycle-day subscription', () async {
+    stubBudgets(const []);
+    final cubit = build();
+    await cubit.load();
+    await cubit.close();
+    clearInteractions(getBudgets);
+
+    await appSettings.setBudgetCycleStartDay(25);
+    await pumpEventQueue();
+
+    verifyNever(() => getBudgets(any()));
   });
 }

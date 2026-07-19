@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:intl/intl.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
@@ -12,14 +13,19 @@ import 'package:jaga_saku/features/backup/domain/usecases/export_backup.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/preview_backup.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/restore_backup.dart';
 import 'package:jaga_saku/features/backup/domain/usecases/validate_backup.dart';
+import 'package:jaga_saku/features/reminders/data/reminder_service.dart';
+import 'package:jaga_saku/features/security/app_lock_service.dart';
 
 part 'backup_cubit.freezed.dart';
 part 'backup_state.dart';
 
 /// Drives the Backup & Restore screen: export (→ file → share sheet), pick +
 /// validate (→ preview), and the destructive restore (safety-backup → atomic
-/// full-replace → live refresh). Every emit after an `await` is guarded by
-/// [isClosed]; there is no stream subscription, so [close] needs no override.
+/// full-replace → live refresh). A successful restore also reloads the three
+/// in-memory settings holders it just invalidated on disk (V4-M2), so the app
+/// reflects the restored data without a relaunch. Every emit after an `await` is
+/// guarded by [isClosed]; there is no stream subscription, so [close] needs no
+/// override.
 class BackupCubit extends Cubit<BackupState> {
   BackupCubit({
     required ExportBackup exportBackup,
@@ -28,12 +34,18 @@ class BackupCubit extends Cubit<BackupState> {
     required RestoreBackup restoreBackup,
     required BackupFileService backupFileService,
     required SettingsService settingsService,
+    required AppSettingsCubit appSettings,
+    required AppLockService appLock,
+    required ReminderService reminderService,
   }) : _exportBackup = exportBackup,
        _validateBackup = validateBackup,
        _previewBackup = previewBackup,
        _restoreBackup = restoreBackup,
        _fileService = backupFileService,
        _settings = settingsService,
+       _appSettings = appSettings,
+       _appLock = appLock,
+       _reminderService = reminderService,
        super(const BackupState.idle());
 
   final ExportBackup _exportBackup;
@@ -42,6 +54,13 @@ class BackupCubit extends Cubit<BackupState> {
   final RestoreBackup _restoreBackup;
   final BackupFileService _fileService;
   final SettingsService _settings;
+
+  /// The in-memory settings holders a restore invalidates (V4-M2) — all
+  /// app-global singletons, so reloading them is independent of this cubit's
+  /// own lifecycle.
+  final AppSettingsCubit _appSettings;
+  final AppLockService _appLock;
+  final ReminderService _reminderService;
 
   static const String _kLastExportedAt = 'backup.lastExportedAt';
   static const String _kLastItemCount = 'backup.lastItemCount';
@@ -151,7 +170,38 @@ class BackupCubit extends Cubit<BackupState> {
       return;
     }
     emit(BackupState.restoreSuccess(result.getRight().toNullable()!));
+
+    // V4-M2: the restore rewrote the settings table under the running app —
+    // reload every in-memory holder so theme/locale/name, the lock gate, and the
+    // scheduled reminders reflect the restored data live (no relaunch). These
+    // act on the app-global singletons, so BackupCubit's own lifecycle doesn't
+    // gate them. `_appSettings.load()` also re-emits the restored cycle
+    // start-day, which re-windows Home / BudgetList through their subscription.
+    // Each is isolated: they are independent holders, so one failing must not
+    // cost the other two their refresh (that would be the staleness this fix
+    // exists to remove).
+    await _reloadAfterRestore('app settings', _appSettings.load);
+    await _reloadAfterRestore('lock config', _appLock.refreshConfig);
+    await _reloadAfterRestore('reminder schedules', _reminderService.reconcile);
+
     await loadMeta();
+  }
+
+  /// Runs one post-restore reload, logging rather than rethrowing. The restore
+  /// has already committed and `restoreSuccess` is already emitted, so a failed
+  /// reload costs freshness in ONE holder — never data. It must not take the
+  /// other reloads or [loadMeta] down with it, and it must not escape: the page
+  /// calls [restore] un-awaited, so a throw would surface as an unhandled async
+  /// error. The realistic thrower is `reconcile()`'s MethodChannel / `tz` seam.
+  Future<void> _reloadAfterRestore(
+    String what,
+    Future<void> Function() reload,
+  ) async {
+    try {
+      await reload();
+    } catch (e, s) {
+      log.e('Post-restore reload failed: $what', error: e, stackTrace: s);
+    }
   }
 
   String _exportFileName(int millis) =>

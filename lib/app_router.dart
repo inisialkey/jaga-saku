@@ -419,6 +419,10 @@ final GoRouter appRouter = GoRouter(
           restoreBackup: sl(),
           backupFileService: sl(),
           settingsService: sl(),
+          // V4-M2: the in-memory holders a restore invalidates.
+          appSettings: sl(),
+          appLock: sl(),
+          reminderService: sl(),
         )..loadMeta(),
         child: const BackupPage(),
       ),

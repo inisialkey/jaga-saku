@@ -98,17 +98,15 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   sl.registerSingleton<AppDatabase>(AppDatabase.instance);
   sl.registerLazySingleton<SettingsService>(() => SettingsService(sl()));
   // Cross-feature "transactions changed" signal (M3 / W2 fix). App-lifetime
-  // singleton — producers ping it, Home + Calendar + Budget cubits subscribe.
-  // Registered BEFORE AppSettingsCubit, which pings it on a cycle-start-day
-  // change so every budget view recomputes its window live (V2-M1, plan §5).
+  // singleton — the repo write seam pings it (V4-M1), Home + Calendar + Budget
+  // cubits subscribe. A cycle-start-day change no longer routes through here:
+  // it rides AppSettingsCubit's own stream to its 3 real consumers (V4-M2).
   sl.registerLazySingleton<TxChangeNotifier>(() => TxChangeNotifier());
   // App-global preferences (theme / locale / greeting name / budget cycle
   // start-day). Singleton so `app.dart` + the Home greeting + the Settings
   // screens + the budget cubits all share one reactive instance; `main()`
   // `load()`s it before `runApp` (no flash).
-  sl.registerLazySingleton<AppSettingsCubit>(
-    () => AppSettingsCubit(sl(), sl()),
-  );
+  sl.registerLazySingleton<AppSettingsCubit>(() => AppSettingsCubit(sl()));
   // First file-I/O service (V2-M4). docsDirProvider is the testability seam —
   // prod wires path_provider; unit tests inject a temp dir (no MethodChannel).
   sl.registerLazySingleton<ReceiptStorageService>(
@@ -300,6 +298,7 @@ void _registerReminders() {
         getBudgetsForPeriod: sl(),
         getCategories: sl(),
         txChanges: sl(),
+        appSettings: sl(),
       ),
     );
 }

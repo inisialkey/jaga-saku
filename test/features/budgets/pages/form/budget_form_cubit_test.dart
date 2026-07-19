@@ -27,10 +27,7 @@ void main() {
     getBudgets = MockGetBudgetsForPeriod();
     // Real cubit at the default start-day 1 → the resolved cycle is the exact
     // calendar month, so the pre-M1 period assertions reproduce.
-    appSettings = AppSettingsCubit(
-      MockSettingsService(),
-      MockTxChangeNotifier(),
-    );
+    appSettings = AppSettingsCubit(MockSettingsService());
     when(
       () => getCategories(CategoryType.expense),
     ).thenAnswer((_) async => const Right<Failure, List<Category>>([cat]));

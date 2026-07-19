@@ -13,16 +13,14 @@ import '../../../helpers/pump_app.dart';
 /// selector and the name editor both read + write the cubit.
 void main() {
   late MockSettingsService settings;
-  late MockTxChangeNotifier txChanges;
   late AppSettingsCubit cubit;
 
   setUp(() {
     settings = MockSettingsService();
-    txChanges = MockTxChangeNotifier();
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
     // Default (unloaded) state → System locale, no name, start-day 1.
-    cubit = AppSettingsCubit(settings, txChanges);
+    cubit = AppSettingsCubit(settings);
   });
 
   tearDown(() => cubit.close());
@@ -101,9 +99,7 @@ void main() {
     expect(find.text('Monthly calendar'), findsOneWidget);
   });
 
-  testWidgets('picking a start day persists it and pings the tx bus', (
-    tester,
-  ) async {
+  testWidgets('picking a start day persists it', (tester) async {
     await pump(tester);
 
     // Tapping the row opens the picker; choose a day near the top of the sheet.
@@ -114,8 +110,6 @@ void main() {
 
     expect(cubit.state.budgetCycleStartDay, 3);
     verify(() => settings.setString('budget_cycle_start_day', '3')).called(1);
-    // A cycle-window change is a derived-money-view change (plan §5).
-    verify(() => txChanges.ping()).called(1);
   });
 
   testWidgets('the start-day picker opens scrolled to the selected day '

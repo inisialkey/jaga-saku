@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/database/app_database.dart';
 import 'package:jaga_saku/core/utils/services/secure_storage/secure_storage_service.dart';
 import 'package:jaga_saku/core/usecase/usecase.dart';
@@ -107,6 +108,11 @@ class MockAppDatabase extends Mock implements AppDatabase {}
 class MockSettingsService extends Mock implements SettingsService {}
 
 class MockTxChangeNotifier extends Mock implements TxChangeNotifier {}
+
+/// Only `load()` is stubbed by its users; `.state` / `.stream` are left
+/// unstubbed because the seeded `onCycleStartDayChanged` extension needs a REAL
+/// cubit — mock one and it throws.
+class MockAppSettingsCubit extends Mock implements AppSettingsCubit {}
 
 class MockReceiptStorageService extends Mock implements ReceiptStorageService {}
 

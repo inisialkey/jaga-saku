@@ -1,3 +1,4 @@
+import 'package:jaga_saku/core/utils/services/settings/settings_keys.dart';
 import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
 import 'package:jaga_saku/features/reminders/domain/entities/reminder_config.dart';
 
@@ -10,13 +11,6 @@ class ReminderLocalDatasource {
   ReminderLocalDatasource(this._settings);
 
   final SettingsService _settings;
-
-  /// `locale` + `budget_cycle_start_day` are OWNED by `AppSettingsCubit` (their
-  /// key consts are private there). Read-only here — to localize notification
-  /// copy and to compute the current budget period the warning check runs
-  /// against — so the key names are mirrored, not shared.
-  static const String _localeKey = 'locale';
-  static const String _cycleStartDayKey = 'budget_cycle_start_day';
 
   /// Reads every reminder flag + the daily time into a [ReminderConfig]. Unset
   /// keys fall back to the [ReminderConfig] defaults (all off, 20:00).
@@ -68,15 +62,19 @@ class ReminderLocalDatasource {
   Future<void> markWarned(String markerKey) =>
       _settings.setString(markerKey, '1');
 
-  /// The budget cycle start-day (`AppSettingsCubit`'s key) — feeds
-  /// `BudgetCycle.range` so the warning check reads the same current period the
-  /// app does. Unset / unparseable → 1 (the calendar-month default).
+  /// The budget cycle start-day (`AppSettingsCubit` owns it — read-only here via
+  /// [SettingsKeys]) — feeds `BudgetCycle.range` so the warning check reads the
+  /// same current period the app does. Unset / unparseable → 1 (the
+  /// calendar-month default).
   Future<int> readBudgetCycleStartDay() async =>
-      int.tryParse(await _settings.getString(_cycleStartDayKey) ?? '') ?? 1;
+      int.tryParse(
+        await _settings.getString(SettingsKeys.budgetCycleStartDay) ?? '',
+      ) ??
+      1;
 
   /// The persisted locale code (`AppSettingsCubit`'s key) for notification copy;
   /// `null` / `'system'` → the service falls back to Indonesian.
-  Future<String?> readLocaleCode() => _settings.getString(_localeKey);
+  Future<String?> readLocaleCode() => _settings.getString(SettingsKeys.locale);
 
   /// `"HH:mm"` → `(hour, minute)`; unset / malformed → the [ReminderConfig]
   /// default (20:00), keeping that default in exactly one place.

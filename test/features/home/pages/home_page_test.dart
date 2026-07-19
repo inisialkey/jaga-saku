@@ -54,7 +54,7 @@ void main() {
     // backed by a mocked SettingsService.
     settings = MockSettingsService();
     txChanges = TxChangeNotifier();
-    appSettings = AppSettingsCubit(settings, txChanges);
+    appSettings = AppSettingsCubit(settings);
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
     when(
