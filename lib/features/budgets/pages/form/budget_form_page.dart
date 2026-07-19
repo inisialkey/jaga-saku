@@ -73,14 +73,14 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
             body: ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
-                _FieldLabel(s.selectMonth),
+                FieldLabel(s.selectMonth),
                 MonthSelector(
                   month: state.month,
                   onPrevious: cubit.previousMonth,
                   onNext: cubit.nextMonth,
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.category),
+                FieldLabel(s.category),
                 SelectorField(
                   label: state.selectedCategory?.name ?? s.selectCategory,
                   icon: state.selectedCategory == null
@@ -89,7 +89,7 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
                   onTap: () => _pickCategory(context),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.budgetLimit),
+                FieldLabel(s.budgetLimit),
                 AmountInputField(
                   controller: _limitController,
                   onChanged: (value) =>
@@ -123,21 +123,4 @@ class _BudgetFormPageState extends State<BudgetFormPage> {
     );
     if (category?.id != null) cubit.categoryChanged(category!.id!);
   }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-    child: Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.bodySmall?.copyWith(color: context.colors.textSecondary),
-    ),
-  );
 }

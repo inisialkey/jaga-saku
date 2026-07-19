@@ -66,7 +66,7 @@ class _AccountFormPageState extends State<AccountFormPage> {
             body: ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
-                _FieldLabel(s.accountType),
+                FieldLabel(s.accountType),
                 SegmentedControl<AccountType>(
                   selected: state.type,
                   onChanged: cubit.typeChanged,
@@ -77,15 +77,15 @@ class _AccountFormPageState extends State<AccountFormPage> {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.accountName),
+                FieldLabel(s.accountName),
                 TextField(
                   controller: _nameController,
                   onChanged: cubit.nameChanged,
                   textCapitalization: TextCapitalization.words,
-                  decoration: _inputDecoration(context, hint: s.accountName),
+                  decoration: appInputDecoration(context, hint: s.accountName),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _FieldLabel(s.openingBalance),
+                FieldLabel(s.openingBalance),
                 AmountInputField(
                   controller: _amountController,
                   onChanged: (value) =>
@@ -166,43 +166,4 @@ class _AccountFormPageState extends State<AccountFormPage> {
     );
     if (argb != null) cubit.colorChanged(argb);
   }
-}
-
-InputDecoration _inputDecoration(BuildContext context, {required String hint}) {
-  final border = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(14),
-    borderSide: BorderSide(color: context.colors.border),
-  );
-  return InputDecoration(
-    hintText: hint,
-    filled: true,
-    fillColor: Theme.of(context).cardColor,
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.lg,
-      vertical: 14,
-    ),
-    border: border,
-    enabledBorder: border,
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.primary),
-    ),
-  );
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-    child: Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.bodySmall?.copyWith(color: context.colors.textSecondary),
-    ),
-  );
 }
