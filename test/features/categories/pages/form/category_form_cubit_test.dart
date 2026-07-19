@@ -138,4 +138,55 @@ void main() {
       CategoryFormState(name: 'X', type: CategoryType.income),
     ],
   );
+
+  blocTest<CategoryFormCubit, CategoryFormState>(
+    'parentChanged(null) clears the parent selection',
+    build: () => CategoryFormCubit(
+      saveCategory: saveCategory,
+      getCategories: getCategories,
+    ),
+    seed: () => const CategoryFormState(name: 'X', parentId: 3),
+    act: (cubit) => cubit.parentChanged(null),
+    expect: () => const [CategoryFormState(name: 'X')],
+  );
+
+  // W2: the failed-submit → switch-type path. Seeds a non-default status/error
+  // so the copyWith resets are load-bearing (a stale failure would otherwise
+  // survive the switch and re-fire the page's failure listener).
+  blocTest<CategoryFormCubit, CategoryFormState>(
+    'typeChanged clears a failed submit (status / error)',
+    setUp: () => when(
+      () => getCategories(CategoryType.income),
+    ).thenAnswer((_) async => const Right<Failure, List<Category>>([])),
+    build: () => CategoryFormCubit(
+      saveCategory: saveCategory,
+      getCategories: getCategories,
+    ),
+    seed: () => const CategoryFormState(
+      name: 'X',
+      parentId: 3,
+      status: CategoryFormStatus.failure,
+      error: CacheFailure(),
+    ),
+    act: (cubit) => cubit.typeChanged(CategoryType.income),
+    expect: () => const [
+      CategoryFormState(name: 'X', type: CategoryType.income),
+    ],
+  );
+
+  // W2: same for the other reset-bearing site.
+  blocTest<CategoryFormCubit, CategoryFormState>(
+    'parentChanged clears a failed submit (status / error)',
+    build: () => CategoryFormCubit(
+      saveCategory: saveCategory,
+      getCategories: getCategories,
+    ),
+    seed: () => const CategoryFormState(
+      name: 'X',
+      status: CategoryFormStatus.failure,
+      error: CacheFailure(),
+    ),
+    act: (cubit) => cubit.parentChanged(3),
+    expect: () => const [CategoryFormState(name: 'X', parentId: 3)],
+  );
 }

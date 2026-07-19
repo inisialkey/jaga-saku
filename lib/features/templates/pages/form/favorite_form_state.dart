@@ -11,7 +11,7 @@ enum FavoriteFormStatus { editing, saving, success, failure }
 /// instant-committing. `id` / `sortOrder` / `createdAt` are preserved by the
 /// cubit from the initial template on save.
 @freezed
-abstract class FavoriteFormState with _$FavoriteFormState {
+abstract class FavoriteFormState with _$FavoriteFormState, TxFormFields {
   const factory FavoriteFormState({
     @Default('') String label,
     @Default(TransactionType.expense) TransactionType type,
@@ -38,29 +38,6 @@ abstract class FavoriteFormState with _$FavoriteFormState {
   const FavoriteFormState._();
 
   bool get isSaving => status == FavoriteFormStatus.saving;
-
-  bool get isTransfer => type == TransactionType.transfer;
-
-  bool get isExpense => type == TransactionType.expense;
-
-  /// Active (non-archived) accounts offered by the account pickers.
-  List<Account> get selectableAccounts =>
-      accounts.where((a) => !a.archived).toList();
-
-  /// Non-archived categories matching the current [type] for the category picker.
-  List<Category> get categoriesForType =>
-      categories.where((c) => !c.archived && _typeMatches(c)).toList();
-
-  Account? get selectedAccount => _accountById(accountId);
-
-  Account? get selectedToAccount => _accountById(toAccountId);
-
-  Category? get selectedCategory {
-    for (final c in categories) {
-      if (c.id == categoryId) return c;
-    }
-    return null;
-  }
 
   /// First failing field for the invalid-submit toast (D1), in the same order as
   /// [isValid]. Amount is intentionally excluded (a favorite may be amount-less).
@@ -105,17 +82,4 @@ abstract class FavoriteFormState with _$FavoriteFormState {
     spendingType,
     note,
   );
-
-  bool _typeMatches(Category c) => switch (type) {
-    TransactionType.income => c.type == CategoryType.income,
-    _ => c.type == CategoryType.expense,
-  };
-
-  Account? _accountById(int? id) {
-    if (id == null) return null;
-    for (final a in accounts) {
-      if (a.id == id) return a;
-    }
-    return null;
-  }
 }

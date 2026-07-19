@@ -22,7 +22,7 @@ enum AddTxValidation {
 /// `id` / `createdAt` are preserved by the cubit from the initial transaction on
 /// save; everything the UI edits lives here.
 @freezed
-abstract class AddTransactionState with _$AddTransactionState {
+abstract class AddTransactionState with _$AddTransactionState, TxFormFields {
   const factory AddTransactionState({
     @Default(TransactionType.expense) TransactionType type,
     @Default(0) int amount,
@@ -61,33 +61,6 @@ abstract class AddTransactionState with _$AddTransactionState {
 
   bool get isSaving => status == AddTxStatus.saving;
 
-  bool get isTransfer => type == TransactionType.transfer;
-
-  bool get isExpense => type == TransactionType.expense;
-
-  /// Active (non-archived) accounts offered by the account pickers.
-  List<Account> get selectableAccounts =>
-      accounts.where((a) => !a.archived).toList();
-
-  /// Non-archived categories matching the current [type] for the category
-  /// picker. Reserved system categories (V2-M6 reconcile pair) are hidden here —
-  /// but kept in [categories] so [selectedCategory] still resolves an edited
-  /// adjustment's label.
-  List<Category> get categoriesForType => categories
-      .where((c) => !c.archived && !c.isSystem && _typeMatches(c))
-      .toList();
-
-  Account? get selectedAccount => _accountById(accountId);
-
-  Account? get selectedToAccount => _accountById(toAccountId);
-
-  Category? get selectedCategory {
-    for (final c in categories) {
-      if (c.id == categoryId) return c;
-    }
-    return null;
-  }
-
   /// All required fields for the current type are present — drives the Save
   /// button's enabled state. Mirrors the cubit's submit-time validation.
   bool get isValid {
@@ -123,17 +96,4 @@ abstract class AddTransactionState with _$AddTransactionState {
     note,
     receiptPath,
   );
-
-  bool _typeMatches(Category c) => switch (type) {
-    TransactionType.income => c.type == CategoryType.income,
-    _ => c.type == CategoryType.expense,
-  };
-
-  Account? _accountById(int? id) {
-    if (id == null) return null;
-    for (final a in accounts) {
-      if (a.id == id) return a;
-    }
-    return null;
-  }
 }

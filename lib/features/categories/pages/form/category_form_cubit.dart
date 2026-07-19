@@ -74,15 +74,15 @@ class CategoryFormCubit extends Cubit<CategoryFormState> {
 
   void typeChanged(CategoryType type) {
     if (type == state.type) return;
-    // Switching type invalidates the parent (parents are same-type); rebuild the
-    // state so parentId can be cleared to null (freezed copyWith can't null it).
+    // Switching type invalidates the parent (parents are same-type): clear the
+    // selection + its options, then reload same-type parents.
     emit(
-      CategoryFormState(
+      state.copyWith(
         type: type,
-        name: state.name,
-        icon: state.icon,
-        color: state.color,
-        isEditing: state.isEditing,
+        parentId: null,
+        parentOptions: const <Category>[],
+        status: CategoryFormStatus.editing,
+        error: null,
       ),
     );
     loadParents();
@@ -90,15 +90,12 @@ class CategoryFormCubit extends Cubit<CategoryFormState> {
 
   void nameChanged(String name) => emit(state.copyWith(name: name));
 
+  /// Sets or clears (`null`) the parent selection.
   void parentChanged(int? parentId) => emit(
-    CategoryFormState(
-      type: state.type,
-      name: state.name,
+    state.copyWith(
       parentId: parentId,
-      icon: state.icon,
-      color: state.color,
-      parentOptions: state.parentOptions,
-      isEditing: state.isEditing,
+      status: CategoryFormStatus.editing,
+      error: null,
     ),
   );
 

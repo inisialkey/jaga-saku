@@ -6,7 +6,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
-import 'package:jaga_saku/core/usecase/usecase.dart';
 import 'package:jaga_saku/core/utils/helper/common.dart';
 import 'package:jaga_saku/core/utils/services/receipt_storage_service.dart';
 import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
@@ -20,6 +19,7 @@ import 'package:jaga_saku/features/categories/domain/usecases/get_categories.dar
 import 'package:jaga_saku/features/templates/domain/entities/tx_template.dart';
 import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart';
 import 'package:jaga_saku/features/transactions/domain/usecases/save_transaction.dart';
+import 'package:jaga_saku/features/transactions/pages/form/tx_form_fields.dart';
 
 part 'add_transaction_state.dart';
 part 'add_transaction_cubit.freezed.dart';
@@ -122,37 +122,29 @@ class AddTransactionCubit extends Cubit<AddTransactionState> {
   /// leave the lists empty (the pickers show an empty state) rather than
   /// blocking the form — a save still surfaces its own failure.
   Future<void> load() async {
-    final accountsResult = await _getAccounts(NoParams());
-    final expenseResult = await _getCategories(CategoryType.expense);
-    final incomeResult = await _getCategories(CategoryType.income);
-    if (isClosed) return;
-    final accounts =
-        accountsResult.getRight().toNullable() ?? const <Account>[];
-    final expense = expenseResult.getRight().toNullable() ?? const <Category>[];
-    final income = incomeResult.getRight().toNullable() ?? const <Category>[];
-    emit(
-      state.copyWith(accounts: accounts, categories: [...expense, ...income]),
+    final (accounts, categories) = await loadTxFormLookups(
+      _getAccounts,
+      _getCategories,
     );
+    if (isClosed) return;
+    emit(state.copyWith(accounts: accounts, categories: categories));
   }
 
   void typeChanged(TransactionType type) {
     if (type == state.type) return;
-    // Switching type resets the type-specific fields. Rebuild the state (not
-    // copyWith) so category / toAccount / planned / spending genuinely clear to
-    // null — freezed's copyWith cannot set a field back to null.
+    // Switching type clears the type-specific fields; copyWith preserves the
+    // rest (incl. the picked receipt — the C3 drop-on-rebuild can't recur).
     emit(
-      AddTransactionState(
+      state.copyWith(
         type: type,
-        amount: state.amount,
-        accountId: state.accountId,
-        date: state.date,
-        note: state.note,
-        accounts: state.accounts,
-        categories: state.categories,
-        isEditing: state.isEditing,
-        // C3: this rebuild drops any field not re-listed. Carry the picked
-        // receipt so switching type never silently discards it.
-        receiptPath: state.receiptPath,
+        toAccountId: null,
+        categoryId: null,
+        plannedStatus: null,
+        spendingType: null,
+        status: AddTxStatus.editing,
+        validation: AddTxValidation.none,
+        error: null,
+        safeDaily: 0,
       ),
     );
   }
