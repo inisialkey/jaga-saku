@@ -34,10 +34,7 @@ void main() {
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
     receiptStorage = MockReceiptStorageService();
-    appSettings = AppSettingsCubit(
-      MockSettingsService(),
-      MockTxChangeNotifier(),
-    );
+    appSettings = AppSettingsCubit(MockSettingsService());
     when(
       () => getAccounts(any()),
     ).thenAnswer((_) async => const Right<Failure, List<Account>>([]));

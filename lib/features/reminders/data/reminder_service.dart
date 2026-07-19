@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:jaga_saku/app_router.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/localization/generated/strings.dart';
 import 'package:jaga_saku/core/localization/generated/strings_en.dart';
 import 'package:jaga_saku/core/localization/generated/strings_id.dart';
@@ -33,7 +34,9 @@ import 'package:timezone/timezone.dart' as tz;
 /// reads config, fetches the derived surfaces (`GetDueOccurrences` /
 /// `GetBudgetsForPeriod` / `GetCategories`), and applies the plan through the
 /// plugin. App-lifetime DI singleton — it subscribes once to [TxChangeNotifier]
-/// for the live budget-warning path and is never disposed.
+/// (a money write) and once to [AppSettingsCubit]'s stream (a cycle start-day
+/// change re-windows the warning period, V4-M2), both for the live
+/// budget-warning path, and is never disposed.
 ///
 /// `//coverage:ignore-file`: this is the untestable MethodChannel / `tz` seam;
 /// every branch of the logic it orchestrates is unit-tested in the pure usecases
@@ -47,13 +50,15 @@ class ReminderService {
     required GetBudgetsForPeriod getBudgetsForPeriod,
     required GetCategories getCategories,
     required TxChangeNotifier txChanges,
+    required AppSettingsCubit appSettings,
   }) : _datasource = datasource,
        _reconcileReminders = reconcileReminders,
        _checkBudgetWarnings = checkBudgetWarnings,
        _getDueOccurrences = getDueOccurrences,
        _getBudgetsForPeriod = getBudgetsForPeriod,
        _getCategories = getCategories,
-       _txChanges = txChanges;
+       _txChanges = txChanges,
+       _appSettings = appSettings;
 
   final ReminderLocalDatasource _datasource;
   final ReconcileReminders _reconcileReminders;
@@ -62,6 +67,7 @@ class ReminderService {
   final GetBudgetsForPeriod _getBudgetsForPeriod;
   final GetCategories _getCategories;
   final TxChangeNotifier _txChanges;
+  final AppSettingsCubit _appSettings;
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
@@ -71,6 +77,7 @@ class ReminderService {
   static const String _channelName = 'Reminders';
 
   StreamSubscription<void>? _txSub;
+  StreamSubscription<AppSettingsState>? _cycleSub;
 
   /// Bootstrap: create the Android channel, init the plugin (with the tap
   /// callback), subscribe once to the tx bus for the live budget path, and
@@ -107,6 +114,13 @@ class ReminderService {
     // write pings the bus → re-check current-period budget crossings live.
     _txSub ??= _txChanges.changes.listen(
       (_) => unawaited(recomputeBudgetWarnings()),
+    );
+
+    // V4-M2: a cycle start-day change shifts the WARNING PERIOD (daily +
+    // recurring schedules are cycle-day-independent), so recompute the budget
+    // crossings only — no full reconcile. Same app-lifetime shape as _txSub.
+    _cycleSub ??= _appSettings.onCycleStartDayChanged(
+      () => unawaited(recomputeBudgetWarnings()),
     );
 
     // Cold launch by a notification tap: the router isn't mounted yet at init(),
@@ -193,12 +207,14 @@ class ReminderService {
     await _applyBudgetWarnings(warnings);
   }
 
-  /// Cancels the tx-bus subscription. Production never calls this — the DI
-  /// singleton lives for the whole app — so the subscription is app-lifetime by
-  /// design; this exists purely so it is formally cancellable (and for tests).
+  /// Cancels the tx-bus + cycle-day subscriptions. Production never calls this —
+  /// the DI singleton lives for the whole app — so they are app-lifetime by
+  /// design; this exists purely so they are formally cancellable (and for tests).
   Future<void> dispose() async {
     await _txSub?.cancel();
     _txSub = null;
+    await _cycleSub?.cancel();
+    _cycleSub = null;
   }
 
   void _onTap(NotificationResponse response) =>

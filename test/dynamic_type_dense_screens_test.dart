@@ -186,7 +186,7 @@ void main() {
     final settings = MockSettingsService();
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
-    final appSettings = AppSettingsCubit(settings, txChanges);
+    final appSettings = AppSettingsCubit(settings);
     addTearDown(() async {
       await appSettings.close();
       txChanges.dispose();

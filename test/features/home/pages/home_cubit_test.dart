@@ -63,11 +63,12 @@ void main() {
     deleteTransaction = MockDeleteTransaction();
     txChanges = TxChangeNotifier();
     // Default start-day 1 → the Home guard looks up the calendar-month cycle,
-    // so every pre-M1 assertion here reproduces unchanged.
-    appSettings = AppSettingsCubit(
-      MockSettingsService(),
-      MockTxChangeNotifier(),
-    );
+    // so every pre-M1 assertion here reproduces unchanged. The store is stubbed
+    // (not bare) because V4-M2 drives a real setBudgetCycleStartDay write below.
+    final appStore = MockSettingsService();
+    when(() => appStore.getString(any())).thenAnswer((_) async => null);
+    when(() => appStore.setString(any(), any())).thenAnswer((_) async {});
+    appSettings = AppSettingsCubit(appStore);
   });
 
   tearDown(() async {
@@ -256,6 +257,34 @@ void main() {
     verify(() => getAccounts(any())).called(2);
     expect(cubit.state, isA<HomeLoaded>());
     await cubit.close();
+  });
+
+  // V4-M2: the start-day signal moved OFF the tx bus onto AppSettingsCubit's
+  // own stream — the guard's cycle window must still re-window live.
+  test('a budget cycle start-day change reloads Home', () async {
+    stubAll(accounts: const [], month: const [], recent: const []);
+    final cubit = build();
+    await cubit.load();
+    clearInteractions(getAccounts);
+
+    await appSettings.setBudgetCycleStartDay(15);
+    await pumpEventQueue();
+
+    verify(() => getAccounts(any())).called(1);
+    await cubit.close();
+  });
+
+  test('close cancels the cycle-day subscription', () async {
+    stubAll(accounts: const [], month: const [], recent: const []);
+    final cubit = build();
+    await cubit.load();
+    await cubit.close();
+    clearInteractions(getAccounts);
+
+    await appSettings.setBudgetCycleStartDay(15);
+    await pumpEventQueue();
+
+    verifyNever(() => getAccounts(any()));
   });
 
   test('budgetGuard surfaces the most at-risk budget (max ratio)', () async {

@@ -60,9 +60,10 @@ class FavoriteApplyFailed extends ApplyFavoriteResult {
 /// data layer — it composes the accounts + this-month transactions + recent
 /// list + category usecases (all through DI, like `calendar/`) into a
 /// [HomeDashboard] computed in Dart. Subscribes to [TxChangeNotifier] so any
-/// add / edit / delete anywhere refreshes Home live (the M2 W2 fix); the
-/// subscription is cancelled in [close] (rule 7). Every emit is guarded by
-/// [isClosed] (rule 5).
+/// add / edit / delete anywhere refreshes Home live (the M2 W2 fix), and to
+/// [AppSettingsCubit]'s own stream so a budget cycle start-day change re-windows
+/// the guard (V4-M2); both subscriptions are cancelled in [close] (rule 7).
+/// Every emit is guarded by [isClosed] (rule 5).
 class HomeCubit extends Cubit<HomeState> {
   HomeCubit({
     required GetAccounts getAccounts,
@@ -89,6 +90,9 @@ class HomeCubit extends Cubit<HomeState> {
        _appSettings = appSettings,
        super(const HomeState.initial()) {
     _txSub = _txChanges.changes.listen((_) => load());
+    // V4-M2: the budget guard's cycle window comes from the global start-day, so
+    // reload when THAT changes — off the cubit's own stream, not the tx bus.
+    _cycleSub = _appSettings.onCycleStartDayChanged(load);
   }
 
   final GetAccounts _getAccounts;
@@ -103,6 +107,7 @@ class HomeCubit extends Cubit<HomeState> {
   final TxChangeNotifier _txChanges;
   final AppSettingsCubit _appSettings;
   late final StreamSubscription<void> _txSub;
+  late final StreamSubscription<AppSettingsState> _cycleSub;
 
   static const int _recentLimit = 5;
 
@@ -351,6 +356,7 @@ class HomeCubit extends Cubit<HomeState> {
   @override
   Future<void> close() {
     _txSub.cancel();
+    _cycleSub.cancel();
     return super.close();
   }
 }

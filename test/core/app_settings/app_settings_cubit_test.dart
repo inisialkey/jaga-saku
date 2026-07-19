@@ -11,16 +11,14 @@ import '../../helpers/mocks.dart';
 /// persists it under the right key/value.
 void main() {
   late MockSettingsService settings;
-  late MockTxChangeNotifier txChanges;
 
   setUp(() {
     settings = MockSettingsService();
-    txChanges = MockTxChangeNotifier();
     when(() => settings.getString(any())).thenAnswer((_) async => null);
     when(() => settings.setString(any(), any())).thenAnswer((_) async {});
   });
 
-  AppSettingsCubit build() => AppSettingsCubit(settings, txChanges);
+  AppSettingsCubit build() => AppSettingsCubit(settings);
 
   group('load', () {
     test(
@@ -113,17 +111,13 @@ void main() {
 
   group('setBudgetCycleStartDay', () {
     blocTest<AppSettingsCubit, AppSettingsState>(
-      'emits the day, persists it as a string, and pings the tx bus',
+      'emits the day and persists it as a string',
       build: build,
       act: (c) => c.setBudgetCycleStartDay(25),
       expect: () => [const AppSettingsState(budgetCycleStartDay: 25)],
-      verify: (_) {
-        verify(
-          () => settings.setString('budget_cycle_start_day', '25'),
-        ).called(1);
-        // A cycle-window change is a derived-money-view change (plan §5).
-        verify(() => txChanges.ping()).called(1);
-      },
+      verify: (_) => verify(
+        () => settings.setString('budget_cycle_start_day', '25'),
+      ).called(1),
     );
 
     blocTest<AppSettingsCubit, AppSettingsState>(
@@ -135,6 +129,70 @@ void main() {
         () => settings.setString('budget_cycle_start_day', '31'),
       ).called(1),
     );
+  });
+
+  // V4-M2: the cycle-day signal rides this cubit's own stream. These pin the two
+  // traps a bare `.map(day).distinct().skip(1)` falls into — bloc's `.stream`
+  // does not replay the current state, so `.distinct()` passes on the FIRST
+  // emission of any field and `.skip(1)` then eats the first REAL day change.
+  group('onCycleStartDayChanged', () {
+    test(
+      'fires on the first real day change (even as the first emit)',
+      () async {
+        final cubit = build();
+        var fired = 0;
+        final sub = cubit.onCycleStartDayChanged(() => fired++);
+
+        await cubit.setBudgetCycleStartDay(25);
+        await pumpEventQueue();
+
+        expect(fired, 1); // `.skip(1)` would have swallowed this
+        await sub.cancel();
+        await cubit.close();
+      },
+    );
+
+    test('never fires for a theme / locale / name emit', () async {
+      final cubit = build();
+      var fired = 0;
+      final sub = cubit.onCycleStartDayChanged(() => fired++);
+
+      await cubit.setThemeMode(ThemeMode.dark);
+      await cubit.setLocale(const Locale('en'));
+      await cubit.setUserName('Budi');
+      await pumpEventQueue();
+
+      expect(fired, 0); // a bare `.distinct()` would fire on the theme emit
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('does not fire when the day is re-set to the same value', () async {
+      final cubit = build();
+      await cubit.setBudgetCycleStartDay(25);
+      var fired = 0;
+      final sub = cubit.onCycleStartDayChanged(() => fired++);
+
+      await cubit.setBudgetCycleStartDay(25);
+      await pumpEventQueue();
+
+      expect(fired, 0);
+      await sub.cancel();
+      await cubit.close();
+    });
+
+    test('a cancelled subscription stops firing', () async {
+      final cubit = build();
+      var fired = 0;
+      final sub = cubit.onCycleStartDayChanged(() => fired++);
+      await sub.cancel();
+
+      await cubit.setBudgetCycleStartDay(25);
+      await pumpEventQueue();
+
+      expect(fired, 0);
+      await cubit.close();
+    });
   });
 
   group('setThemeMode', () {

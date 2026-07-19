@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:jaga_saku/core/utils/services/settings/settings_keys.dart';
 import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
-import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 
 part 'app_settings_state.dart';
 part 'app_settings_cubit.freezed.dart';
@@ -20,15 +21,9 @@ part 'app_settings_cubit.freezed.dart';
 /// emit is guarded by [isClosed] (rule 5). App-lifetime singleton — never
 /// closed (like `TxChangeNotifier`).
 class AppSettingsCubit extends Cubit<AppSettingsState> {
-  AppSettingsCubit(this._settings, this._txChanges)
-    : super(const AppSettingsState());
+  AppSettingsCubit(this._settings) : super(const AppSettingsState());
 
   final SettingsService _settings;
-
-  /// A budget cycle-window change is a derived-money-view change: pinging this
-  /// makes Home / Insight / BudgetList (already subscribed) reload and re-read
-  /// the new start-day live (plan §5).
-  final TxChangeNotifier _txChanges;
 
   // `locale` + `budget_cycle_start_day` are read by ReminderLocalDatasource
   // too, so they live in the shared registry; theme/name are private here.
@@ -88,18 +83,16 @@ class AppSettingsCubit extends Cubit<AppSettingsState> {
     emit(state.copyWith(userName: clean));
   }
 
-  /// Persists + applies the budget cycle start-day (clamped 1..31), then pings
-  /// [TxChangeNotifier] so every budget view recomputes its window live — no
-  /// restart, no new subscriptions (plan §5). Stored as a string (no getInt).
+  /// Persists + applies the budget cycle start-day (clamped 1..31). Emitting is
+  /// the whole signal (V4-M2): Home / BudgetList / ReminderService each reload
+  /// via [AppSettingsSignals.onCycleStartDayChanged] on this cubit's own stream,
+  /// so the 5 tx-bus subscribers that never read the start-day stop waking up.
+  /// Stored as a string (no getInt).
   Future<void> setBudgetCycleStartDay(int day) async {
     final clamped = day.clamp(1, 31);
     await _settings.setString(SettingsKeys.budgetCycleStartDay, '$clamped');
     if (isClosed) return;
     emit(state.copyWith(budgetCycleStartDay: clamped));
-    // ponytail: cycle-day ping stays cubit-side — SettingsService has no
-    // repository seam. Move behind a settings repo when the settings-owner
-    // refactor lands (review candidate #3).
-    _txChanges.ping();
   }
 
   ThemeMode _themeModeFrom(String? value) => switch (value) {
@@ -120,5 +113,26 @@ class AppSettingsCubit extends Cubit<AppSettingsState> {
   String? _clean(String? value) {
     final trimmed = value?.trim();
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
+}
+
+/// Fine-grained signals over [AppSettingsCubit]'s state stream.
+extension AppSettingsSignals on AppSettingsCubit {
+  /// Invokes [onChange] whenever the budget cycle **start-day changes** — never
+  /// on subscribe, and not for theme/locale/name emits. Seeds from the current
+  /// value so the first real change is caught even when it is the first state
+  /// emission (bloc streams don't replay the current state, so a bare
+  /// `.distinct().skip(1)` would both fire on an unrelated first emit AND eat
+  /// the first real change). Cancel the returned subscription in `close()` /
+  /// `dispose()` (rule 7).
+  StreamSubscription<AppSettingsState> onCycleStartDayChanged(
+    void Function() onChange,
+  ) {
+    var last = state.budgetCycleStartDay;
+    return stream.listen((s) {
+      if (s.budgetCycleStartDay == last) return;
+      last = s.budgetCycleStartDay;
+      onChange();
+    });
   }
 }

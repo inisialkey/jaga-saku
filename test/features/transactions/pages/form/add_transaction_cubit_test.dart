@@ -46,10 +46,7 @@ void main() {
     receiptStorage = MockReceiptStorageService();
     // Default start-day 1 → the guard's cycle is the calendar month, matching
     // the pre-M1 behavior these tests assert.
-    appSettings = AppSettingsCubit(
-      MockSettingsService(),
-      MockTxChangeNotifier(),
-    );
+    appSettings = AppSettingsCubit(MockSettingsService());
     // No budget by default → expenses save straight through.
     when(
       () => getBudgets(any()),

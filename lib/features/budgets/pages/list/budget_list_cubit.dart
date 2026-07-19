@@ -21,8 +21,9 @@ part 'budget_list_cubit.freezed.dart';
 /// and deletes. The cycle window is derived from the global start-day in
 /// [AppSettingsCubit] (V2-M1) — at start-day 1 it is the calendar month.
 /// Subscribes to [TxChangeNotifier] so spent refreshes live when a transaction
-/// OR the start-day changes anywhere; a budget write now pings from the repo
-/// seam (V4-M1), so the Home guard recomputes. The subscription is cancelled in
+/// changes anywhere; a budget write now pings from the repo seam (V4-M1), so the
+/// Home guard recomputes. A start-day change arrives separately, on
+/// [AppSettingsCubit]'s own stream (V4-M2). Both subscriptions are cancelled in
 /// [close] (rule 7) and every emit is guarded by [isClosed] (rule 5).
 class BudgetListCubit extends Cubit<BudgetListState> {
   BudgetListCubit({
@@ -39,6 +40,9 @@ class BudgetListCubit extends Cubit<BudgetListState> {
        super(const BudgetListState.initial()) {
     _reference = DateTime.now();
     _txSub = _txChanges.changes.listen((_) => load());
+    // V4-M2: the cycle window is derived from the global start-day, so reload
+    // when THAT changes — off the cubit's own stream, not the tx bus.
+    _cycleSub = _appSettings.onCycleStartDayChanged(load);
   }
 
   final GetBudgetsForPeriod _getBudgetsForPeriod;
@@ -47,6 +51,7 @@ class BudgetListCubit extends Cubit<BudgetListState> {
   final TxChangeNotifier _txChanges;
   final AppSettingsCubit _appSettings;
   late final StreamSubscription<void> _txSub;
+  late final StreamSubscription<AppSettingsState> _cycleSub;
 
   /// A moment inside the currently-viewed cycle; the cycle window is recomputed
   /// from it + the live start-day on every [load] (so a start-day change picks a
@@ -120,6 +125,7 @@ class BudgetListCubit extends Cubit<BudgetListState> {
   @override
   Future<void> close() {
     _txSub.cancel();
+    _cycleSub.cancel();
     return super.close();
   }
 }
