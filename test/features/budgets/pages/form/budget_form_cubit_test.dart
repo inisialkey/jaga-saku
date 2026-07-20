@@ -70,6 +70,23 @@ void main() {
     expect(cubit.state.isEditing, isTrue);
   });
 
+  // V5-W1: an id-less prefill is an INSERT. The seed hardcoded
+  // `isEditing: true` for ANY non-null initial, so a prefilled create wore the
+  // "Edit" title and skipped submit's existing-budget resolution.
+  test('an id-less prefill seeds the fields but is not an edit', () {
+    final cubit = build(
+      initial: const Budget(
+        categoryId: 1,
+        period: '2026-02',
+        limitAmount: 300000,
+      ),
+    );
+    expect(cubit.state.isEditing, isFalse);
+    // The prefill still seeds — this is a filled create, not an empty one.
+    expect(cubit.state.categoryId, 1);
+    expect(cubit.state.limitAmount, 300000);
+  });
+
   test('load populates the expense categories', () async {
     final cubit = build(month: DateTime(2026, 5));
     await cubit.load();
@@ -90,6 +107,33 @@ void main() {
     final cubit = build(month: DateTime(2026, 5));
     await cubit.load();
     // Can't budget "Penyesuaian" — it's filtered from the picker.
+    expect(cubit.state.categories, [cat]);
+    await cubit.close();
+  });
+
+  // V5-W1: "selectable" is `!archived && !isSystem` everywhere else (see
+  // `tx_form_fields.categoriesForType`); this picker only had the system half,
+  // so a retired category was still budgetable here.
+  test('load hides archived categories from the picker', () async {
+    const archived = Category(
+      id: 2,
+      name: 'Langganan lama',
+      type: CategoryType.expense,
+      archived: true,
+    );
+    const adjustment = Category(
+      id: 8,
+      name: 'Penyesuaian',
+      type: CategoryType.expense,
+      systemKey: 'adjustment_out',
+    );
+    when(() => getCategories(CategoryType.expense)).thenAnswer(
+      (_) async =>
+          const Right<Failure, List<Category>>([cat, archived, adjustment]),
+    );
+    final cubit = build(month: DateTime(2026, 5));
+    await cubit.load();
+    // Only the live, non-reserved category survives both halves of the filter.
     expect(cubit.state.categories, [cat]);
     await cubit.close();
   });

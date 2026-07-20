@@ -36,6 +36,26 @@ void main() {
     expect(cubit.state.isEditing, isTrue);
   });
 
+  // V5-W1: an id-less prefill is an INSERT. The seed hardcoded
+  // `isEditing: true` for ANY non-null initial, so a prefilled create wore the
+  // "Edit" title.
+  test('an id-less prefill seeds the fields but is not an edit', () {
+    final cubit = CategoryFormCubit(
+      saveCategory: saveCategory,
+      getCategories: getCategories,
+      initial: const Category(
+        name: 'Food',
+        type: CategoryType.expense,
+        icon: 'coffee',
+      ),
+    );
+
+    expect(cubit.state.isEditing, isFalse);
+    // The prefill still seeds — this is a filled create, not an empty one.
+    expect(cubit.state.name, 'Food');
+    expect(cubit.state.icon, 'coffee');
+  });
+
   test(
     'loadParents keeps only top-level, same-type, non-archived, non-self',
     () async {

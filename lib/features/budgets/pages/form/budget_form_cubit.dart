@@ -47,7 +47,8 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
                  month: _referenceOf(initial),
                  categoryId: initial.categoryId,
                  limitAmount: initial.limitAmount,
-                 isEditing: true,
+                 // A prefill (no id) is an insert, not an edit.
+                 isEditing: initial.id != null,
                ),
        ) {
     _seedState = state;
@@ -76,9 +77,11 @@ class BudgetFormCubit extends Cubit<BudgetFormState> {
     emit(
       state.copyWith(
         // V2-M6: reserved system categories (the reconcile pair) can't be
-        // budgeted, so filter them out of the picker.
+        // budgeted, so filter them out of the picker. Archived categories are
+        // out too — "selectable" is `!archived && !isSystem` everywhere else
+        // (see `tx_form_fields.categoriesForType`); this picker had only half.
         categories: (result.getRight().toNullable() ?? const <Category>[])
-            .where((c) => !c.isSystem)
+            .where((c) => !c.archived && !c.isSystem)
             .toList(),
       ),
     );
