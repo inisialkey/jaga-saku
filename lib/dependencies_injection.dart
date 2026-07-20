@@ -81,6 +81,14 @@ import 'package:jaga_saku/features/reminders/domain/usecases/check_budget_warnin
 import 'package:jaga_saku/features/reminders/domain/usecases/reconcile_reminders.dart';
 import 'package:jaga_saku/features/reminders/domain/usecases/schedule_daily_reminder.dart';
 import 'package:jaga_saku/features/reminders/domain/usecases/sync_recurring_reminders.dart';
+import 'package:jaga_saku/features/onboarding/data/datasources/onboarding_local_datasource.dart';
+import 'package:jaga_saku/features/onboarding/data/repositories/onboarding_repository_impl.dart';
+import 'package:jaga_saku/features/onboarding/domain/repositories/onboarding_repository.dart';
+import 'package:jaga_saku/features/onboarding/domain/usecases/complete_onboarding.dart';
+import 'package:jaga_saku/features/onboarding/domain/usecases/get_onboarding_progress.dart';
+import 'package:jaga_saku/features/onboarding/domain/usecases/mark_quick_start_selected.dart';
+import 'package:jaga_saku/features/onboarding/domain/usecases/set_onboarding_step.dart';
+import 'package:jaga_saku/features/onboarding/onboarding_service.dart';
 
 GetIt sl = GetIt.instance;
 
@@ -139,6 +147,7 @@ Future<void> serviceLocator({bool isUnitTest = false}) async {
   _registerExport();
   _registerSecurity();
   _registerReminders();
+  _registerOnboarding();
 }
 
 void _registerAccounts() {
@@ -301,4 +310,23 @@ void _registerReminders() {
         appSettings: sl(),
       ),
     );
+}
+
+void _registerOnboarding() {
+  // Datasource -> repository -> usecases, then the app-global OnboardingService.
+  // SettingsService is registered above. GetAccounts / SaveAccount come from
+  // _registerAccounts (all lazy, so cross-feature resolution is
+  // order-independent). The cubit is built at the route, not here.
+  sl
+    ..registerLazySingleton(() => OnboardingLocalDatasource(sl()))
+    ..registerLazySingleton<OnboardingRepository>(
+      () => OnboardingRepositoryImpl(sl()),
+    )
+    ..registerLazySingleton(() => GetOnboardingProgress(sl()))
+    ..registerLazySingleton(() => SetOnboardingStep(sl()))
+    ..registerLazySingleton(() => MarkQuickStartSelected(sl()))
+    ..registerLazySingleton(() => CompleteOnboarding(sl()))
+    // App-global gate input — `main()` load()s it before runApp, and it is half
+    // of the go_router refreshListenable.
+    ..registerLazySingleton(() => OnboardingService(getProgress: sl()));
 }

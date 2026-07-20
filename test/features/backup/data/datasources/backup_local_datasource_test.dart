@@ -147,9 +147,38 @@ void main() {
       expect(await ids('budgets'), [1]);
       expect(await ids('tx_templates'), [1]);
       expect(await ids('recurring'), [1]);
-      expect(await count('settings'), 1);
+      // The envelope's one row + the re-applied onboarding marker (see below).
+      expect(await count('settings'), 2);
       // Referential integrity intact after the replace.
       expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+    },
+  );
+
+  // W1 regression: `settings` is wiped by the restore and NO pre-V5 backup
+  // carries `onboarding_completed`, so without the re-apply a restore
+  // un-onboards a user who demonstrably has data — and `migrate` can't rescue
+  // it, since `user_version` is already at latest.
+  test(
+    'a pre-V5 backup restore keeps the onboarding completion marker',
+    () async {
+      // backupB()'s settings hold only `theme` — exactly a pre-V5 envelope.
+      await datasource.restore(backupB());
+
+      final marker = await db.query(
+        'settings',
+        where: 'key = ?',
+        whereArgs: ['onboarding_completed'],
+      );
+      expect(marker.single['value'], '1');
+      // The envelope's own settings row still restored alongside it.
+      expect(
+        (await db.query(
+          'settings',
+          where: 'key = ?',
+          whereArgs: ['theme'],
+        )).single['value'],
+        'dark',
+      );
     },
   );
 

@@ -60,6 +60,10 @@ import 'package:jaga_saku/features/security/pages/security/security_cubit.dart';
 import 'package:jaga_saku/features/security/pages/security/security_page.dart';
 import 'package:jaga_saku/features/reminders/pages/reminder_cubit.dart';
 import 'package:jaga_saku/features/reminders/pages/reminders_page.dart';
+import 'package:jaga_saku/features/onboarding/onboarding_gate.dart';
+import 'package:jaga_saku/features/onboarding/onboarding_service.dart';
+import 'package:jaga_saku/features/onboarding/pages/onboarding_cubit.dart';
+import 'package:jaga_saku/features/onboarding/pages/onboarding_page.dart';
 
 /// App route locations. Add is not a tab — it is a full-screen route pushed on
 /// the root navigator by the shell FAB.
@@ -113,6 +117,11 @@ class AppRoute {
   // Reminders (V3-M5) — local notification settings; root-navigator route
   // reached from Settings → Reminders (also the daily-tap deep-link is via /add).
   static const String reminders = '/reminders';
+
+  // Onboarding (V5-M1) — a SINGLE route hosting a 4-step PageView. Deliberately
+  // not per-step routes: back + state retention (§14) fall out for free and it
+  // sidesteps the `extra`-dropping refresh hazard entirely.
+  static const String onboarding = '/onboarding';
 }
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -125,15 +134,28 @@ final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: AppRoute.home,
   debugLogDiagnostics: kDebugMode,
-  // App-lock gate (V3-M4). The AppLockService (loaded pre-runApp in main.dart)
-  // is the refreshListenable, so every lock/unlock re-runs the pure redirect
-  // instantly. lockRedirect is a no-op when no PIN is set (fresh install).
-  refreshListenable: sl<AppLockService>(),
-  redirect: (context, state) => lockRedirect(
-    isPinEnabled: sl<AppLockService>().isPinEnabled,
-    isLocked: sl<AppLockService>().isLocked,
-    location: state.matchedLocation,
-  ),
+  // Two gates, one redirect, one refreshListenable (go_router allows only one of
+  // each). Both services are loaded pre-runApp in main.dart, so the very first
+  // redirect already evaluates against real state.
+  //
+  // Merge order is cosmetic; REDIRECT order is not: `??` puts the app-lock gate
+  // (V3-M4) FIRST so a PIN-enabled user always hits /lock before onboarding
+  // (V5-M1) is even consulted. onboardingRedirect allow-lists /lock so the two
+  // can never fight over a locked, not-yet-onboarded user.
+  refreshListenable: Listenable.merge([
+    sl<AppLockService>(),
+    sl<OnboardingService>(),
+  ]),
+  redirect: (context, state) =>
+      lockRedirect(
+        isPinEnabled: sl<AppLockService>().isPinEnabled,
+        isLocked: sl<AppLockService>().isLocked,
+        location: state.matchedLocation,
+      ) ??
+      onboardingRedirect(
+        isCompleted: sl<OnboardingService>().isCompleted,
+        location: state.matchedLocation,
+      ),
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
@@ -499,6 +521,26 @@ final GoRouter appRouter = GoRouter(
           child: PinEntryPage(purpose: args.purpose, title: args.title),
         );
       },
+    ),
+    // ── Onboarding (V5-M1) ───────────────────────────────────────────────
+    // Root navigator: no bottom nav during onboarding. `initialLocation` stays
+    // /home — the gate is the single source of truth, so a fresh install boots
+    // at /home and the redirect immediately sends it here.
+    GoRoute(
+      path: AppRoute.onboarding,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => BlocProvider(
+        create: (_) => OnboardingCubit(
+          getProgress: sl(),
+          setStep: sl(),
+          markQuickStartSelected: sl(),
+          completeOnboarding: sl(),
+          getAccounts: sl(),
+          saveAccount: sl(),
+          onboardingService: sl(),
+        )..load(),
+        child: const OnboardingPage(),
+      ),
     ),
     // ── Reminders (V3-M5) ────────────────────────────────────────────────
     GoRoute(

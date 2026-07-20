@@ -97,6 +97,14 @@ import 'package:jaga_saku/features/security/domain/usecases/verify_pin.dart';
 import 'package:jaga_saku/features/reminders/data/reminder_local_datasource.dart';
 import 'package:jaga_saku/features/reminders/data/reminder_service.dart';
 import 'package:jaga_saku/features/reminders/domain/entities/reminder_config.dart';
+import 'package:jaga_saku/features/onboarding/data/datasources/onboarding_local_datasource.dart';
+import 'package:jaga_saku/features/onboarding/domain/entities/onboarding_progress.dart';
+import 'package:jaga_saku/features/onboarding/domain/repositories/onboarding_repository.dart';
+import 'package:jaga_saku/features/onboarding/domain/usecases/complete_onboarding.dart';
+import 'package:jaga_saku/features/onboarding/domain/usecases/get_onboarding_progress.dart';
+import 'package:jaga_saku/features/onboarding/domain/usecases/mark_quick_start_selected.dart';
+import 'package:jaga_saku/features/onboarding/domain/usecases/set_onboarding_step.dart';
+import 'package:jaga_saku/features/onboarding/onboarding_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// Shared mocktail declarations + fallback registration for the test suite.
@@ -293,6 +301,23 @@ class MockReminderService extends Mock implements ReminderService {}
 
 class MockExportFileService extends Mock implements ExportFileService {}
 
+// ── Onboarding (V5-M1) ────────────────────────────────────────────────────────
+class MockOnboardingLocalDatasource extends Mock
+    implements OnboardingLocalDatasource {}
+
+class MockOnboardingRepository extends Mock implements OnboardingRepository {}
+
+class MockGetOnboardingProgress extends Mock implements GetOnboardingProgress {}
+
+class MockSetOnboardingStep extends Mock implements SetOnboardingStep {}
+
+class MockMarkQuickStartSelected extends Mock
+    implements MarkQuickStartSelected {}
+
+class MockCompleteOnboarding extends Mock implements CompleteOnboarding {}
+
+class MockOnboardingService extends Mock implements OnboardingService {}
+
 /// Registers fallback sentinels for custom (non-nullable) types used with
 /// `any()` / `captureAny()` matchers. Idempotent — safe to call repeatedly.
 void registerFallbackValues() {
@@ -392,4 +417,7 @@ void registerFallbackValues() {
   registerFallbackValue(const SetBiometricParams(enabled: false, reason: ''));
   // ── Reminders (V3-M5) ──
   registerFallbackValue(const ReminderConfig());
+  // ── Onboarding (V5-M1) ──
+  registerFallbackValue(OnboardingStep.welcome);
+  registerFallbackValue(const OnboardingProgress());
 }

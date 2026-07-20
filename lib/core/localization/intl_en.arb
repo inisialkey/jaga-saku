@@ -571,5 +571,59 @@
         "type": "String"
       }
     }
-  }
+  },
+  "onboardingGetStarted": "Get Started",
+  "onboardingContinue": "Continue",
+  "onboardingSkip": "Skip",
+  "onboardingBack": "Back",
+  "onboardingStepProgress": "Step {current} of {total}",
+  "@onboardingStepProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingWelcomeTitle": "Take care of your money, starting with small habits.",
+  "onboardingWelcomeBody": "Record your income and expenses to understand where your money goes.",
+  "onboardingWelcomeHeroSemantic": "Money in, money out",
+  "onboardingValueTitle": "Why Jaga Saku",
+  "onboardingValueBody": "Three habits that keep your money on track.",
+  "onboardingBenefitTrackTitle": "Track with Ease",
+  "onboardingBenefitTrackBody": "Record your daily income and expenses in just a few steps.",
+  "onboardingBenefitBudgetTitle": "Stay Within Budget",
+  "onboardingBenefitBudgetBody": "Monitor your spending and keep it aligned with your financial plan.",
+  "onboardingBenefitHabitTitle": "Understand Your Habits",
+  "onboardingBenefitHabitBody": "Discover your spending patterns and identify areas for improvement.",
+  "onboardingAccountsTitle": "Set Up Your Starting Balance",
+  "onboardingAccountsBody": "Add your cash, bank account, or e-wallet balance to make your financial reports more accurate.",
+  "onboardingAccountsQuickAdd": "Quick add",
+  "onboardingAddAnotherAccount": "Add Another Account",
+  "onboardingQuickStart": "Quick Start",
+  "onboardingDuplicateAccountHint": "You already have an account named {name}.",
+  "@onboardingDuplicateAccountHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingSummaryTitle": "Jaga Saku Is Ready",
+  "onboardingSummaryBody": "Here's your setup. You can change any of it later.",
+  "onboardingSummaryHeroSemantic": "Setup complete",
+  "onboardingSummaryCurrency": "Currency",
+  "onboardingSummaryAccounts": "Accounts",
+  "onboardingSummaryTotalBalance": "Total balance",
+  "onboardingAccountCount": "{count, plural, =0{No accounts} =1{1 account} other{{count} accounts}}",
+  "@onboardingAccountCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingStartTracking": "Start Tracking"
 }

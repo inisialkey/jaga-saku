@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jaga_saku/core/core.dart';
+import 'package:jaga_saku/features/accounts/domain/entities/account.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/pages/widgets/budget_item_card.dart';
@@ -17,6 +18,12 @@ import 'package:jaga_saku/features/insight/pages/widgets/category_legend.dart';
 import 'package:jaga_saku/features/insight/pages/widgets/expense_donut_chart.dart';
 import 'package:jaga_saku/features/insight/pages/widgets/insight_card.dart';
 import 'package:jaga_saku/features/insight/pages/widgets/monthly_overview_card.dart';
+import 'package:jaga_saku/features/onboarding/domain/entities/onboarding_progress.dart';
+import 'package:jaga_saku/features/onboarding/pages/widgets/account_setup_step.dart';
+import 'package:jaga_saku/features/onboarding/pages/widgets/onboarding_progress_dots.dart';
+import 'package:jaga_saku/features/onboarding/pages/widgets/setup_summary_step.dart';
+import 'package:jaga_saku/features/onboarding/pages/widgets/value_proposition_step.dart';
+import 'package:jaga_saku/features/onboarding/pages/widgets/welcome_step.dart';
 import 'package:jaga_saku/features/security/pages/widgets/pin_pad.dart';
 import 'package:jaga_saku/features/settings/pages/widgets/setting_option_tile.dart';
 import 'package:jaga_saku/features/transactions/domain/asset_trend_calculator.dart';
@@ -225,6 +232,28 @@ void main() {
         SettingOptionTile(label: 'Light', selected: false, onTap: () {}),
       ],
     ),
+    // ── Onboarding (V5-M1) — icon-led heroes + the summary card on dark ──────
+    // These pump WITHOUT a BlocProvider, which is exactly why the step widgets
+    // take their data as constructor params.
+    const WelcomeStep(),
+    const ValuePropositionStep(),
+    AccountSetupStep(accounts: const [], onSuggestionTap: (_) {}),
+    AccountSetupStep(
+      accounts: const [
+        Account(
+          id: 1,
+          name: 'BCA',
+          type: AccountType.bank,
+          openingBalance: 4500000,
+          icon: 'bank',
+        ),
+        // Rp0 must render as a normal amount, never greyed (§20).
+        Account(id: 2, name: 'Cash', type: AccountType.cash, icon: 'wallet'),
+      ],
+      onSuggestionTap: (_) {},
+    ),
+    const SetupSummaryStep(accountCount: 3, totalOpeningBalance: 4500000),
+    const OnboardingProgressDots(step: OnboardingStep.accounts),
   ];
 
   testWidgets('theme-consuming cards render under AppTheme.dark with no crash', (
@@ -250,6 +279,8 @@ void main() {
     expect(find.byType(ColorPickerSheet), findsOneWidget);
     expect(find.byType(PinPad), findsOneWidget);
     expect(find.byType(ActiveFilterChips), findsOneWidget);
+    expect(find.byType(SetupSummaryStep), findsOneWidget);
+    expect(find.byType(OnboardingProgressDots), findsOneWidget);
   });
 
   testWidgets('dark cards survive 1.3x Dynamic Type with no overflow', (

@@ -571,5 +571,59 @@
         "type": "String"
       }
     }
-  }
+  },
+  "onboardingGetStarted": "Mulai",
+  "onboardingContinue": "Lanjut",
+  "onboardingSkip": "Lewati",
+  "onboardingBack": "Kembali",
+  "onboardingStepProgress": "Langkah {current} dari {total}",
+  "@onboardingStepProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingWelcomeTitle": "Jaga uangmu, mulai dari kebiasaan kecil.",
+  "onboardingWelcomeBody": "Catat pemasukan dan pengeluaranmu untuk tahu ke mana uangmu pergi.",
+  "onboardingWelcomeHeroSemantic": "Uang masuk, uang keluar",
+  "onboardingValueTitle": "Kenapa Jaga Saku",
+  "onboardingValueBody": "Tiga kebiasaan yang menjaga uangmu tetap terkendali.",
+  "onboardingBenefitTrackTitle": "Catat dengan Mudah",
+  "onboardingBenefitTrackBody": "Catat pemasukan dan pengeluaran harian hanya dalam beberapa langkah.",
+  "onboardingBenefitBudgetTitle": "Sesuai Anggaran",
+  "onboardingBenefitBudgetBody": "Pantau pengeluaranmu agar tetap sesuai rencana keuanganmu.",
+  "onboardingBenefitHabitTitle": "Pahami Kebiasaanmu",
+  "onboardingBenefitHabitBody": "Kenali pola pengeluaranmu dan temukan hal yang bisa diperbaiki.",
+  "onboardingAccountsTitle": "Atur Saldo Awalmu",
+  "onboardingAccountsBody": "Tambahkan saldo tunai, rekening bank, atau e-wallet agar laporan keuanganmu lebih akurat.",
+  "onboardingAccountsQuickAdd": "Tambah cepat",
+  "onboardingAddAnotherAccount": "Tambah Akun Lain",
+  "onboardingQuickStart": "Mulai Cepat",
+  "onboardingDuplicateAccountHint": "Kamu sudah punya akun bernama {name}.",
+  "@onboardingDuplicateAccountHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingSummaryTitle": "Jaga Saku Siap",
+  "onboardingSummaryBody": "Ini ringkasan pengaturanmu. Semuanya bisa diubah nanti.",
+  "onboardingSummaryHeroSemantic": "Pengaturan selesai",
+  "onboardingSummaryCurrency": "Mata uang",
+  "onboardingSummaryAccounts": "Akun",
+  "onboardingSummaryTotalBalance": "Total saldo",
+  "onboardingAccountCount": "{count, plural, =0{Belum ada akun} other{{count} akun}}",
+  "@onboardingAccountCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingStartTracking": "Mulai Mencatat"
 }
