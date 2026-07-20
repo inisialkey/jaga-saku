@@ -210,6 +210,7 @@ final GoRouter appRouter = GoRouter(
                   getCategories: sl(),
                   getBudgetsForPeriod: sl(),
                   txChangeNotifier: sl(),
+                  appSettings: sl(),
                 )..load(DateTime.now()),
                 child: const InsightPage(),
               ),

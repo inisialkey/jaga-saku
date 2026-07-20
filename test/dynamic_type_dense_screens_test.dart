@@ -95,13 +95,19 @@ void main() {
       () => getBudgets(any()),
     ).thenAnswer((_) async => const Right<Failure, List<Budget>>([]));
 
+    final settings = MockSettingsService();
+    when(() => settings.getString(any())).thenAnswer((_) async => null);
+    when(() => settings.setString(any(), any())).thenAnswer((_) async {});
+    final appSettings = AppSettingsCubit(settings);
     final cubit = InsightCubit(
       getTransactionsByMonth: getByMonth,
       getCategories: getCategories,
       getBudgetsForPeriod: getBudgets,
       txChangeNotifier: txChanges,
+      appSettings: appSettings,
     );
     addTearDown(cubit.close);
+    addTearDown(appSettings.close);
     await pumpApp(
       tester,
       BlocProvider.value(value: cubit, child: const InsightPage()),
