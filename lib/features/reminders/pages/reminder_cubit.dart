@@ -40,7 +40,7 @@ class ReminderCubit extends Cubit<ReminderState> {
   Future<void> toggleDaily({required bool enabled}) async {
     if (!await _ensurePermission(enabled: enabled)) return;
     await _datasource.writeDaily(enabled: enabled);
-    await _service.rescheduleDaily();
+    await _service.reconcile();
     if (isClosed) return;
     emit(state.copyWith(dailyEnabled: enabled, permissionDenied: false));
   }
@@ -48,7 +48,7 @@ class ReminderCubit extends Cubit<ReminderState> {
   Future<void> toggleRecurring({required bool enabled}) async {
     if (!await _ensurePermission(enabled: enabled)) return;
     await _datasource.writeRecurring(enabled: enabled);
-    await _service.syncRecurring();
+    await _service.reconcile();
     if (isClosed) return;
     emit(state.copyWith(recurringDueEnabled: enabled, permissionDenied: false));
   }
@@ -66,7 +66,7 @@ class ReminderCubit extends Cubit<ReminderState> {
   /// Persists the new daily time and reschedules; the switch stays as-is.
   Future<void> setDailyTime(int hour, int minute) async {
     await _datasource.writeDailyTime(hour, minute);
-    await _service.rescheduleDaily();
+    await _service.reconcile();
     if (isClosed) return;
     emit(state.copyWith(dailyHour: hour, dailyMinute: minute));
   }

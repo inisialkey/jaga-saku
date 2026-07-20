@@ -33,8 +33,7 @@ void main() {
     when(
       () => datasource.writeDailyTime(any(), any()),
     ).thenAnswer((_) async {});
-    when(() => service.rescheduleDaily()).thenAnswer((_) async {});
-    when(() => service.syncRecurring()).thenAnswer((_) async {});
+    when(() => service.reconcile()).thenAnswer((_) async {});
     when(() => service.recomputeBudgetWarnings()).thenAnswer((_) async {});
     when(() => service.requestPermission()).thenAnswer((_) async => true);
   });
@@ -72,7 +71,7 @@ void main() {
     verify: (_) {
       verify(() => service.requestPermission()).called(1);
       verify(() => datasource.writeDaily(enabled: true)).called(1);
-      verify(() => service.rescheduleDaily()).called(1);
+      verify(() => service.reconcile()).called(1);
     },
   );
 
@@ -85,7 +84,7 @@ void main() {
     expect: () => const [ReminderState(permissionDenied: true)],
     verify: (_) {
       verifyNever(() => datasource.writeDaily(enabled: any(named: 'enabled')));
-      verifyNever(() => service.rescheduleDaily());
+      verifyNever(() => service.reconcile());
     },
   );
 
@@ -98,7 +97,7 @@ void main() {
     verify: (_) {
       verifyNever(() => service.requestPermission());
       verify(() => datasource.writeDaily(enabled: false)).called(1);
-      verify(() => service.rescheduleDaily()).called(1);
+      verify(() => service.reconcile()).called(1);
     },
   );
 
@@ -109,7 +108,7 @@ void main() {
     expect: () => const [ReminderState(dailyHour: 7, dailyMinute: 30)],
     verify: (_) {
       verify(() => datasource.writeDailyTime(7, 30)).called(1);
-      verify(() => service.rescheduleDaily()).called(1);
+      verify(() => service.reconcile()).called(1);
     },
   );
 }
