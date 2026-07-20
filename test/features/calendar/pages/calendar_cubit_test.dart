@@ -228,5 +228,53 @@ void main() {
         expect(state.dayIncome, 0);
       },
     );
+
+    // V5-W1: the grid's event dots read `transactionsOn`, the summary reads
+    // `dayIncome`/`dayExpense`. They must apply the SAME exclusion or the grid
+    // advertises money the day panel then reports as 0 / 0 / 0.
+    test('an adjustment-only day carries no dot and a zero summary', () {
+      final adjustment = txOf(
+        type: TransactionType.expense,
+        amount: 20000,
+        categoryId: 8,
+      );
+      final state = CalendarState(
+        focusedMonth: DateTime(2026, 7),
+        selectedDay: DateTime(2026, 7, 8),
+        monthTransactions: [adjustment],
+        selectedDayTransactions: [adjustment],
+        categoriesById: const {8: penyesuaianOut},
+      );
+
+      expect(state.transactionsOn(DateTime(2026, 7, 8)), isEmpty);
+      // The summary the dot claims to preview — the two now agree.
+      expect(state.dayIncome, 0);
+      expect(state.dayExpense, 0);
+    });
+
+    test(
+      'a real transaction still dots a day that also holds an adjustment',
+      () {
+        final real = txOf(
+          type: TransactionType.expense,
+          amount: 35000,
+          categoryId: 1,
+        );
+        final adjustment = txOf(
+          type: TransactionType.expense,
+          amount: 20000,
+          categoryId: 8,
+        );
+        final state = CalendarState(
+          focusedMonth: DateTime(2026, 7),
+          selectedDay: DateTime(2026, 7, 8),
+          monthTransactions: [real, adjustment],
+          categoriesById: const {8: penyesuaianOut},
+        );
+
+        // Scoped exclusion, not a blanket one.
+        expect(state.transactionsOn(DateTime(2026, 7, 8)), [real]);
+      },
+    );
   });
 }

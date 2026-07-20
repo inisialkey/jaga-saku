@@ -118,6 +118,33 @@ void main() {
     verify: (_) => verifyNever(() => fileService.write(any(), any())),
   );
 
+  // V5-W1: the meta writes moved AHEAD of the share hand-off. Once `write`
+  // returns the backup exists on disk, so a share-sheet throw used to leave the
+  // user with a failure toast and "Last export: never" over a perfectly valid
+  // file sitting in app-docs.
+  blocTest<BackupCubit, BackupState>(
+    'a throwing share still records the export meta, and still fails',
+    setUp: () {
+      when(
+        () => exportBackup(any()),
+      ).thenAnswer((_) async => const Right<Failure, BackupFile>(file));
+      when(() => fileService.share(any())).thenThrow(Exception('no sheet'));
+    },
+    build: build,
+    act: (cubit) => cubit.exportBackup(),
+    expect: () => const [
+      BackupState.exporting(),
+      BackupState.failure(BackupFailure(BackupFailureReason.io)),
+    ],
+    verify: (_) {
+      // The file IS on disk, so both meta rows must describe it.
+      verify(
+        () => settings.setString('backup.lastExportedAt', '1700000000000'),
+      ).called(1);
+      verify(() => settings.setString('backup.lastItemCount', '4')).called(1);
+    },
+  );
+
   // ── pick + validate ─────────────────────────────────────────────────────────
   blocTest<BackupCubit, BackupState>(
     'a cancelled picker emits nothing and stays idle',

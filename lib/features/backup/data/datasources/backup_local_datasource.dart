@@ -1,6 +1,8 @@
 import 'package:jaga_saku/core/database/app_database.dart';
 import 'package:jaga_saku/core/database/migrations.dart';
+import 'package:jaga_saku/core/utils/services/settings/settings_keys.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_data.dart';
+import 'package:sqflite/sqflite.dart';
 
 /// sqflite DAO for whole-database backup / restore. Reads every table for
 /// export and performs the atomic full-replace restore. Reads/writes through the
@@ -56,19 +58,33 @@ class BackupLocalDatasource {
   /// at transaction end). That lets us clear + bulk-insert without hand-ordering
   /// the self-referential `categories.parent_id` or the child FKs.
   ///
-  /// One row survives the envelope rather than coming from it: the onboarding
-  /// completion marker — see step 3.
+  /// Some `settings` rows survive the envelope rather than coming from it: the
+  /// onboarding completion marker (step 5) and this device's app-lock config
+  /// (steps 1 + 4).
   Future<void> restore(BackupData data) => _database.db.transaction((
     txn,
   ) async {
     await txn.execute('PRAGMA defer_foreign_keys = ON');
 
-    // 1. Clear every table (order irrelevant under deferred FK).
+    // 1. Capture the device-lock rows before the wipe. These describe the
+    // DEVICE, not the ledger, so they must outlive a full-replace restore —
+    // see [SettingsKeys.deviceLockKeys] for what goes wrong otherwise.
+    final placeholders = List.filled(
+      SettingsKeys.deviceLockKeys.length,
+      '?',
+    ).join(', ');
+    final lockRows = await txn.query(
+      'settings',
+      where: 'key IN ($placeholders)',
+      whereArgs: SettingsKeys.deviceLockKeys,
+    );
+
+    // 2. Clear every table (order irrelevant under deferred FK).
     for (final table in tables) {
       await txn.delete(table);
     }
 
-    // 2. Bulk-insert with explicit ids, parents before children.
+    // 3. Bulk-insert with explicit ids, parents before children.
     final rowsByTable = <String, List<Map<String, Object?>>>{
       'settings': data.settings,
       'accounts': data.accounts,
@@ -86,7 +102,18 @@ class BackupLocalDatasource {
     }
     await batch.commit(noResult: true);
 
-    // 3. Re-apply the onboarding completion marker (V5-M1). Step 1 deleted
+    // 4. Put the captured device-lock rows back, overwriting whatever the
+    // envelope carried for those keys. `replace` because a backup taken on a
+    // device that HAD a lock already inserted its own row above.
+    for (final row in lockRows) {
+      await txn.insert(
+        'settings',
+        row,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    // 5. Re-apply the onboarding completion marker (V5-M1). Step 2 deleted
     // `settings`, and EVERY backup taken before V5 carries no
     // `onboarding_completed` row — so a restore would silently drop a
     // fully-populated database back into onboarding on the NEXT cold start
@@ -102,10 +129,10 @@ class BackupLocalDatasource {
     // (`AndroidManifest.xml`, `Info.plist`), and go_router applies the
     // top-level redirect to the initial deep-link location. Pinned by
     // `test/features/onboarding/onboarding_router_redirect_test.dart`.
-    // Inside the transaction so it rolls back with everything else (step 5).
+    // Inside the transaction so it rolls back with everything else (step 7).
     await Migrations.grandfatherOnboarding(txn);
 
-    // 4. Reset AUTOINCREMENT cursors so the next insert continues from the
+    // 6. Reset AUTOINCREMENT cursors so the next insert continues from the
     // max restored id, not the pre-restore high-water mark. Explicit-id
     // inserts only ever RAISE the sequence, so a backup with lower ids needs
     // this to bring it back down.
@@ -117,7 +144,7 @@ class BackupLocalDatasource {
       );
     }
 
-    // 5. Integrity gate → controlled rollback. A dangling deferred FK would
+    // 7. Integrity gate → controlled rollback. A dangling deferred FK would
     // fail the implicit commit anyway; the explicit check throws first for a
     // clean, unit-testable rollback path.
     final violations = await txn.rawQuery('PRAGMA foreign_key_check');

@@ -36,7 +36,8 @@ class CategoryFormCubit extends Cubit<CategoryFormState> {
                  parentId: initial.parentId,
                  icon: initial.icon,
                  color: initial.color,
-                 isEditing: true,
+                 // A prefill (no id) is an insert, not an edit.
+                 isEditing: initial.id != null,
                ),
        ) {
     _seedState = state;

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/resources/category_colors.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
@@ -20,6 +21,7 @@ void main() {
   late MockGetCategories getCategories;
   late MockGetBudgetsForPeriod getBudgets;
   late TxChangeNotifier txChanges;
+  late AppSettingsCubit appSettings;
 
   final now = DateTime.now();
   final thisMonth = DateTime(now.year, now.month);
@@ -46,15 +48,26 @@ void main() {
     getCategories = MockGetCategories();
     getBudgets = MockGetBudgetsForPeriod();
     txChanges = TxChangeNotifier();
+    // Default start-day 1 → the budget lookup keys off the calendar month, so
+    // every pre-existing assertion here reproduces unchanged. Stubbed (not
+    // bare) because the custom-start-day test below drives a real write.
+    final appStore = MockSettingsService();
+    when(() => appStore.getString(any())).thenAnswer((_) async => null);
+    when(() => appStore.setString(any(), any())).thenAnswer((_) async {});
+    appSettings = AppSettingsCubit(appStore);
   });
 
-  tearDown(() => txChanges.dispose());
+  tearDown(() async {
+    await appSettings.close();
+    txChanges.dispose();
+  });
 
   InsightCubit build() => InsightCubit(
     getTransactionsByMonth: getByMonth,
     getCategories: getCategories,
     getBudgetsForPeriod: getBudgets,
     txChangeNotifier: txChanges,
+    appSettings: appSettings,
   );
 
   void stub({
@@ -259,6 +272,61 @@ void main() {
     expect(cubit.state, isA<InsightLoaded>());
     expect((cubit.state as InsightLoaded).report.month, prevMonth);
     await cubit.close();
+  });
+
+  // ── Budget cycle keying (V5-W1) ─────────────────────────────────────────────
+
+  // A budget row is labelled with its CYCLE-START month. Keying the lookup off
+  // the raw calendar month asked for a cycle that has not opened yet (usually
+  // uncreated), so the budget card silently vanished for the first
+  // `startDay - 1` days of every custom cycle.
+  test('the budget lookup keys off the cycle-start month, not the calendar '
+      'month', () async {
+    stub(expenseCats: expenseCats, incomeCats: incomeCats);
+    // Applied BEFORE the cubit exists, so the seeded cycle subscription sees no
+    // change and `load` below is the only fetch.
+    await appSettings.setBudgetCycleStartDay(25);
+
+    final cubit = build();
+    await cubit.load(DateTime(2026, 7));
+
+    // 2026-07-01 sits inside the cycle that OPENED 2026-06-25, so the row to
+    // read is the one labelled '2026-06'.
+    verify(() => getBudgets('2026-06')).called(1);
+    verifyNever(() => getBudgets('2026-07'));
+    await cubit.close();
+  });
+
+  // V4-M2 wiring: the start-day signal rides AppSettingsCubit's own stream, not
+  // the tx bus — Insight keys its budget lookup off the cycle, so it must
+  // re-window live like Home does.
+  test('a budget cycle start-day change reloads Insight', () async {
+    stub(expenseCats: expenseCats, incomeCats: incomeCats);
+
+    final cubit = build();
+    await cubit.load(thisMonth);
+    clearInteractions(getBudgets);
+
+    await appSettings.setBudgetCycleStartDay(15);
+    await pumpEventQueue();
+
+    // One reload → one budget fetch, re-keyed off the new cycle.
+    verify(() => getBudgets(any())).called(1);
+    await cubit.close();
+  });
+
+  test('close cancels the cycle-day subscription', () async {
+    stub(expenseCats: expenseCats, incomeCats: incomeCats);
+
+    final cubit = build();
+    await cubit.load(thisMonth);
+    await cubit.close();
+    clearInteractions(getBudgets);
+
+    await appSettings.setBudgetCycleStartDay(15);
+    await pumpEventQueue();
+
+    verifyNever(() => getBudgets(any()));
   });
 
   // ── Reserved-category exclusion (V2-M6) ─────────────────────────────────────

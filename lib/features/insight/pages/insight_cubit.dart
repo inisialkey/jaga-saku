@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/core/error/error.dart';
 import 'package:jaga_saku/core/resources/category_colors.dart';
 import 'package:jaga_saku/core/utils/services/tx_change_notifier.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget.dart';
+import 'package:jaga_saku/features/budgets/domain/entities/budget_cycle.dart';
 import 'package:jaga_saku/features/budgets/domain/entities/budget_status.dart';
 import 'package:jaga_saku/features/budgets/domain/usecases/get_budgets_for_period.dart';
 import 'package:jaga_saku/features/categories/domain/entities/category.dart';
@@ -24,31 +26,40 @@ part 'insight_cubit.freezed.dart';
 /// the budgets (all through DI) into an [InsightReport] computed in Dart, with
 /// the rule-based cards delegated to the pure [computeInsights]. Subscribes to
 /// [TxChangeNotifier] so any transaction / budget change anywhere refreshes
-/// Insight live; the subscription is cancelled in [close] (rule 7) and every
-/// emit is guarded by [isClosed] (rule 5).
+/// Insight live, and to [AppSettingsCubit]'s own stream so a budget cycle
+/// start-day change re-keys the budget lookup (same wiring as `home/`); both
+/// subscriptions are cancelled in [close] (rule 7) and every emit is guarded by
+/// [isClosed] (rule 5).
 class InsightCubit extends Cubit<InsightState> {
   InsightCubit({
     required GetTransactionsByMonth getTransactionsByMonth,
     required GetCategories getCategories,
     required GetBudgetsForPeriod getBudgetsForPeriod,
     required TxChangeNotifier txChangeNotifier,
+    required AppSettingsCubit appSettings,
   }) : _getTransactionsByMonth = getTransactionsByMonth,
        _getCategories = getCategories,
        _getBudgetsForPeriod = getBudgetsForPeriod,
        _txChanges = txChangeNotifier,
+       _appSettings = appSettings,
        super(const InsightState.initial()) {
     final now = DateTime.now();
     _focusedMonth = DateTime(now.year, now.month);
     // Any add / edit / delete or budget write pings — recompute the same month.
     // Cancelled in [close] (rule 7). Never pings itself (no refresh loop).
     _txSub = _txChanges.changes.listen((_) => load(_focusedMonth));
+    // The budget lookup is keyed off the cycle window, so reload when the global
+    // start-day changes — off the cubit's own stream, not the tx bus (V4-M2).
+    _cycleSub = _appSettings.onCycleStartDayChanged(() => load(_focusedMonth));
   }
 
   final GetTransactionsByMonth _getTransactionsByMonth;
   final GetCategories _getCategories;
   final GetBudgetsForPeriod _getBudgetsForPeriod;
   final TxChangeNotifier _txChanges;
+  final AppSettingsCubit _appSettings;
   late final StreamSubscription<void> _txSub;
+  late final StreamSubscription<AppSettingsState> _cycleSub;
 
   /// First-of-month for the currently-viewed period.
   late DateTime _focusedMonth;
@@ -69,7 +80,18 @@ class InsightCubit extends Cubit<InsightState> {
     final previousResult = await _getTransactionsByMonth(prevMonth);
     final expenseCatsResult = await _getCategories(CategoryType.expense);
     final incomeCatsResult = await _getCategories(CategoryType.income);
-    final budgetsResult = await _getBudgetsForPeriod(periodKey(_focusedMonth));
+    // A budget is keyed by its CYCLE-START month, not the calendar month — at a
+    // custom start-day the two differ, so keying off `_focusedMonth` raw asked
+    // for the next cycle (usually not created yet) and the budget card silently
+    // vanished for the first `startDay - 1` days of every cycle. Mirrors the
+    // Home guard's derivation.
+    final cycle = BudgetCycle.range(
+      startDay: _appSettings.state.budgetCycleStartDay,
+      reference: _focusedMonth,
+    );
+    final budgetsResult = await _getBudgetsForPeriod(
+      periodKey(DateTime.fromMillisecondsSinceEpoch(cycle.start)),
+    );
     if (isClosed) return;
 
     final failure =
@@ -294,6 +316,7 @@ class InsightCubit extends Cubit<InsightState> {
   @override
   Future<void> close() {
     _txSub.cancel();
+    _cycleSub.cancel();
     return super.close();
   }
 }

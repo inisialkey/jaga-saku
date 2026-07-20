@@ -182,6 +182,28 @@ void main() {
     },
   );
 
+  // V5-W1 regression: the app-lock rows describe THIS DEVICE, not the ledger.
+  // The full-replace wiped them, so restoring a backup taken on a PIN-less
+  // device silently switched the lock OFF — while `pin_hash` sat untouched in
+  // secure storage — and cleared any armed lockout cooldown.
+  test('restore carries this device app-lock rows across the wipe', () async {
+    await db.insert('settings', {'key': 'lock_pin_enabled', 'value': '1'});
+    await db.insert('settings', {'key': 'lock_locked_until', 'value': '999'});
+
+    // backupB()'s settings hold only `theme` — a PIN-less device's envelope.
+    await datasource.restore(backupB());
+
+    final rows = await db.query('settings');
+    final values = <String, Object?>{
+      for (final r in rows) r['key']! as String: r['value'],
+    };
+    expect(values['lock_pin_enabled'], '1');
+    expect(values['lock_locked_until'], '999');
+    // Scoped: the envelope's own non-lock row still restored, so this is
+    // preservation — not a wipe that was skipped wholesale.
+    expect(values['theme'], 'dark');
+  });
+
   test(
     'system categories are restored exactly once (no duplication)',
     () async {
