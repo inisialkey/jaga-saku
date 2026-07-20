@@ -4,6 +4,4 @@ class Constants {
   static Constants get = Constants._();
 
   String appName = 'Jaga Saku';
-  String english = 'English';
-  String bahasa = 'Bahasa';
 }
