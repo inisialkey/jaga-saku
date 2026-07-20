@@ -197,7 +197,12 @@ class InsightCubit extends Cubit<InsightState> {
     final plannedSplit = _plannedSplit(currentTx, excludeCategoryIds);
 
     // ── Need vs. want (typed subset) ──────────────────────────────────────
-    final needVsWant = _needVsWant(currentTx, excludeCategoryIds);
+    final needVsWant = spendingSlicesFrom(
+      TransactionAggregator.needVsWant(
+        currentTx,
+        excludeCategoryIds: excludeCategoryIds,
+      ),
+    );
 
     // ── Spending insights (pure engine) ───────────────────────────────────
     final insights = _computeInsights(
@@ -236,26 +241,6 @@ class InsightCubit extends Cubit<InsightState> {
       plannedPct: total > 0 ? planned / total : 0,
       unplannedPct: total > 0 ? unplanned / total : 0,
     );
-  }
-
-  /// Shapes [TransactionAggregator.needVsWant] into the view type — the fold is
-  /// delegated; only the 0..1 pcts (÷0-guarded) are computed here.
-  Map<SpendingType, SpendingSlice> _needVsWant(
-    List<Transaction> txs,
-    Set<int> exclude,
-  ) {
-    final byType = TransactionAggregator.needVsWant(
-      txs,
-      excludeCategoryIds: exclude,
-    );
-    final total = byType.values.fold(0, (sum, v) => sum + v);
-    return {
-      for (final e in byType.entries)
-        e.key: SpendingSlice(
-          amount: e.value,
-          pct: total > 0 ? e.value / total : 0,
-        ),
-    };
   }
 
   /// Prepares the pure-engine inputs (budget gauges via [BudgetStatus], the

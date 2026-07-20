@@ -203,7 +203,12 @@ class MoneyStoryCubit extends Cubit<MoneyStoryState> {
       excludeCategoryIds: systemIds,
     );
 
-    final needVsWant = _needVsWant(currentTx, systemIds);
+    final needVsWant = spendingSlicesFrom(
+      TransactionAggregator.needVsWant(
+        currentTx,
+        excludeCategoryIds: systemIds,
+      ),
+    );
     final netWorth = trend.isNotEmpty ? trend.last.netWorth : baseline;
 
     return MoneyStory(
@@ -224,27 +229,6 @@ class MoneyStoryCubit extends Cubit<MoneyStoryState> {
       categoriesById: categoriesById,
       accountsById: accountsById,
     );
-  }
-
-  /// Need vs. want over the typed expense subset — shapes the shared
-  /// [TransactionAggregator.needVsWant] fold (system categories excluded via
-  /// [systemIds]) into the story's [SpendingSlice] view type.
-  Map<SpendingType, SpendingSlice> _needVsWant(
-    List<Transaction> txs,
-    Set<int> systemIds,
-  ) {
-    final byType = TransactionAggregator.needVsWant(
-      txs,
-      excludeCategoryIds: systemIds,
-    );
-    final total = byType.values.fold(0, (sum, v) => sum + v);
-    return {
-      for (final e in byType.entries)
-        e.key: SpendingSlice(
-          amount: e.value,
-          pct: total > 0 ? e.value / total : 0,
-        ),
-    };
   }
 
   @override
