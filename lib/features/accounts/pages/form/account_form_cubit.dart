@@ -11,6 +11,13 @@ part 'account_form_cubit.freezed.dart';
 /// Backs the create/edit account form. Seeds fields from [initial] when editing;
 /// [submit] validates, calls [SaveAccount] and folds the result into a
 /// success / failure status the page listens on.
+///
+/// [initial] carries two different intents, told apart by its `id`:
+/// an EDIT (a persisted row, `id != null`) or a PREFILL of a NEW row
+/// (`id == null` — V5-M1's onboarding suggestion chips). Only the first is
+/// `isEditing`; the prefill saves as an insert, so the page must show "Add
+/// Account" and hide the reconcile row. Mirrors `AddTransactionCubit`'s
+/// `initial` / `prefill` split.
 class AccountFormCubit extends Cubit<AccountFormState> {
   AccountFormCubit({required SaveAccount saveAccount, Account? initial})
     : _saveAccount = saveAccount,
@@ -24,7 +31,8 @@ class AccountFormCubit extends Cubit<AccountFormState> {
                 openingBalance: initial.openingBalance,
                 icon: initial.icon,
                 color: initial.color,
-                isEditing: true,
+                // A prefill (no id) is an insert, not an edit.
+                isEditing: initial.id != null,
               ),
       ) {
     _seedState = state;
