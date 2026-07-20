@@ -113,31 +113,51 @@ class SecondaryButton extends StatelessWidget {
 }
 
 /// Tertiary text action (style guide §13.3): no background, green label.
+/// Loading = spinner + disabled, mirroring [PrimaryButton] / [SecondaryButton]
+/// — a text CTA that owns a write (onboarding's *Quick Start*) must be able to
+/// show its OWN busy state, or the spinner lands on a button the user never
+/// tapped.
 class TextButtonX extends StatelessWidget {
   const TextButtonX({
     required this.label,
     required this.onPressed,
     super.key,
+    this.isLoading = false,
     this.icon,
   });
 
   final String label;
   final VoidCallback? onPressed;
+  final bool isLoading;
   final IconData? icon;
 
   @override
-  Widget build(BuildContext context) => TextButton(
-    onPressed: onPressed,
-    style: TextButton.styleFrom(
-      foregroundColor: AppColors.primary,
-      textStyle: Theme.of(context).textTheme.labelMedium,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null && !isLoading;
+    return TextButton(
+      onPressed: enabled ? onPressed : null,
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        textStyle: Theme.of(context).textTheme.labelMedium,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
       ),
-    ),
-    child: _Label(label: label, icon: icon),
-  );
+      // 16dp, not the 20dp of the filled buttons: a text button is label-height
+      // only, so a 20dp spinner would grow it and shift the CTA block.
+      child: isLoading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
+            )
+          : _Label(label: label, icon: icon),
+    );
+  }
 }
 
 class _Label extends StatelessWidget {

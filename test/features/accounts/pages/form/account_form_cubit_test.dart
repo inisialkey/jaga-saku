@@ -34,6 +34,23 @@ void main() {
     expect(cubit.state.isEditing, isTrue);
   });
 
+  // V5-M1: onboarding's suggestion chips prefill the form with an UNSAVED
+  // Account (no id). That is an insert, not an edit — the page must title it
+  // "Add Account" and hide the reconcile row (which is a no-op without an id).
+  test('an id-less prefill seeds the fields but is NOT editing', () {
+    final cubit = AccountFormCubit(
+      saveAccount: saveAccount,
+      initial: const Account(name: 'BCA', type: AccountType.bank, icon: 'bank'),
+    );
+
+    expect(cubit.state.name, 'BCA');
+    expect(cubit.state.type, AccountType.bank);
+    expect(cubit.state.icon, 'bank');
+    expect(cubit.state.isEditing, isFalse);
+    // Pristine: the prefill is the seed, so the unsaved-changes guard is quiet.
+    expect(cubit.hasEdits, isFalse);
+  });
+
   blocTest<AccountFormCubit, AccountFormState>(
     'submit success emits saving then success',
     setUp: () => when(

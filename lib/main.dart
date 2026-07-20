@@ -7,6 +7,7 @@ import 'package:jaga_saku/core/core.dart';
 import 'package:jaga_saku/dependencies_injection.dart';
 import 'package:jaga_saku/core/app_settings/app_settings_cubit.dart';
 import 'package:jaga_saku/features/reminders/data/reminder_service.dart';
+import 'package:jaga_saku/features/onboarding/onboarding_service.dart';
 import 'package:jaga_saku/features/security/app_lock_service.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -32,6 +33,11 @@ Future<void> main() async {
   // redirect already knows the lock state — a PIN-enabled app opens straight on
   // the lock screen with no flash-of-content (V3-M4, §4-A).
   await sl<AppLockService>().load();
+
+  // Load the onboarding marker before the first frame so the very first router
+  // redirect already knows whether to gate — same reason as the lock above, and
+  // the reason there is no flash of Home on a fresh install (V5-M1).
+  await sl<OnboardingService>().load();
 
   // Initialize the timezone database + pin the local zone BEFORE any
   // zonedSchedule (V3-M5). Asia/Jakarta = WIB, no DST — the invariant the app's

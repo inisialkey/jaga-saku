@@ -1,9 +1,14 @@
 import 'package:sqflite/sqflite.dart';
 
-/// Seeds the default accounts + categories on first DB creation only (called
-/// from `onCreate`). Icons are stored as string keys resolved to `IconData`
-/// through `AppIcons.catalog` in the UI layer; colors are ARGB ints (see
+/// Seeds the default CATEGORIES on first DB creation only (called from
+/// `onCreate`). Icons are stored as string keys resolved to `IconData` through
+/// `AppIcons.catalog` in the UI layer; colors are ARGB ints (see
 /// `CategoryColors.swatches`) used by the expense donut chart.
+///
+/// Accounts are deliberately NOT seeded (V5-M1): onboarding is the sole creator
+/// of the first account, and a seeded "Cash" would collide with Quick Start's.
+/// Categories stay — they are infrastructure the user shouldn't have to invent;
+/// accounts are personal and are precisely what onboarding is for.
 ///
 /// Runs only on a fresh `onCreate`, so changing these keys requires deleting
 /// the dev DB / reinstalling to reseed.
@@ -13,25 +18,6 @@ class Seed {
   static Future<void> run(Database db) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final batch = db.batch();
-
-    // ── Accounts ─────────────────────────────────────────────────────────
-    const accounts = [
-      ('Cash', 'cash', 'wallet'),
-      ('BCA', 'bank', 'bank'),
-      ('GoPay', 'ewallet', 'ewallet'),
-    ];
-    for (var i = 0; i < accounts.length; i++) {
-      final (name, type, icon) = accounts[i];
-      batch.insert('accounts', {
-        'name': name,
-        'type': type,
-        'opening_balance': 0,
-        'icon': icon,
-        'sort_order': i,
-        'archived': 0,
-        'created_at': now,
-      });
-    }
 
     // ── Expense categories (with donut colors, ARGB ints) ────────────────
     const expenseCategories = [

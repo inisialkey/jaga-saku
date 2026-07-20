@@ -87,5 +87,25 @@ void main() {
       await tester.pump();
       expect(tapped, isTrue);
     });
+
+    testWidgets('shows a spinner and is disabled while loading', (
+      tester,
+    ) async {
+      var tapped = false;
+      await pumpApp(
+        tester,
+        TextButtonX(
+          label: 'Quick Start',
+          onPressed: () => tapped = true,
+          isLoading: true,
+        ),
+      );
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Quick Start'), findsNothing);
+
+      await tester.tap(find.byType(TextButtonX));
+      await tester.pump();
+      expect(tapped, isFalse);
+    });
   });
 }

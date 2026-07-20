@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:jaga_saku/core/utils/services/settings/settings_keys.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Versioned schema DDL. [onCreate] builds the latest schema on a fresh DB by
 /// replaying every `_v<N>` step in order; [migrate] steps an existing DB
 /// forward, applying only the steps newer than its current version.
 ///
-/// Keep [onCreate] and [migrate] in lock-step: every `_v<N>` must appear in
-/// both. `test/core/database/schema_parity_test.dart` fails CI if they diverge.
+/// Keep [onCreate] and [migrate] in lock-step: every `_v<N>` SCHEMA step must
+/// appear in both. `test/core/database/schema_parity_test.dart` fails CI if they
+/// diverge. The one deliberate exception is v8, a migrate-only DATA marker
+/// ([grandfatherOnboarding]) that writes no DDL — see [migrate].
 ///
 /// Money = INTEGER rupiah. Dates = INTEGER epoch millis. Colors = INTEGER ARGB.
 class Migrations {
@@ -14,8 +17,9 @@ class Migrations {
 
   /// Current schema version. Bump when adding a new `_v<N>` step; wire that step
   /// into BOTH [onCreate] (append `await _vN(db);`) and [migrate]
-  /// (append `if (oldVersion < N) await _vN(db);`).
-  static const int latestVersion = 7;
+  /// (append `if (oldVersion < N) await _vN(db);`). v8 is the exception: a
+  /// migrate-only data marker, absent from [onCreate] on purpose.
+  static const int latestVersion = 8;
 
   /// Runs on a brand-new database — replays every version step in order so a
   /// fresh install produces the exact schema an upgrade-from-v1 produces. Steps
@@ -29,6 +33,8 @@ class Migrations {
     await _v5(db);
     await _v6(db);
     await _v7(db);
+    // v8 is intentionally absent: it is a migrate-ONLY data marker, not schema.
+    // See [migrate].
   }
 
   /// Steps an existing database from [oldVersion] to [newVersion], applying only
@@ -44,6 +50,32 @@ class Migrations {
     if (oldVersion < 5) await _v5(db);
     if (oldVersion < 6) await _v6(db);
     if (oldVersion < 7) await _v7(db);
+    // v8 — onboarding grandfathering (V5-M1). MIGRATE-ONLY, and deliberately
+    // not a `_v8` schema step: an existing database belongs to a user who is
+    // already set up, so they must never be shown onboarding; a fresh install
+    // must. This is the ONE step that breaks the "every _vN appears in both"
+    // rule, and it can do so safely because it writes a `settings` ROW, not DDL
+    // — `schema_parity_test.dart` diffs sqlite_master + PRAGMA table_info,
+    // which a data row does not affect.
+    if (oldVersion < 8) await grandfatherOnboarding(db);
+  }
+
+  /// Idempotent onboarding grandfather marker. `ConflictAlgorithm.replace` makes
+  /// a replay a no-op, and the `'1'` encoding matches every other boolean in the
+  /// `settings` kv (`PinSecureDatasource`, `ReminderLocalDatasource`).
+  ///
+  /// Takes a [DatabaseExecutor], not a [Database], so it can also run INSIDE a
+  /// transaction. That is why this is NOT `@visibleForTesting` like its
+  /// siblings: it has a SECOND production caller,
+  /// `BackupLocalDatasource.restore`, which re-applies it after wiping
+  /// `settings` — every backup taken before V5 carries no marker row, so a
+  /// restore would otherwise un-onboard a user who demonstrably has data.
+  /// Keep both callers in mind before changing the key or its encoding.
+  static Future<void> grandfatherOnboarding(DatabaseExecutor db) async {
+    await db.insert('settings', {
+      'key': SettingsKeys.onboardingCompleted,
+      'value': '1',
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   /// Builds the v1 baseline only. Exposed for the schema-parity test, which

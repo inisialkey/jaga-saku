@@ -1,4 +1,5 @@
 import 'package:jaga_saku/core/database/app_database.dart';
+import 'package:jaga_saku/core/database/migrations.dart';
 import 'package:jaga_saku/features/backup/domain/entities/backup_data.dart';
 
 /// sqflite DAO for whole-database backup / restore. Reads every table for
@@ -54,6 +55,9 @@ class BackupLocalDatasource {
   /// deferred to commit-time with `PRAGMA defer_foreign_keys = ON` (auto-resets
   /// at transaction end). That lets us clear + bulk-insert without hand-ordering
   /// the self-referential `categories.parent_id` or the child FKs.
+  ///
+  /// One row survives the envelope rather than coming from it: the onboarding
+  /// completion marker — see step 3.
   Future<void> restore(BackupData data) => _database.db.transaction((
     txn,
   ) async {
@@ -82,7 +86,26 @@ class BackupLocalDatasource {
     }
     await batch.commit(noResult: true);
 
-    // 3. Reset AUTOINCREMENT cursors so the next insert continues from the
+    // 3. Re-apply the onboarding completion marker (V5-M1). Step 1 deleted
+    // `settings`, and EVERY backup taken before V5 carries no
+    // `onboarding_completed` row — so a restore would silently drop a
+    // fully-populated database back into onboarding on the NEXT cold start
+    // (the in-memory `OnboardingService` still reads completed, so nothing
+    // looks wrong until the app is killed). `Migrations.migrate` cannot rescue
+    // it: `user_version` is already at latest, so `onUpgrade` never re-runs.
+    //
+    // Unconditional and independent of the envelope, because a restore is
+    // unreachable until onboarding is complete: `onboardingRedirect` sends
+    // EVERY location outside `_onboardingPassThrough` to `/onboarding`, and
+    // `/backup-restore` is not in that set. That covers the external entry
+    // point too — the `jagasaku://` scheme is registered on both platforms
+    // (`AndroidManifest.xml`, `Info.plist`), and go_router applies the
+    // top-level redirect to the initial deep-link location. Pinned by
+    // `test/features/onboarding/onboarding_router_redirect_test.dart`.
+    // Inside the transaction so it rolls back with everything else (step 5).
+    await Migrations.grandfatherOnboarding(txn);
+
+    // 4. Reset AUTOINCREMENT cursors so the next insert continues from the
     // max restored id, not the pre-restore high-water mark. Explicit-id
     // inserts only ever RAISE the sequence, so a backup with lower ids needs
     // this to bring it back down.
@@ -94,7 +117,7 @@ class BackupLocalDatasource {
       );
     }
 
-    // 4. Integrity gate → controlled rollback. A dangling deferred FK would
+    // 5. Integrity gate → controlled rollback. A dangling deferred FK would
     // fail the implicit commit anyway; the explicit check throws first for a
     // clean, unit-testable rollback path.
     final violations = await txn.rawQuery('PRAGMA foreign_key_check');

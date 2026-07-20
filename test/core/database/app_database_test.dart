@@ -48,17 +48,15 @@ void main() {
     );
   });
 
-  test('seeds default accounts (Cash / BCA / GoPay)', () async {
-    final db = await openSeeded();
-    addTearDown(db.close);
+  test(
+    'seeds NO accounts — onboarding owns the first account (V5-M1)',
+    () async {
+      final db = await openSeeded();
+      addTearDown(db.close);
 
-    final accounts = await db.query('accounts', orderBy: 'sort_order');
-    expect(accounts.length, 3);
-    expect(
-      accounts.map((r) => r['name']),
-      containsAllInOrder(<String>['Cash', 'BCA', 'GoPay']),
-    );
-  });
+      expect(await db.query('accounts'), isEmpty);
+    },
+  );
 
   test('seeds expense + income categories with colors', () async {
     final db = await openSeeded();
