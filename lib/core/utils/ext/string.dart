@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:jaga_saku/core/core.dart';
 import 'package:oktoast/oktoast.dart';
 
 extension StringExtension on String {
-  bool isValidEmail() => RegExp(
-    r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$',
-  ).hasMatch(this);
-
   //https://github.com/ponnamkarthik/FlutterToast/issues/262
   //coverage:ignore-start
-  void toToastError(BuildContext context, {bool isUnitTest = false}) {
+  void toToastError(BuildContext context) {
     try {
       final message = isEmpty ? 'error' : this;
 
@@ -33,7 +28,7 @@ extension StringExtension on String {
     }
   }
 
-  void toToastSuccess(BuildContext context, {bool isUnitTest = false}) {
+  void toToastSuccess(BuildContext context) {
     try {
       final message = isEmpty ? 'success' : this;
 
@@ -58,7 +53,7 @@ extension StringExtension on String {
     }
   }
 
-  void toToastLoading(BuildContext context, {bool isUnitTest = false}) {
+  void toToastLoading(BuildContext context) {
     try {
       final message = isEmpty ? 'loading' : this;
       //dismiss before show toast
@@ -82,23 +77,4 @@ extension StringExtension on String {
   }
 
   //coverage:ignore-end
-
-  String toStringDateAlt({bool isShort = false, bool isToLocal = true}) {
-    try {
-      DateTime object;
-      if (isToLocal) {
-        object = DateTime.parse(this).toLocal();
-      } else {
-        object = DateTime.parse(this);
-      }
-
-      return DateFormat(
-        "dd ${isShort ? "MMM" : "MMMM"} yyyy HH:mm",
-        'id',
-      ).format(object);
-    } on FormatException catch (e) {
-      log.e('Date parse error: $e');
-      return '-';
-    }
-  }
 }

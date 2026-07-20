@@ -82,7 +82,7 @@ class ReminderService {
   /// Bootstrap: create the Android channel, init the plugin (with the tap
   /// callback), subscribe once to the tx bus for the live budget path, and
   /// route a cold-launch tap after the first frame. `tz` MUST already be
-  /// initialized by `main()` before any [reconcile]/[rescheduleDaily].
+  /// initialized by `main()` before any [reconcile].
   Future<void> init() async {
     await _plugin
         .resolvePlatformSpecificImplementation<
@@ -159,6 +159,12 @@ class ReminderService {
   /// App-open catch-up: reads config, folds the three pure decisions into one
   /// plan and applies it. Nothing enabled → cancel everything and bail (so a
   /// disabled app leaves no orphaned schedules).
+  ///
+  /// Also the response to any daily or recurring-due change (toggle or time):
+  /// the full catch-up is cheap and idempotent (stable ids), so one primitive
+  /// keeps every leg consistent. It used to wear two extra names —
+  /// `rescheduleDaily()` and `syncRecurring()` — that both forwarded here and
+  /// implied a per-leg scoping that never existed.
   Future<void> reconcile() async {
     final config = await _datasource.readConfig();
     if (!config.dailyEnabled &&
@@ -182,13 +188,6 @@ class ReminderService {
     await _applyRecurring(plan.recurring);
     await _applyBudgetWarnings(plan.budgetWarnings);
   }
-
-  /// A daily change (toggle or time) re-runs the full catch-up — cheap and
-  /// idempotent (stable ids), so one primitive keeps every leg consistent.
-  Future<void> rescheduleDaily() => reconcile();
-
-  /// A recurring-due toggle re-runs the same idempotent catch-up.
-  Future<void> syncRecurring() => reconcile();
 
   /// The live budget-warning path (tx-bus ping + the budget toggle): fire a
   /// notification for every current-period crossing not yet warned this period.

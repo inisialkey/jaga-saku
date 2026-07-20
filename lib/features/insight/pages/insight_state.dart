@@ -43,6 +43,23 @@ abstract class SpendingSlice with _$SpendingSlice {
       _SpendingSlice;
 }
 
+/// Shapes a [TransactionAggregator.needVsWant] fold into the view type — the
+/// fold is delegated; only the 0..1 pcts (÷0-guarded) are computed here.
+/// Shared by Insight and Money Story, which rendered the same slices from two
+/// byte-identical private copies.
+Map<SpendingType, SpendingSlice> spendingSlicesFrom(
+  Map<SpendingType, int> byType,
+) {
+  final total = byType.values.fold(0, (sum, v) => sum + v);
+  return {
+    for (final e in byType.entries)
+      e.key: SpendingSlice(
+        amount: e.value,
+        pct: total > 0 ? e.value / total : 0,
+      ),
+  };
+}
+
 /// View-model for the whole Insight tab — everything the page renders, computed
 /// in [InsightCubit.load] from the focused month's transactions (+ the previous
 /// month for month-over-month), categories and budgets. All money fields are

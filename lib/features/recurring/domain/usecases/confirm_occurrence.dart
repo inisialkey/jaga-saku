@@ -24,8 +24,8 @@ class ConfirmOccurrence extends UseCase<Unit, PendingOccurrence> {
 
   @override
   Future<Either<Failure, Unit>> call(PendingOccurrence params) async {
-    // Stamp `createdAt` at persist time (the pure helper is clock-free), like
-    // `home_cubit.applyFavorite`.
+    // Stamp `createdAt` at persist time — [templateToTransaction] is clock-free
+    // by design, so every caller that persists has to do this itself.
     final tx = templateToTransaction(
       params.template,
       date: params.dueDate,

@@ -4,8 +4,9 @@ import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart
 /// The canonical "favorite shape → [Transaction]" builder — **flutter-free, no
 /// DB, no clock** (rule 19; the fifth pure calculation helper after
 /// `BudgetStatus`, `insight_rules`, `TransactionAggregator`, `BudgetCycle`).
-/// Shared by V2-M2 favorites (the Home instant-commit) and reused by V2-M5
-/// recurring, so the type-specific shaping lives in exactly one place.
+/// Introduced for V2-M2 favorites and now used by V2-M5 recurring — its one
+/// production caller is [ConfirmOccurrence]. (The Home instant-commit path this
+/// was originally written for is gone: V4-W3 replaced it with a form prefill.)
 ///
 /// Resolves the amount from [amount] (an override, e.g. an amount-less favorite
 /// the user just entered) falling back to [TxTemplate.amount], and applies the
@@ -14,9 +15,9 @@ import 'package:jaga_saku/features/transactions/domain/entities/transaction.dart
 /// income drop the transfer destination.
 ///
 /// [createdAt] is left `0` (the persist-time clock is a caller concern — the
-/// apply path stamps it before saving), keeping this helper deterministic.
+/// caller stamps it before saving), keeping this helper deterministic.
 /// Asserts a non-null resolved amount: an amount-less template must take the
-/// prefill path, never this instant-commit builder.
+/// form-prefill path, never this builder.
 Transaction templateToTransaction(
   TxTemplate t, {
   required int date,
