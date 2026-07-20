@@ -94,9 +94,14 @@ class BackupCubit extends Cubit<BackupState> {
         _exportFileName(file.exportedAt),
         file.content,
       );
-      await _fileService.share(path);
+      // Record the export BEFORE handing off to the share sheet: once `write`
+      // returns, the backup exists on disk and "last exported" is true. Sharing
+      // after meant a share-sheet throw left the file written but the metadata
+      // unwritten — the user saw a failure toast while "Last export" still read
+      // never, even though a valid backup was sitting in app-docs.
       await _settings.setString(_kLastExportedAt, file.exportedAt.toString());
       await _settings.setString(_kLastItemCount, file.itemCount.toString());
+      await _fileService.share(path);
     } catch (e, s) {
       log.e('Backup export delivery failed', error: e, stackTrace: s);
       if (isClosed) return;
