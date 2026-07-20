@@ -1,4 +1,5 @@
 import 'package:jaga_saku/core/utils/services/secure_storage/secure_storage_service.dart';
+import 'package:jaga_saku/core/utils/services/settings/settings_keys.dart';
 import 'package:jaga_saku/core/utils/services/settings/settings_service.dart';
 import 'package:jaga_saku/features/security/data/models/pin_hasher.dart';
 import 'package:jaga_saku/features/security/data/security_backoff.dart';
@@ -32,12 +33,13 @@ class PinSecureDatasource {
   // Secret (secure storage).
   static const String _kPinHash = 'pin_hash';
   static const String _kPinSalt = 'pin_salt';
-  // Non-secret config + backoff state (settings kv).
-  static const String _kPinEnabled = 'lock_pin_enabled';
-  static const String _kBiometricEnabled = 'lock_biometric_enabled';
-  static const String _kAutoDuration = 'lock_auto_duration';
-  static const String _kFailedAttempts = 'lock_failed_attempts';
-  static const String _kLockedUntil = 'lock_locked_until';
+  // Non-secret config + backoff state (settings kv). The literals live in
+  // [SettingsKeys.deviceLockKeys] because the restore path must name them too.
+  static const String _kPinEnabled = SettingsKeys.lockPinEnabled;
+  static const String _kBiometricEnabled = SettingsKeys.lockBiometricEnabled;
+  static const String _kAutoDuration = SettingsKeys.lockAutoDuration;
+  static const String _kFailedAttempts = SettingsKeys.lockFailedAttempts;
+  static const String _kLockedUntil = SettingsKeys.lockLockedUntil;
 
   /// Hashes + stores a new PIN and flips the master switch on. Clears any
   /// attempt counter / cooldown from a prior enrollment.
