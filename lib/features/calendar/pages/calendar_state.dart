@@ -45,12 +45,19 @@ abstract class CalendarState with _$CalendarState {
   /// excluded (transfers net to zero for a single-account view).
   int get dayBalance => _dayTotals.income - _dayTotals.expense;
 
-  /// The focused month's transactions that fall on [day].
-  List<Transaction> transactionsOn(DateTime day) =>
-      monthTransactions.where((t) {
-        final d = DateTime.fromMillisecondsSinceEpoch(t.date);
-        return d.year == day.year && d.month == day.month && d.day == day.day;
-      }).toList();
+  /// The focused month's transactions that fall on [day], adjustments excluded
+  /// — this feeds the grid's event dots, so it must apply the same rule as
+  /// [dayIncome] / [dayExpense]. Without the exclusion a day whose only row was
+  /// a reconcile adjustment drew a dot while its summary read 0 / 0 / 0.
+  List<Transaction> transactionsOn(DateTime day) {
+    final systemIds = _systemCategoryIds;
+    return monthTransactions.where((t) {
+      if (t.categoryId != null && systemIds.contains(t.categoryId))
+        return false;
+      final d = DateTime.fromMillisecondsSinceEpoch(t.date);
+      return d.year == day.year && d.month == day.month && d.day == day.day;
+    }).toList();
+  }
 
   /// A [DateTime] inside the focused month that table_calendar can focus on —
   /// the selected day when it belongs to the focused month, else the 1st.
