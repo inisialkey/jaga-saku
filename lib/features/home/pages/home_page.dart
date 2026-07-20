@@ -215,6 +215,10 @@ class _RecentTile extends StatelessWidget {
         subtitle = _joinParts([category?.name, account?.name]);
     }
 
+    // No Need/Want/Planned badges here, unlike Calendar and Search: Home's
+    // recent list is a compact 5-row glance, and the badges belong on the
+    // browsing surfaces where the user is actually filtering by them. This
+    // omission is deliberate — not drift from the other two tile builders.
     return TransactionTile(
       icon: iconKey,
       color: color,
