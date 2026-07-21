@@ -169,19 +169,14 @@ class HomeCubit extends Cubit<HomeState> {
         .where((a) => !a.archived)
         .fold<int>(0, (sum, a) => sum + a.balance);
 
-    // V2-M6: reserved/adjustment category ids the reports must skip (a reconcile
-    // correction moves balance, not income/expense). Balance already includes it
-    // via the unchanged SQL; the resolver is the single home of the rule.
-    final excludeCategoryIds = TransactionAggregator.systemCategoryIds(
-      categories,
-    );
+    // V2-M6: reports skip reserved/adjustment rows (a reconcile correction moves
+    // balance, not income/expense). Balance already includes them via the
+    // unchanged SQL. Binding the rule to the aggregator once means no fold below
+    // can forget it.
+    final agg = TransactionAggregator.excluding(categories);
 
-    final (
-      income: monthIncome,
-      expense: monthExpense,
-    ) = TransactionAggregator.incomeExpense(
+    final (income: monthIncome, expense: monthExpense) = agg.incomeExpense(
       monthTx,
-      excludeCategoryIds: excludeCategoryIds,
     );
 
     final today = DateTime(now.year, now.month, now.day);
@@ -192,19 +187,11 @@ class HomeCubit extends Cubit<HomeState> {
           d.day == today.day;
     }).toList();
 
-    // C2: a reconcile adjustment dated today is not "spent today" — the fold
-    // applies the same exclusion as the month totals.
-    final (
-      spent: todaySpent,
-      unplanned: todayUnplanned,
-    ) = TransactionAggregator.spentAndUnplanned(
-      todayTx,
-      excludeCategoryIds: excludeCategoryIds,
-    );
-    final expenseByCategory = TransactionAggregator.expenseByCategory(
-      todayTx,
-      excludeCategoryIds: excludeCategoryIds,
-    );
+    // A reconcile adjustment dated today is not "spent today"; `agg` already
+    // carries that exclusion, so these folds get it for free.
+    final (spent: todaySpent, unplanned: todayUnplanned) = agg
+        .spentAndUnplanned(todayTx);
+    final expenseByCategory = agg.expenseByCategory(todayTx);
 
     final categoriesById = <int, Category>{
       for (final c in categories)

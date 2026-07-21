@@ -433,10 +433,7 @@ void main() {
         final rows = (await datasource.getByMonth(
           DateTime(2026, 7),
         )).map((m) => m.toEntity()).toList();
-        final totals = TransactionAggregator.incomeExpense(
-          rows,
-          excludeCategoryIds: {8},
-        );
+        final totals = const TransactionAggregator({8}).incomeExpense(rows);
         expect(totals.expense, 100000);
 
         // Trend side — include the adjustment.

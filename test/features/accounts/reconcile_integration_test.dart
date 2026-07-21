@@ -104,17 +104,11 @@ void main() {
       )).map((m) => m.toEntity()).toList();
       final exclude = <int>{adjIn!.id!, adjOut.id!};
 
-      final report = TransactionAggregator.incomeExpense(
-        month,
-        excludeCategoryIds: exclude,
-      );
+      final report = TransactionAggregator(exclude).incomeExpense(month);
       expect(report.expense, 20000); // NOT 50.000 — the adjustment is invisible
       expect(report.income, 0);
       expect(
-        TransactionAggregator.expenseByCategory(
-          month,
-          excludeCategoryIds: exclude,
-        ),
+        TransactionAggregator(exclude).expenseByCategory(month),
         {realCatId: 20000}, // no reserved slice
       );
     },

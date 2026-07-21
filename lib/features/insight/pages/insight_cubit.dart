@@ -151,23 +151,16 @@ class InsightCubit extends Cubit<InsightState> {
         if (c.id != null) c.id!: c,
     };
 
-    // V2-M6: reserved/adjustment category ids every report fold must skip (a
-    // reconcile correction moves balance, not income/expense).
-    final excludeCategoryIds = TransactionAggregator.systemCategoryIds(
-      categories,
-    );
+    // V2-M6: every report fold skips reserved/adjustment rows (a reconcile
+    // correction moves balance, not income/expense). Bound once so no fold —
+    // here or in the private helpers below — can forget it.
+    final agg = TransactionAggregator.excluding(categories);
 
     // ── Overview ──────────────────────────────────────────────────────────
-    final (:income, :expense) = TransactionAggregator.incomeExpense(
-      currentTx,
-      excludeCategoryIds: excludeCategoryIds,
-    );
+    final (:income, :expense) = agg.incomeExpense(currentTx);
 
     // ── Expense by category (current month) ───────────────────────────────
-    final currentByCategory = TransactionAggregator.expenseByCategory(
-      currentTx,
-      excludeCategoryIds: excludeCategoryIds,
-    );
+    final currentByCategory = agg.expenseByCategory(currentTx);
     final sorted = currentByCategory.entries.map((e) {
       final category = categoriesById[e.key];
       return CategorySlice(
@@ -194,24 +187,19 @@ class InsightCubit extends Cubit<InsightState> {
     ];
 
     // ── Planned vs. unplanned (typed subset) ──────────────────────────────
-    final plannedSplit = _plannedSplit(currentTx, excludeCategoryIds);
+    final plannedSplit = _plannedSplit(agg, currentTx);
 
     // ── Need vs. want (typed subset) ──────────────────────────────────────
-    final needVsWant = spendingSlicesFrom(
-      TransactionAggregator.needVsWant(
-        currentTx,
-        excludeCategoryIds: excludeCategoryIds,
-      ),
-    );
+    final needVsWant = spendingSlicesFrom(agg.needVsWant(currentTx));
 
     // ── Spending insights (pure engine) ───────────────────────────────────
     final insights = _computeInsights(
+      agg: agg,
       budgets: budgets,
       categoriesById: categoriesById,
       currentByCategory: currentByCategory,
       previousTx: previousTx,
       currentUnplanned: plannedSplit.unplanned,
-      excludeCategoryIds: excludeCategoryIds,
     );
 
     return InsightReport(
@@ -229,11 +217,8 @@ class InsightCubit extends Cubit<InsightState> {
 
   /// Shapes [TransactionAggregator.plannedSplit] into the view type — the fold
   /// is delegated; only the 0..1 pcts (÷0-guarded) are computed here.
-  PlannedSplit _plannedSplit(List<Transaction> txs, Set<int> exclude) {
-    final (:planned, :unplanned) = TransactionAggregator.plannedSplit(
-      txs,
-      excludeCategoryIds: exclude,
-    );
+  PlannedSplit _plannedSplit(TransactionAggregator agg, List<Transaction> txs) {
+    final (:planned, :unplanned) = agg.plannedSplit(txs);
     final total = planned + unplanned;
     return PlannedSplit(
       planned: planned,
@@ -247,12 +232,12 @@ class InsightCubit extends Cubit<InsightState> {
   /// per-category month-over-month trends and last month's unplanned total) and
   /// runs [computeInsights].
   List<InsightItem> _computeInsights({
+    required TransactionAggregator agg,
     required List<Budget> budgets,
     required Map<int, Category> categoriesById,
     required Map<int, int> currentByCategory,
     required List<Transaction> previousTx,
     required int currentUnplanned,
-    required Set<int> excludeCategoryIds,
   }) {
     final now = DateTime.now();
     final gauges = <BudgetGauge>[];
@@ -270,12 +255,9 @@ class InsightCubit extends Cubit<InsightState> {
       gauges.add(BudgetGauge(categoryName: name, percent: status.percent));
     }
 
-    // C2: the month-over-month trend fold the doc missed — a last-month
-    // adjustment must not surface as a category trend.
-    final previousByCategory = TransactionAggregator.expenseByCategory(
-      previousTx,
-      excludeCategoryIds: excludeCategoryIds,
-    );
+    // The month-over-month trend fold — a last-month adjustment must not
+    // surface as a category trend; the bound `agg` guarantees it.
+    final previousByCategory = agg.expenseByCategory(previousTx);
     final trends = <CategoryTrend>[
       for (final id in {...currentByCategory.keys, ...previousByCategory.keys})
         CategoryTrend(
@@ -285,10 +267,7 @@ class InsightCubit extends Cubit<InsightState> {
         ),
     ];
 
-    final previousUnplanned = TransactionAggregator.plannedSplit(
-      previousTx,
-      excludeCategoryIds: excludeCategoryIds,
-    ).unplanned;
+    final previousUnplanned = agg.plannedSplit(previousTx).unplanned;
 
     return computeInsights(
       budgets: gauges,
