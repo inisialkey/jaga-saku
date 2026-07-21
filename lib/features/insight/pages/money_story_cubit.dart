@@ -145,8 +145,8 @@ class MoneyStoryCubit extends Cubit<MoneyStoryState> {
       load(DateTime(_focusedMonth.year, _focusedMonth.month + 1));
 
   /// Folds the loaded data into the story VM. Every narrative card excludes
-  /// system/adjustment categories via [systemIds]; the [trend] passes through
-  /// untouched (it already counts adjustments — computed in the datasource SQL).
+  /// system/adjustment categories via the bound aggregator; the [trend] passes
+  /// through untouched (it already counts adjustments — computed in the SQL).
   MoneyStory _buildStory({
     required List<Transaction> currentTx,
     required List<Transaction> previousTx,
@@ -163,21 +163,17 @@ class MoneyStoryCubit extends Cubit<MoneyStoryState> {
       for (final a in accounts)
         if (a.id != null) a.id!: a,
     };
-    // Reserved/adjustment category ids every card fold must skip.
-    final systemIds = TransactionAggregator.systemCategoryIds(categories);
+    // Every card fold skips reserved/adjustment rows; binding it to `agg` once
+    // means none of them can forget (the trend, computed in SQL, keeps them —
+    // it moves real assets).
+    final agg = TransactionAggregator.excluding(categories);
 
-    final (:income, :expense) = TransactionAggregator.incomeExpense(
-      currentTx,
-      excludeCategoryIds: systemIds,
-    );
+    final (:income, :expense) = agg.incomeExpense(currentTx);
     final saved = income - expense;
     // ÷0 guard — a zero-income month has a 0% savings rate, never a throw.
     final savingsRatePct = income > 0 ? (saved / income * 100).round() : 0;
 
-    final byCategory = TransactionAggregator.expenseByCategory(
-      currentTx,
-      excludeCategoryIds: systemIds,
-    );
+    final byCategory = agg.expenseByCategory(currentTx);
     int? topCategoryId;
     var topCategoryAmount = 0;
     for (final entry in byCategory.entries) {
@@ -190,25 +186,13 @@ class MoneyStoryCubit extends Cubit<MoneyStoryState> {
     // Biggest single real expense — the fold that replaces the dropped
     // `GetBiggestExpense` SQL (C-B): `currentTx` is already loaded, and it must
     // exclude system categories (a plain `ORDER BY amount DESC` can't).
-    final biggestExpense = TransactionAggregator.biggestExpense(
-      currentTx,
-      excludeCategoryIds: systemIds,
-    );
+    final biggestExpense = agg.biggestExpense(currentTx);
 
-    final (
-      income: prevIncome,
-      expense: prevExpense,
-    ) = TransactionAggregator.incomeExpense(
+    final (income: prevIncome, expense: prevExpense) = agg.incomeExpense(
       previousTx,
-      excludeCategoryIds: systemIds,
     );
 
-    final needVsWant = spendingSlicesFrom(
-      TransactionAggregator.needVsWant(
-        currentTx,
-        excludeCategoryIds: systemIds,
-      ),
-    );
+    final needVsWant = spendingSlicesFrom(agg.needVsWant(currentTx));
     final netWorth = trend.isNotEmpty ? trend.last.netWorth : baseline;
 
     return MoneyStory(

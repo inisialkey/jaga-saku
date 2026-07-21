@@ -23,17 +23,15 @@ abstract class CalendarState with _$CalendarState {
 
   bool get isLoading => status == CalendarStatus.loading;
 
-  /// Reserved/adjustment category ids the day summary must skip — resolved from
-  /// the state's own [categoriesById] so the day totals align with every other
-  /// report surface (a reconcile correction moves balance, not the day summary).
-  Set<int> get _systemCategoryIds =>
-      TransactionAggregator.systemCategoryIds(categoriesById.values);
+  /// Report folds bound to this state's reserved/adjustment categories (resolved
+  /// from its own [categoriesById]) so day totals and grid dots align with every
+  /// other report surface — a reconcile correction moves balance, not the day
+  /// summary. Bound once here so neither reader can drop the rule.
+  TransactionAggregator get _agg =>
+      TransactionAggregator.excluding(categoriesById.values);
 
   ({int income, int expense}) get _dayTotals =>
-      TransactionAggregator.incomeExpense(
-        selectedDayTransactions,
-        excludeCategoryIds: _systemCategoryIds,
-      );
+      _agg.incomeExpense(selectedDayTransactions);
 
   /// Total income on the selected day (positive rupiah), adjustments excluded.
   int get dayIncome => _dayTotals.income;
@@ -47,17 +45,15 @@ abstract class CalendarState with _$CalendarState {
 
   /// The focused month's transactions that fall on [day], adjustments excluded
   /// — this feeds the grid's event dots, so it must apply the same rule as
-  /// [dayIncome] / [dayExpense]. Without the exclusion a day whose only row was
-  /// a reconcile adjustment drew a dot while its summary read 0 / 0 / 0.
-  List<Transaction> transactionsOn(DateTime day) {
-    final systemIds = _systemCategoryIds;
-    return monthTransactions.where((t) {
-      if (t.categoryId != null && systemIds.contains(t.categoryId))
-        return false;
+  /// [dayIncome] / [dayExpense] (the bound [_agg]). Without the exclusion a day
+  /// whose only row was a reconcile adjustment drew a dot while its summary read
+  /// 0 / 0 / 0.
+  List<Transaction> transactionsOn(DateTime day) => _agg.withoutAdjustments(
+    monthTransactions.where((t) {
       final d = DateTime.fromMillisecondsSinceEpoch(t.date);
       return d.year == day.year && d.month == day.month && d.day == day.day;
-    }).toList();
-  }
+    }).toList(),
+  );
 
   /// A [DateTime] inside the focused month that table_calendar can focus on —
   /// the selected day when it belongs to the focused month, else the 1st.
