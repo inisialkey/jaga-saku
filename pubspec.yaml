@@ -87,7 +87,7 @@ dependencies:
   # (3.0.4, the win32-free version pub first picked, uses the removed v1 embedding
   # and fails `build apk`). Co-resolves with package_info_plus held at 10.0.x —
   # see the win32 note above.
-  file_picker: ^11.0.0
+  file_picker: ^11.0.3
   # Export delivery = system share sheet (V3-M1). Held at 11.x: 13.x needs
   # win32 ^6.0.1 (incompatible with file_picker's win32 5.x, and both compile
   # their Windows impl even for Android). 11.x uses win32 ^5.5.3 and exposes the
