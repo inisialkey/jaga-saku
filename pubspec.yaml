@@ -65,7 +65,7 @@ dependencies:
   intl: ^0.20.2
 
   # Offline month-grid calendar for the transactions ledger (M2, style guide §2)
-  table_calendar: ^3.2.0
+  table_calendar: ^3.2.1
 
   # Reads the app name / version at runtime for the About screen (M6, offline —
   # never hardcode the version). Held at 9.x: every 10.x pulls win32 ^6.0.x, which
