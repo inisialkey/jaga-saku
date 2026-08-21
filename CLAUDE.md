@@ -125,3 +125,4 @@ fvm dart run scripts/check_arb_parity.dart            # intl_en/intl_id key pari
 Reusable agents live in `.claude/agents/` (code-planner, coder, code-reviewer, qa, test-engineer, release-manager); skills in `.claude/skills/` (codebase-onboard, feature-planner, interview, writing-plans/review, flutter-analyze/test/codegen/build, pr-review, git, commit-message, debugger, workflow). The reference feature under `lib/features/accounts/` is the canonical pattern to copy when adding a feature.
 
 > Tooling note: some skills/commands were authored for an Azure DevOps origin and are being migrated to GitHub (`gh`). Treat git/PR steps as GitHub-based.
+@AGENTS.md
