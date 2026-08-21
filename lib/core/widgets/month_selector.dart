@@ -45,9 +45,17 @@ class MonthSelector extends StatelessWidget {
         icon: const Icon(Icons.chevron_left_rounded),
         onPressed: onPrevious,
       ),
-      Text(
-        '${_idMonths[month.month]} ${month.year}',
-        style: Theme.of(context).textTheme.titleMedium,
+      // Flexible + scaleDown: at large Dynamic Type the label shrinks to fit
+      // between the chevrons instead of overflowing the row (same pattern as
+      // the legend amount in category_legend.dart).
+      Flexible(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '${_idMonths[month.month]} ${month.year}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
       ),
       IconButton(
         tooltip: Strings.of(context)!.selectMonth,
